@@ -1,20 +1,16 @@
 import { defineConfig } from 'vite'
-import electron from 'vite-plugin-electron'
-import renderer from 'vite-plugin-electron-renderer'
+import electron from 'vite-plugin-electron/simple'
 
 export default defineConfig({
   plugins: [
-    electron([
-      {
+    electron({
+      main: {
         entry: 'electron/main.ts',
       },
-      {
-        entry: 'electron/preload.ts',
-        onstart(options) {
-          options.reload()
-        },
+      preload: {
+        input: 'electron/preload.ts',
       },
-    ]),
-    renderer(),
+      renderer: {},
+    }),
   ],
 })

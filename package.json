@@ -33,6 +33,8 @@
     "vite-plugin-electron-renderer": "^0.14.6"
   },
   "dependencies": {
+    "@chroma-core/default-embed": "^0.1.9",
+    "chromadb": "^3.2.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   }
