@@ -9,6 +9,13 @@ interface CollectionInfo {
   count: number
 }
 
+interface DocumentRecord {
+  id: string
+  document: string | null
+  metadata: Record<string, unknown> | null
+  embedding: number[] | null
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   chromadb: {
     connect: async (host: string, port: number): Promise<void> => {
@@ -19,6 +26,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     listCollections: async (): Promise<CollectionInfo[]> => {
       const result = await ipcRenderer.invoke('chromadb:listCollections')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    getDocuments: async (collectionName: string): Promise<DocumentRecord[]> => {
+      const result = await ipcRenderer.invoke('chromadb:getDocuments', collectionName)
       if (!result.success) {
         throw new Error(result.error)
       }

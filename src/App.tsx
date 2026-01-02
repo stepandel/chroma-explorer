@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import SetupModal from './components/SetupModal'
 import CollectionsTable from './components/CollectionsTable'
+import DocumentsView from './components/DocumentsView'
 import { useChromaDB } from './hooks/useChromaDB'
 
 export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(true)
   const [connectionString, setConnectionString] = useState<string | null>(null)
+  const [selectedCollection, setSelectedCollection] = useState<string | null>(null)
 
   const { collections, loading, error, refetch } = useChromaDB(connectionString)
 
@@ -15,11 +17,19 @@ export default function App() {
     setIsModalOpen(false)
   }
 
+  const handleSelectCollection = (collectionName: string) => {
+    setSelectedCollection(collectionName)
+  }
+
+  const handleBackToCollections = () => {
+    setSelectedCollection(null)
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <SetupModal isOpen={isModalOpen} onConnect={handleConnect} />
 
-      {connectionString && (
+      {connectionString && !selectedCollection && (
         <div className="p-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -39,9 +49,17 @@ export default function App() {
               loading={loading}
               error={error}
               onRetry={refetch}
+              onSelectCollection={handleSelectCollection}
             />
           </div>
         </div>
+      )}
+
+      {connectionString && selectedCollection && (
+        <DocumentsView
+          collectionName={selectedCollection}
+          onBack={handleBackToCollections}
+        />
       )}
     </div>
   )

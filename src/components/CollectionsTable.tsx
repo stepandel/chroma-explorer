@@ -10,13 +10,15 @@ interface CollectionsTableProps {
   loading: boolean
   error: string | null
   onRetry: () => void
+  onSelectCollection?: (collectionName: string) => void
 }
 
 export default function CollectionsTable({
   collections,
   loading,
   error,
-  onRetry
+  onRetry,
+  onSelectCollection
 }: CollectionsTableProps) {
   if (loading) {
     return (
@@ -75,7 +77,11 @@ export default function CollectionsTable({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {collections.map((collection) => (
-            <tr key={collection.id} className="hover:bg-gray-50">
+            <tr
+              key={collection.id}
+              onClick={() => onSelectCollection?.(collection.name)}
+              className="hover:bg-gray-50 cursor-pointer transition-colors"
+            >
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {collection.name}
               </td>

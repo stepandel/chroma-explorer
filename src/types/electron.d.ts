@@ -5,10 +5,18 @@ interface CollectionInfo {
   count: number
 }
 
+interface DocumentRecord {
+  id: string
+  document: string | null
+  metadata: Record<string, unknown> | null
+  embedding: number[] | null
+}
+
 interface ElectronAPI {
   chromadb: {
     connect: (host: string, port: number) => Promise<void>
     listCollections: () => Promise<CollectionInfo[]>
+    getDocuments: (collectionName: string) => Promise<DocumentRecord[]>
   }
 }
 

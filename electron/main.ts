@@ -52,6 +52,16 @@ ipcMain.handle('chromadb:listCollections', async () => {
   }
 })
 
+ipcMain.handle('chromadb:getDocuments', async (_event, collectionName: string) => {
+  try {
+    const documents = await chromaDBService.getCollectionDocuments(collectionName)
+    return { success: true, data: documents }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch documents'
+    return { success: false, error: message }
+  }
+})
+
 app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {

@@ -7,6 +7,13 @@ interface CollectionInfo {
   count: number
 }
 
+interface DocumentRecord {
+  id: string
+  document: string | null
+  metadata: Record<string, unknown> | null
+  embedding: number[] | null
+}
+
 class ChromaDBService {
   private client: ChromaClient | null = null
 
@@ -41,6 +48,30 @@ class ChromaDBService {
     )
 
     return collectionsWithCounts
+  }
+
+  async getCollectionDocuments(collectionName: string): Promise<DocumentRecord[]> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    const collection = await this.client.getCollection({ name: collectionName })
+    const results = await collection.get()
+
+    // Transform ChromaDB response to our document format
+    const documents: DocumentRecord[] = []
+    const count = results.ids.length
+
+    for (let i = 0; i < count; i++) {
+      documents.push({
+        id: results.ids[i],
+        document: results.documents?.[i] || null,
+        metadata: results.metadatas?.[i] || null,
+        embedding: results.embeddings?.[i] || null,
+      })
+    }
+
+    return documents
   }
 
   isConnected(): boolean {
