@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { ConnectionProfile } from '../../electron/types'
 
 interface CollectionInfo {
   name: string
@@ -14,13 +15,13 @@ interface UseChromaDBResult {
   refetch: () => Promise<void>
 }
 
-export function useChromaDB(connectionString: string | null): UseChromaDBResult {
+export function useChromaDB(profile: ConnectionProfile | null): UseChromaDBResult {
   const [collections, setCollections] = useState<CollectionInfo[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchCollections = useCallback(async () => {
-    if (!connectionString) {
+    if (!profile) {
       return
     }
 
@@ -33,13 +34,8 @@ export function useChromaDB(connectionString: string | null): UseChromaDBResult 
         throw new Error('Electron API not available. Please make sure the app is running in Electron.')
       }
 
-      // Parse the connection string to extract host and port
-      const url = new URL(connectionString)
-      const host = url.hostname
-      const port = url.port ? parseInt(url.port, 10) : (url.protocol === 'https:' ? 443 : 80)
-
       // Connect to ChromaDB via IPC
-      await window.electronAPI.chromadb.connect(host, port)
+      await window.electronAPI.chromadb.connect(profile)
 
       // Fetch collections via IPC
       const collectionsList = await window.electronAPI.chromadb.listCollections()
@@ -52,7 +48,7 @@ export function useChromaDB(connectionString: string | null): UseChromaDBResult 
     } finally {
       setLoading(false)
     }
-  }, [connectionString])
+  }, [profile])
 
   useEffect(() => {
     fetchCollections()

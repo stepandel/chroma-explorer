@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { ConnectionProfile } from './types.js'
 
 console.log('Preload script is running!')
 
@@ -18,8 +19,8 @@ interface DocumentRecord {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   chromadb: {
-    connect: async (host: string, port: number): Promise<void> => {
-      const result = await ipcRenderer.invoke('chromadb:connect', host, port)
+    connect: async (profile: ConnectionProfile): Promise<void> => {
+      const result = await ipcRenderer.invoke('chromadb:connect', profile)
       if (!result.success) {
         throw new Error(result.error)
       }
@@ -37,6 +38,40 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error)
       }
       return result.data
+    },
+  },
+  profiles: {
+    getAll: async (): Promise<ConnectionProfile[]> => {
+      const result = await ipcRenderer.invoke('profiles:getAll')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    save: async (profile: ConnectionProfile): Promise<void> => {
+      const result = await ipcRenderer.invoke('profiles:save', profile)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    delete: async (id: string): Promise<void> => {
+      const result = await ipcRenderer.invoke('profiles:delete', id)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    getLastActive: async (): Promise<string | null> => {
+      const result = await ipcRenderer.invoke('profiles:getLastActive')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    setLastActive: async (id: string | null): Promise<void> => {
+      const result = await ipcRenderer.invoke('profiles:setLastActive', id)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
     },
   },
 })

@@ -1,4 +1,5 @@
-import { ChromaClient, Collection } from 'chromadb'
+import { ChromaClient, Collection, CloudClient, ChromaClientArgs } from 'chromadb'
+import { ConnectionProfile } from './types.js'
 
 interface CollectionInfo {
   name: string
@@ -15,11 +16,39 @@ interface DocumentRecord {
 }
 
 class ChromaDBService {
-  private client: ChromaClient | null = null
+  private client: ChromaClient | CloudClient | null = null
 
-  async connect(host: string, port: number): Promise<void> {
+  async connect(profile: ConnectionProfile): Promise<void> {
+    console.log('connect', profile)
     try {
-      this.client = new ChromaClient({ host, port })
+      // Auto-detect connection type based on provided fields
+      const hasCloudFields = profile.tenant || profile.database
+
+      if (!!hasCloudFields) {
+        // Cloud connection using CloudClient
+        const cloudConfig = {
+          tenant: profile.tenant,
+          database: profile.database,
+          apiKey: profile.apiKey,
+        }
+
+        this.client = new CloudClient(cloudConfig)
+      } else {
+        // Local or remote connection using ChromaClient
+        // Parse the URL to extract host, port, and SSL
+        const url = new URL(profile.url)
+        const host = url.hostname
+        const ssl = url.protocol === 'https:'
+
+        const clientConfig: ChromaClientArgs = {
+          host,
+          port: url.port ? parseInt(url.port, 10) : 8000,
+          ssl,
+        }
+
+        this.client = new ChromaClient(clientConfig)
+      }
+
       // Test connection with heartbeat
       await this.client.heartbeat()
     } catch (error) {

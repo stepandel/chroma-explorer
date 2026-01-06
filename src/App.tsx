@@ -1,19 +1,21 @@
 import { useState } from 'react'
-import SetupModal from './components/SetupModal'
+import ConnectionModal from './components/ConnectionModal'
 import CollectionsTable from './components/CollectionsTable'
 import DocumentsView from './components/DocumentsView'
 import { useChromaDB } from './hooks/useChromaDB'
+import { ConnectionProfile } from '../electron/types'
 
 export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(true)
-  const [connectionString, setConnectionString] = useState<string | null>(null)
+  const [currentProfile, setCurrentProfile] = useState<ConnectionProfile | null>(null)
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null)
 
-  const { collections, loading, error, refetch } = useChromaDB(connectionString)
+  const { collections, loading, error, refetch } = useChromaDB(currentProfile)
 
-  const handleConnect = (connString: string) => {
-    console.log('Connecting to ChromaDB:', connString)
-    setConnectionString(connString)
+  const handleConnect = async (profile: ConnectionProfile) => {
+    setCurrentProfile(profile)
+    // Track last active profile for UI convenience
+    await window.electronAPI.profiles.setLastActive(profile.id)
     setIsModalOpen(false)
   }
 
@@ -25,18 +27,26 @@ export default function App() {
     setSelectedCollection(null)
   }
 
+  const getConnectionDisplay = () => {
+    if (!currentProfile) return ''
+    if (currentProfile.tenant || currentProfile.database) {
+      return `Cloud: ${currentProfile.tenant}/${currentProfile.database}`
+    }
+    return currentProfile.url
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
-      <SetupModal isOpen={isModalOpen} onConnect={handleConnect} />
+      <ConnectionModal isOpen={isModalOpen} onConnect={handleConnect} />
 
-      {connectionString && !selectedCollection && (
+      {currentProfile && !selectedCollection && (
         <div className="p-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               ChromaDB Explorer
             </h1>
             <p className="text-gray-600">
-              Connected to: <span className="font-mono text-sm">{connectionString}</span>
+              Connected to: <span className="font-mono text-sm">{currentProfile.name || getConnectionDisplay()}</span>
             </p>
           </div>
 
@@ -55,7 +65,7 @@ export default function App() {
         </div>
       )}
 
-      {connectionString && selectedCollection && (
+      {currentProfile && selectedCollection && (
         <DocumentsView
           collectionName={selectedCollection}
           onBack={handleBackToCollections}

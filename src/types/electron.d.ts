@@ -1,3 +1,14 @@
+interface ConnectionProfile {
+  id: string
+  name: string
+  url: string
+  tenant?: string
+  database?: string
+  apiKey?: string
+  createdAt: number
+  lastUsed?: number
+}
+
 interface CollectionInfo {
   name: string
   id: string
@@ -14,9 +25,16 @@ interface DocumentRecord {
 
 interface ElectronAPI {
   chromadb: {
-    connect: (host: string, port: number) => Promise<void>
+    connect: (profile: ConnectionProfile) => Promise<void>
     listCollections: () => Promise<CollectionInfo[]>
     getDocuments: (collectionName: string) => Promise<DocumentRecord[]>
+  }
+  profiles: {
+    getAll: () => Promise<ConnectionProfile[]>
+    save: (profile: ConnectionProfile) => Promise<void>
+    delete: (id: string) => Promise<void>
+    getLastActive: () => Promise<string | null>
+    setLastActive: (id: string | null) => Promise<void>
   }
 }
 
