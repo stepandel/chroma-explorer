@@ -6,6 +6,13 @@ export default defineConfig({
     electron({
       main: {
         entry: 'electron/main.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              external: ['@chroma-core/default-embed', 'onnxruntime-node', 'sharp'],
+            },
+          },
+        },
       },
       preload: {
         input: 'electron/preload.ts',

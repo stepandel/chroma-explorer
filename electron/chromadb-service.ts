@@ -1,4 +1,5 @@
 import { ChromaClient, Collection, CloudClient, ChromaClientArgs } from 'chromadb'
+import { DefaultEmbeddingFunction } from '@chroma-core/default-embed'
 import {
   ConnectionProfile,
   CollectionInfo,
@@ -8,6 +9,11 @@ import {
 
 class ChromaDBService {
   private client: ChromaClient | CloudClient | null = null
+  private embedder: DefaultEmbeddingFunction
+
+  constructor() {
+    this.embedder = new DefaultEmbeddingFunction()
+  }
 
   async connect(profile: ConnectionProfile): Promise<void> {
     console.log('connect', profile)
@@ -99,7 +105,10 @@ class ChromaDBService {
       throw new Error('ChromaDB client not connected. Please connect first.')
     }
 
-    const collection = await this.client.getCollection({ name: params.collectionName })
+    const collection = await this.client.getCollection({
+      name: params.collectionName,
+      embeddingFunction: this.embedder,
+    })
 
     // If queryText is provided, use semantic search (query method)
     if (params.queryText && params.queryText.trim() !== '') {
