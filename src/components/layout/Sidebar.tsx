@@ -24,17 +24,16 @@ export function Sidebar() {
 
   return (
     <aside className="w-60 bg-white border-r border-gray-200 flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-900">Collections</h2>
-          <Button onClick={handleRefresh} variant="ghost" size="sm" className="h-8 w-8 p-0">
+      {/* Header - with spacing for traffic lights */}
+      <div className="pt-14 px-4 pb-3 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-500">
+            {collections.length} collection{collections.length !== 1 ? 's' : ''}
+          </p>
+          <Button onClick={handleRefresh} variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-500">
             ↻
           </Button>
         </div>
-        <p className="text-xs text-gray-500">
-          {collections.length} collection{collections.length !== 1 ? 's' : ''}
-        </p>
       </div>
 
       {/* Collections List */}

@@ -18,22 +18,30 @@ export function TopBar() {
   }
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4">
-      <div className="flex items-center gap-3">
+    <header
+      className="h-14 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 flex items-center justify-between"
+      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+    >
+      {/* Left side - Connection info with spacing for traffic lights */}
+      <div className="flex items-center gap-3 pl-20">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500" title="Connected" />
-          <span className="text-sm font-medium text-gray-700">
+          <div className="w-2 h-2 rounded-full bg-emerald-500" title="Connected" />
+          <span className="text-sm font-semibold text-gray-800">
             {currentProfile?.name || 'Connected'}
           </span>
         </div>
         <span className="text-xs text-gray-500">{currentProfile?.url}</span>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button onClick={handleNewTab} size="sm" variant="outline">
+      {/* Right side - Actions */}
+      <div
+        className="flex items-center gap-2 pr-4"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
+        <Button onClick={handleNewTab} size="sm" variant="ghost" className="h-7 text-xs">
           + New Tab
         </Button>
-        <Button onClick={handleDisconnect} size="sm" variant="ghost">
+        <Button onClick={handleDisconnect} size="sm" variant="ghost" className="h-7 text-xs text-gray-600">
           Disconnect
         </Button>
       </div>
