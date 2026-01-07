@@ -109,12 +109,12 @@ export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBPr
     queryCache.current.clear()
   }, [])
 
-  // Auto-connect when profile changes
+  // Auto-connect when profile changes or on initial mount
   useEffect(() => {
-    if (profile && profile !== currentProfile) {
+    if (profile && (profile !== currentProfile || !isConnected)) {
       connect(profile).catch(console.error)
     }
-  }, [profile, currentProfile, connect])
+  }, [profile, currentProfile, isConnected, connect])
 
   const value: ChromaDBContextValue = {
     currentProfile,
