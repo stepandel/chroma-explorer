@@ -72,6 +72,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
     },
   },
+  tabs: {
+    save: async (data: any): Promise<void> => {
+      const result = await ipcRenderer.invoke('tabs:save', data)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    load: async (): Promise<any> => {
+      const result = await ipcRenderer.invoke('tabs:load')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    clear: async (): Promise<void> => {
+      const result = await ipcRenderer.invoke('tabs:clear')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+  },
 })
 
 console.log('Preload script finished, electronAPI exposed:', typeof window !== 'undefined' ? !!(window as any).electronAPI : 'window not defined')

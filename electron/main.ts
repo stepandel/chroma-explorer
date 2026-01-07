@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBService } from './chromadb-service'
 import { connectionStore } from './connection-store'
+import { tabsStore } from './tabs-store'
 import { ConnectionProfile, SearchDocumentsParams } from './types'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -121,6 +122,37 @@ ipcMain.handle('profiles:setLastActive', async (_event, id: string | null) => {
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to set last active profile'
+    return { success: false, error: message }
+  }
+})
+
+// Tabs management IPC handlers
+ipcMain.handle('tabs:save', async (_event, data: any) => {
+  try {
+    tabsStore.save(data)
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save tabs'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('tabs:load', async () => {
+  try {
+    const data = tabsStore.load()
+    return { success: true, data }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load tabs'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('tabs:clear', async () => {
+  try {
+    tabsStore.clear()
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to clear tabs'
     return { success: false, error: message }
   }
 })

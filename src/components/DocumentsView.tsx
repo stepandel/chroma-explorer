@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useChromaDB } from '../providers/ChromaDBProvider'
+import { useTabs } from '../context/TabsContext'
 import DocumentsTable from './DocumentsTable'
 import { FilterSection } from './FilterSection'
-import { useDocumentFilters } from '../hooks/useDocumentFilters'
-import { Button } from '@/components/ui/button'
+import { MetadataFilter } from '../types/filters'
 
 interface DocumentRecord {
   id: string
@@ -13,15 +14,75 @@ interface DocumentRecord {
 
 interface DocumentsViewProps {
   collectionName: string
-  onBack: () => void
 }
 
-export default function DocumentsView({ collectionName, onBack }: DocumentsViewProps) {
+export default function DocumentsView({ collectionName }: DocumentsViewProps) {
   const [documents, setDocuments] = useState<DocumentRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const filterHook = useDocumentFilters()
+  const { searchDocuments } = useChromaDB()
+  const { activeTab, updateTabFilters } = useTabs()
+
+  if (!activeTab) {
+    return null
+  }
+
+  const filters = activeTab.filters
+
+  // Create a hook-compatible interface for FilterSection
+  const filterHook = useMemo(() => ({
+    filters,
+    hasActiveFilters: filters.queryText.trim() !== '' || filters.metadataFilters.length > 0,
+
+    setQueryText: (queryText: string) => {
+      updateTabFilters(activeTab.id, { ...filters, queryText })
+    },
+
+    setNResults: (nResults: number) => {
+      updateTabFilters(activeTab.id, { ...filters, nResults })
+    },
+
+    addMetadataFilter: (key: string, operator: any, value: string) => {
+      const newFilter: MetadataFilter = {
+        id: crypto.randomUUID(),
+        key,
+        operator,
+        value,
+      }
+      updateTabFilters(activeTab.id, {
+        ...filters,
+        metadataFilters: [...filters.metadataFilters, newFilter],
+      })
+    },
+
+    removeMetadataFilter: (id: string) => {
+      updateTabFilters(activeTab.id, {
+        ...filters,
+        metadataFilters: filters.metadataFilters.filter(f => f.id !== id),
+      })
+    },
+
+    clearAllFilters: () => {
+      updateTabFilters(activeTab.id, {
+        queryText: '',
+        nResults: 10,
+        metadataFilters: [],
+      })
+    },
+
+    buildSearchParams: () => ({
+      collectionName,
+      queryText: filters.queryText || undefined,
+      nResults: filters.nResults,
+      metadataFilter: filters.metadataFilters.length > 0
+        ? filters.metadataFilters.reduce((acc, filter) => ({
+            ...acc,
+            [filter.key]: { [filter.operator]: filter.value },
+          }), {})
+        : undefined,
+    }),
+  }), [filters, activeTab.id, collectionName, updateTabFilters])
 
   useEffect(() => {
     async function fetchDocuments() {
@@ -29,15 +90,8 @@ export default function DocumentsView({ collectionName, onBack }: DocumentsViewP
       setError(null)
 
       try {
-        if (!window.electronAPI || !window.electronAPI.chromadb) {
-          throw new Error('Electron API not available')
-        }
-
-        // Build search params from filters
-        const params = filterHook.buildSearchParams(collectionName)
-
-        // Use searchDocuments instead of getDocuments
-        const docs = await window.electronAPI.chromadb.searchDocuments(params)
+        const params = filterHook.buildSearchParams()
+        const docs = await searchDocuments(params)
         setDocuments(docs)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch documents'
@@ -54,24 +108,15 @@ export default function DocumentsView({ collectionName, onBack }: DocumentsViewP
     }, 500)
 
     return () => clearTimeout(timeoutId)
-  }, [collectionName, filterHook.filters])
+  }, [collectionName, filters, searchDocuments])
 
   return (
     <div className="p-8">
-      <div className="mb-6 flex items-center gap-4">
-        <Button
-          onClick={onBack}
-          variant="link"
-          className="p-0 h-auto font-medium"
-        >
-          ← Back to Collections
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{collectionName}</h1>
-          <p className="text-gray-600 text-sm mt-1">
-            {!loading && !error && `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
-          </p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">{collectionName}</h1>
+        <p className="text-gray-600 text-sm mt-1">
+          {!loading && !error && `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
+        </p>
       </div>
 
       <FilterSection filterHook={filterHook} />

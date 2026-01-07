@@ -32,6 +32,12 @@ interface SearchDocumentsParams {
   offset?: number
 }
 
+interface TabsStoreData {
+  tabs: any[]
+  activeTabId: string
+  sidebarCollapsed: boolean
+}
+
 interface ElectronAPI {
   chromadb: {
     connect: (profile: ConnectionProfile) => Promise<void>
@@ -45,6 +51,11 @@ interface ElectronAPI {
     delete: (id: string) => Promise<void>
     getLastActive: () => Promise<string | null>
     setLastActive: (id: string | null) => Promise<void>
+  }
+  tabs: {
+    save: (data: TabsStoreData) => Promise<void>
+    load: () => Promise<TabsStoreData | null>
+    clear: () => Promise<void>
   }
 }
 
