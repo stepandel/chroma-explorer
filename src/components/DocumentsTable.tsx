@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 interface DocumentRecord {
   id: string
@@ -30,12 +31,14 @@ function EmbeddingCell({ embedding }: { embedding: number[] | null }) {
         <div className="text-xs bg-gray-50 p-2 rounded font-mono max-h-40 overflow-y-auto">
           [{embedding.join(', ')}]
         </div>
-        <button
+        <Button
           onClick={() => setExpanded(false)}
-          className="text-xs text-blue-600 hover:text-blue-800"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs"
         >
           Show less
-        </button>
+        </Button>
       </div>
     )
   }
@@ -47,12 +50,14 @@ function EmbeddingCell({ embedding }: { embedding: number[] | null }) {
         {hasMore && '...'}]
       </span>
       {hasMore && (
-        <button
+        <Button
           onClick={() => setExpanded(true)}
-          className="text-xs text-blue-600 hover:text-blue-800 whitespace-nowrap"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs whitespace-nowrap"
         >
           +{embedding.length - previewCount} more
-        </button>
+        </Button>
       )}
     </div>
   )

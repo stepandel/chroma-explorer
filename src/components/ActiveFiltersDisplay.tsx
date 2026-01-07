@@ -1,5 +1,6 @@
 import { FilterChip } from './FilterChip'
 import { DocumentFilters } from '../types/filters'
+import { Button } from '@/components/ui/button'
 
 interface ActiveFiltersDisplayProps {
   filters: DocumentFilters
@@ -30,12 +31,14 @@ export function ActiveFiltersDisplay({
         <span className="text-sm font-medium text-gray-700">
           Active Filters ({totalFilters}):
         </span>
-        <button
+        <Button
           onClick={onClearAll}
-          className="text-sm text-blue-600 hover:text-blue-800 underline"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-sm"
         >
           Clear All
-        </button>
+        </Button>
       </div>
       <div className="flex flex-wrap gap-2">
         {hasQueryText && (

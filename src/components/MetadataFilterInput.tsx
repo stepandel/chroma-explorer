@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { MetadataOperator } from '../types/filters'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface MetadataFilterInputProps {
   onAdd: (key: string, operator: MetadataOperator, value: string) => void
@@ -37,42 +41,45 @@ export function MetadataFilterInput({ onAdd }: MetadataFilterInputProps) {
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">Metadata Filter</label>
+      <Label className="block">Metadata Filter</Label>
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={key}
           onChange={(e) => setKey(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Key (e.g., type)"
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1"
         />
-        <select
+        <Select
           value={operator}
-          onChange={(e) => setOperator(e.target.value as MetadataOperator)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onValueChange={(value) => setOperator(value as MetadataOperator)}
         >
-          {Object.entries(operatorLabels).map(([op, label]) => (
-            <option key={op} value={op}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <input
+          <SelectTrigger className="w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(operatorLabels).map(([op, label]) => (
+              <SelectItem key={op} value={op}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Value"
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1"
         />
-        <button
+        <Button
           onClick={handleAdd}
           disabled={!key.trim() || !value.trim()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           + Add
-        </button>
+        </Button>
       </div>
     </div>
   )

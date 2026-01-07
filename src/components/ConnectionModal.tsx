@@ -1,5 +1,10 @@
 import { useState, FormEvent, useEffect } from 'react'
 import { ConnectionProfile } from '../../electron/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface ConnectionModalProps {
   isOpen: boolean
@@ -37,9 +42,10 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const handleProfileSelect = (profileId: string) => {
     setSelectedProfileId(profileId)
 
-    if (!profileId) {
+    if (!profileId || profileId === '__new__') {
       // Clear form
       resetForm()
+      setSelectedProfileId('')
       return
     }
 
@@ -161,62 +167,65 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         {/* Saved Profiles Dropdown */}
         <div className="mb-6 flex gap-2">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="block mb-2">
               Saved Profiles
-            </label>
-            <select
-              value={selectedProfileId}
-              onChange={(e) => handleProfileSelect(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            </Label>
+            <Select
+              value={selectedProfileId || '__new__'}
+              onValueChange={handleProfileSelect}
             >
-              <option value="">Create new connection...</option>
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Create new connection..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__new__">Create new connection...</SelectItem>
+                {profiles.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {selectedProfileId && (
-            <button
+            <Button
               type="button"
               onClick={handleDeleteProfile}
-              className="mt-7 px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+              variant="ghost"
+              className="mt-7 text-red-600 hover:text-red-800 hover:bg-red-50"
               title="Delete profile"
             >
               Delete
-            </button>
+            </Button>
           )}
         </div>
 
         <form onSubmit={handleSubmit}>
           {/* Profile Name */}
           <div className="mb-4">
-            <label htmlFor="profileName" className="block text-sm font-medium text-gray-700 mb-2">
+            <Label htmlFor="profileName" className="block mb-2">
               Profile Name
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               id="profileName"
               value={profileName}
               onChange={(e) => setProfileName(e.target.value)}
               placeholder="My ChromaDB Connection"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           {/* URL Field */}
           <div className="mb-4">
-            <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
+            <Label htmlFor="url" className="block mb-2">
               Connection URL *
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               id="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="http://localhost:8000"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
             <p className="mt-1 text-xs text-gray-500">
@@ -231,62 +240,56 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
             </h3>
 
             <div className="mb-3">
-              <label htmlFor="tenant" className="block text-sm font-medium text-gray-700 mb-2">
+              <Label htmlFor="tenant" className="block mb-2">
                 Tenant
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 id="tenant"
                 value={tenant}
                 onChange={(e) => setTenant(e.target.value)}
                 placeholder="your-tenant-id"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div className="mb-3">
-              <label htmlFor="database" className="block text-sm font-medium text-gray-700 mb-2">
+              <Label htmlFor="database" className="block mb-2">
                 Database
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 id="database"
                 value={database}
                 onChange={(e) => setDatabase(e.target.value)}
                 placeholder="your-database-name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div className="mb-0">
-              <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
+              <Label htmlFor="apiKey" className="block mb-2">
                 API Key
-              </label>
-              <input
+              </Label>
+              <Input
                 type="password"
                 id="apiKey"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="your-api-key"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
 
           {/* Save Profile Checkbox */}
           {!selectedProfileId && (
-            <div className="mb-6">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={saveProfile}
-                  onChange={(e) => setSaveProfile(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm font-medium text-gray-700">
-                  Save this profile
-                </span>
-              </label>
+            <div className="mb-6 flex items-center space-x-2">
+              <Checkbox
+                id="saveProfile"
+                checked={saveProfile}
+                onCheckedChange={(checked) => setSaveProfile(checked as boolean)}
+              />
+              <Label htmlFor="saveProfile" className="text-sm font-medium cursor-pointer">
+                Save this profile
+              </Label>
             </div>
           )}
 
@@ -296,13 +299,13 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={isConnecting}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full"
           >
             {isConnecting ? 'Testing connection...' : 'Connect'}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

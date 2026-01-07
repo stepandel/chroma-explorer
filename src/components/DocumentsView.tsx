@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import DocumentsTable from './DocumentsTable'
 import { FilterSection } from './FilterSection'
 import { useDocumentFilters } from '../hooks/useDocumentFilters'
+import { Button } from '@/components/ui/button'
 
 interface DocumentRecord {
   id: string
@@ -58,12 +59,13 @@ export default function DocumentsView({ collectionName, onBack }: DocumentsViewP
   return (
     <div className="p-8">
       <div className="mb-6 flex items-center gap-4">
-        <button
+        <Button
           onClick={onBack}
-          className="text-blue-600 hover:text-blue-800 font-medium"
+          variant="link"
+          className="p-0 h-auto font-medium"
         >
           ← Back to Collections
-        </button>
+        </Button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{collectionName}</h1>
           <p className="text-gray-600 text-sm mt-1">

@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button'
+
 interface FilterChipProps {
   type: 'query' | 'metadata'
   label: string
@@ -21,13 +23,15 @@ export function FilterChip({ type, label, onRemove }: FilterChipProps) {
     >
       <span>{icons[type]}</span>
       <span>{label}</span>
-      <button
+      <Button
         onClick={onRemove}
-        className="hover:text-red-600 transition-colors"
+        variant="ghost"
+        size="sm"
+        className="h-auto p-0 hover:text-red-600 hover:bg-transparent"
         aria-label="Remove filter"
       >
         ✕
-      </button>
+      </Button>
     </div>
   )
 }
