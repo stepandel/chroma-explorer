@@ -25,10 +25,11 @@ const ChromaDBContext = createContext<ChromaDBContextValue | null>(null)
 
 interface ChromaDBProviderProps {
   profile: ConnectionProfile | null
+  onDisconnect?: () => void
   children: ReactNode
 }
 
-export function ChromaDBProvider({ profile, children }: ChromaDBProviderProps) {
+export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBProviderProps) {
   const [currentProfile, setCurrentProfile] = useState<ConnectionProfile | null>(profile)
   const [isConnected, setIsConnected] = useState(false)
   const [collections, setCollections] = useState<CollectionInfo[]>([])
@@ -60,7 +61,8 @@ export function ChromaDBProvider({ profile, children }: ChromaDBProviderProps) {
     setCollections([])
     setCollectionsError(null)
     queryCache.current.clear()
-  }, [])
+    onDisconnect?.()
+  }, [onDisconnect])
 
   const refreshCollections = useCallback(async () => {
     if (!currentProfile) return

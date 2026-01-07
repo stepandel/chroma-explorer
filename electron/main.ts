@@ -20,7 +20,6 @@ function createWindow() {
     width: 1200,
     height: 800,
     titleBarStyle: 'hiddenInset', // macOS: show traffic lights, hide title
-    trafficLightPosition: { x: 20, y: 22 }, // Position traffic lights
     title: '', // Remove default title
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
