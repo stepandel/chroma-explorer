@@ -11,6 +11,7 @@ interface DocumentsTableProps {
   documents: DocumentRecord[]
   loading: boolean
   error: string | null
+  hasActiveFilters?: boolean
 }
 
 function EmbeddingCell({ embedding }: { embedding: number[] | null }) {
@@ -57,11 +58,18 @@ function EmbeddingCell({ embedding }: { embedding: number[] | null }) {
   )
 }
 
-export default function DocumentsTable({ documents, loading, error }: DocumentsTableProps) {
+export default function DocumentsTable({
+  documents,
+  loading,
+  error,
+  hasActiveFilters = false,
+}: DocumentsTableProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="text-gray-600">Loading documents...</div>
+        <div className="text-gray-600">
+          {hasActiveFilters ? 'Searching documents...' : 'Loading documents...'}
+        </div>
       </div>
     )
   }
@@ -82,7 +90,11 @@ export default function DocumentsTable({ documents, loading, error }: DocumentsT
       <div className="flex items-center justify-center p-12">
         <div className="text-center">
           <h3 className="text-gray-700 font-semibold text-lg mb-2">No Documents Found</h3>
-          <p className="text-gray-500">This collection doesn't have any documents yet.</p>
+          <p className="text-gray-500">
+            {hasActiveFilters
+              ? 'No documents match your filters. Try adjusting your search criteria.'
+              : "This collection doesn't have any documents yet."}
+          </p>
         </div>
       </div>
     )

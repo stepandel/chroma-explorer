@@ -1,19 +1,10 @@
 import { ChromaClient, Collection, CloudClient, ChromaClientArgs } from 'chromadb'
-import { ConnectionProfile } from './types.js'
-
-interface CollectionInfo {
-  name: string
-  id: string
-  metadata: Record<string, unknown> | null
-  count: number
-}
-
-interface DocumentRecord {
-  id: string
-  document: string | null
-  metadata: Record<string, unknown> | null
-  embedding: number[] | null
-}
+import {
+  ConnectionProfile,
+  CollectionInfo,
+  DocumentRecord,
+  SearchDocumentsParams,
+} from './types'
 
 class ChromaDBService {
   private client: ChromaClient | CloudClient | null = null
@@ -101,6 +92,53 @@ class ChromaDBService {
     }
 
     return documents
+  }
+
+  async searchDocuments(params: SearchDocumentsParams): Promise<DocumentRecord[]> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    const collection = await this.client.getCollection({ name: params.collectionName })
+
+    // If queryText is provided, use semantic search (query method)
+    if (params.queryText && params.queryText.trim() !== '') {
+      // Use queryTexts parameter - ChromaDB will handle embedding on the server side
+      const queryResults = await collection.query({
+        queryTexts: [params.queryText],
+        nResults: params.nResults || 10,
+        where: params.metadataFilter,
+        include: ['documents', 'metadatas', 'embeddings', 'distances'],
+      })
+
+      // Transform query results to DocumentRecord format by mapping over documents[0]
+      const documents: DocumentRecord[] = (queryResults.ids?.[0] || []).map((id, i) => ({
+        id: queryResults.ids?.[0]?.[i] || '',
+        document: queryResults.documents?.[0]?.[i] || null,
+        metadata: queryResults.metadatas?.[0]?.[i] || null,
+        embedding: queryResults.embeddings?.[0]?.[i] || null,
+      }));
+
+      return documents
+    } else {
+      // Use get method for metadata filtering only
+      const getResults = await collection.get({
+        where: params.metadataFilter,
+        limit: params.limit || 300,
+        offset: params.offset || 0,
+        include: ['documents', 'metadatas', 'embeddings'],
+      })
+
+      // Transform get results to DocumentRecord format
+      const documents: DocumentRecord[] = (getResults.ids || []).map((id, i) => ({
+        id,
+        document: getResults.documents?.[i] || null,
+        metadata: getResults.metadatas?.[i] || null,
+        embedding: getResults.embeddings?.[i] || null,
+      }));
+
+      return documents
+    }
   }
 
   isConnected(): boolean {

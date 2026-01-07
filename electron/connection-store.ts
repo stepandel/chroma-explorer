@@ -1,5 +1,5 @@
 import Store from 'electron-store'
-import { ConnectionProfile } from './types.js'
+import { ConnectionProfile } from './types'
 
 interface StoreSchema {
   profiles: ConnectionProfile[]

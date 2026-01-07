@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import DocumentsTable from './DocumentsTable'
+import { FilterSection } from './FilterSection'
+import { useDocumentFilters } from '../hooks/useDocumentFilters'
 
 interface DocumentRecord {
   id: string
@@ -18,6 +20,8 @@ export default function DocumentsView({ collectionName, onBack }: DocumentsViewP
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const filterHook = useDocumentFilters()
+
   useEffect(() => {
     async function fetchDocuments() {
       setLoading(true)
@@ -28,7 +32,11 @@ export default function DocumentsView({ collectionName, onBack }: DocumentsViewP
           throw new Error('Electron API not available')
         }
 
-        const docs = await window.electronAPI.chromadb.getDocuments(collectionName)
+        // Build search params from filters
+        const params = filterHook.buildSearchParams(collectionName)
+
+        // Use searchDocuments instead of getDocuments
+        const docs = await window.electronAPI.chromadb.searchDocuments(params)
         setDocuments(docs)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch documents'
@@ -39,8 +47,13 @@ export default function DocumentsView({ collectionName, onBack }: DocumentsViewP
       }
     }
 
-    fetchDocuments()
-  }, [collectionName])
+    // Debounce for query text to avoid excessive API calls
+    const timeoutId = setTimeout(() => {
+      fetchDocuments()
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [collectionName, filterHook.filters])
 
   return (
     <div className="p-8">
@@ -59,11 +72,18 @@ export default function DocumentsView({ collectionName, onBack }: DocumentsViewP
         </div>
       </div>
 
+      <FilterSection filterHook={filterHook} />
+
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800">Documents</h2>
         </div>
-        <DocumentsTable documents={documents} loading={loading} error={error} />
+        <DocumentsTable
+          documents={documents}
+          loading={loading}
+          error={error}
+          hasActiveFilters={filterHook.hasActiveFilters}
+        />
       </div>
     </div>
   )

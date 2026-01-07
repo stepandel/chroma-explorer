@@ -1,21 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { ConnectionProfile } from './types.js'
+import {
+  ConnectionProfile,
+  CollectionInfo,
+  DocumentRecord,
+  SearchDocumentsParams,
+} from './types'
 
 console.log('Preload script is running!')
-
-interface CollectionInfo {
-  name: string
-  id: string
-  metadata: Record<string, unknown> | null
-  count: number
-}
-
-interface DocumentRecord {
-  id: string
-  document: string | null
-  metadata: Record<string, unknown> | null
-  embedding: number[] | null
-}
 
 contextBridge.exposeInMainWorld('electronAPI', {
   chromadb: {
@@ -34,6 +25,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     getDocuments: async (collectionName: string): Promise<DocumentRecord[]> => {
       const result = await ipcRenderer.invoke('chromadb:getDocuments', collectionName)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    searchDocuments: async (params: SearchDocumentsParams): Promise<DocumentRecord[]> => {
+      const result = await ipcRenderer.invoke('chromadb:searchDocuments', params)
       if (!result.success) {
         throw new Error(result.error)
       }

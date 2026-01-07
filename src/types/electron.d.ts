@@ -23,11 +23,21 @@ interface DocumentRecord {
   embedding: number[] | null
 }
 
+interface SearchDocumentsParams {
+  collectionName: string
+  queryText?: string
+  nResults?: number
+  metadataFilter?: Record<string, any>
+  limit?: number
+  offset?: number
+}
+
 interface ElectronAPI {
   chromadb: {
     connect: (profile: ConnectionProfile) => Promise<void>
     listCollections: () => Promise<CollectionInfo[]>
     getDocuments: (collectionName: string) => Promise<DocumentRecord[]>
+    searchDocuments: (params: SearchDocumentsParams) => Promise<DocumentRecord[]>
   }
   profiles: {
     getAll: () => Promise<ConnectionProfile[]>

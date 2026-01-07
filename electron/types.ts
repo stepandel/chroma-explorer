@@ -13,3 +13,26 @@ export interface ConnectionProfile {
   createdAt: number // Timestamp
   lastUsed?: number // Timestamp
 }
+
+export interface CollectionInfo {
+  name: string
+  id: string
+  metadata: Record<string, unknown> | null
+  count: number
+}
+
+export interface DocumentRecord {
+  id: string
+  document: string | null
+  metadata: Record<string, unknown> | null
+  embedding: number[] | null
+}
+
+export interface SearchDocumentsParams {
+  collectionName: string
+  queryText?: string // Triggers semantic search
+  nResults?: number // Max results (default: 10)
+  metadataFilter?: Record<string, any> // Where clause
+  limit?: number // For get() pagination
+  offset?: number // For get() pagination
+}

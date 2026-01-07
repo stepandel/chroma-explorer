@@ -1,9 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromaDBService } from './chromadb-service.js'
-import { connectionStore } from './connection-store.js'
-import { ConnectionProfile } from './types.js'
+import { chromaDBService } from './chromadb-service'
+import { connectionStore } from './connection-store'
+import { ConnectionProfile, SearchDocumentsParams } from './types'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -60,6 +60,16 @@ ipcMain.handle('chromadb:getDocuments', async (_event, collectionName: string) =
     return { success: true, data: documents }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch documents'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('chromadb:searchDocuments', async (_event, params: SearchDocumentsParams) => {
+  try {
+    const documents = await chromaDBService.searchDocuments(params)
+    return { success: true, data: documents }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to search documents'
     return { success: false, error: message }
   }
 })
