@@ -21,6 +21,7 @@ interface TabsContextValue {
 
   // Persistence
   loadState: () => Promise<void>
+  clearAllTabs: () => Promise<void>
 }
 
 const TabsContext = createContext<TabsContextValue | null>(null)
@@ -156,6 +157,13 @@ export function TabsProvider({ children }: TabsProviderProps) {
     setSidebarCollapsed(prev => !prev)
   }, [])
 
+  // Clear all tabs and persistence
+  const clearAllTabs = useCallback(async () => {
+    setTabs([])
+    setActiveTabId('')
+    await tabsPersistence.clear()
+  }, [])
+
   const value: TabsContextValue = {
     tabs,
     activeTabId,
@@ -167,6 +175,7 @@ export function TabsProvider({ children }: TabsProviderProps) {
     updateTabFilters,
     toggleSidebar,
     loadState,
+    clearAllTabs,
   }
 
   return (

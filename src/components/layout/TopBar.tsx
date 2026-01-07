@@ -4,14 +4,15 @@ import { Button } from '../ui/button'
 
 export function TopBar() {
   const { currentProfile, disconnect } = useChromaDB()
-  const { createTab } = useTabs()
+  const { createTab, clearAllTabs } = useTabs()
 
   const handleNewTab = () => {
     createTab() // Creates a blank tab
   }
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     if (confirm('Are you sure you want to disconnect? This will close all tabs.')) {
+      await clearAllTabs()
       disconnect()
       // App.tsx will handle showing the connection modal again
     }
