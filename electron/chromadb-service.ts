@@ -16,7 +16,6 @@ class ChromaDBService {
   }
 
   async connect(profile: ConnectionProfile): Promise<void> {
-    console.log('connect', profile)
     try {
       // Auto-detect connection type based on provided fields
       const hasCloudFields = profile.tenant || profile.database
