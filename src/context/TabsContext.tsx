@@ -11,10 +11,10 @@ interface TabsContextValue {
   sidebarCollapsed: boolean
 
   // Tab Management
-  createTab: (collectionName?: string) => string
   closeTab: (tabId: string) => void
   switchTab: (tabId: string) => void
   updateTabFilters: (tabId: string, filters: DocumentFilters) => void
+  openCollection: (collectionName: string) => void
 
   // UI
   toggleSidebar: () => void
@@ -77,55 +77,43 @@ export function TabsProvider({ windowId, children }: TabsProviderProps) {
   // Load state on mount from React Query
   const loadState = useCallback(async () => {
     if (savedTabsData && savedTabsData.tabs.length > 0) {
-      setTabs(savedTabsData.tabs)
-      setActiveTabId(savedTabsData.activeTabId)
-      setSidebarCollapsed(savedTabsData.sidebarCollapsed)
+      const { tabs: savedTabs, activeTabId: savedActiveTabId, sidebarCollapsed: savedSidebarCollapsed } = savedTabsData
+
+      setTabs(savedTabs)
+      // If only 1 tab, always use that tab's ID regardless of saved activeTabId
+      setActiveTabId(savedTabs.length === 1 ? savedTabs[0].id : savedActiveTabId)
+      setSidebarCollapsed(savedSidebarCollapsed)
+    } else {
+      // No saved tabs - start with empty state
+      setTabs([])
+      setActiveTabId('')
     }
 
     setIsLoaded(true)
   }, [savedTabsData])
-
-  // Create a new tab
-  const createTab = useCallback((collectionName?: string): string => {
-    // Always create a new tab (allows multiple tabs for same collection)
-    const newTab: Tab = {
-      id: crypto.randomUUID(),
-      collectionName: collectionName || null,
-      filters: getDefaultFilters(),
-      createdAt: Date.now(),
-      lastAccessed: Date.now(),
-    }
-
-    setTabs(prevTabs => [...prevTabs, newTab])
-    setActiveTabId(newTab.id)
-
-    return newTab.id
-  }, [tabs])
 
   // Close a tab
   const closeTab = useCallback((tabId: string) => {
     setTabs(prevTabs => {
       const filtered = prevTabs.filter(t => t.id !== tabId)
 
+      // If no tabs left, clear active tab
+      if (filtered.length === 0) {
+        setActiveTabId('')
+        return []
+      }
+
+      // If only 1 tab left, make it active
+      if (filtered.length === 1) {
+        setActiveTabId(filtered[0].id)
+        return filtered
+      }
+
       // If closing the active tab, switch to another tab
       if (tabId === activeTabId) {
-        if (filtered.length > 0) {
-          // Switch to the next tab, or the previous one if it was the last tab
-          const closingIndex = prevTabs.findIndex(t => t.id === tabId)
-          const nextIndex = closingIndex < filtered.length ? closingIndex : filtered.length - 1
-          setActiveTabId(filtered[nextIndex].id)
-        } else {
-          // No tabs left - create a blank tab
-          const blankTab: Tab = {
-            id: crypto.randomUUID(),
-            collectionName: null,
-            filters: getDefaultFilters(),
-            createdAt: Date.now(),
-            lastAccessed: Date.now(),
-          }
-          setActiveTabId(blankTab.id)
-          return [blankTab]
-        }
+        const closingIndex = prevTabs.findIndex(t => t.id === tabId)
+        const nextIndex = closingIndex < filtered.length ? closingIndex : filtered.length - 1
+        setActiveTabId(filtered[nextIndex].id)
       }
 
       return filtered
@@ -155,6 +143,20 @@ export function TabsProvider({ windowId, children }: TabsProviderProps) {
     )
   }, [])
 
+  // Open a collection - create a new tab for it
+  const openCollection = useCallback((collectionName: string) => {
+    const newTab: Tab = {
+      id: crypto.randomUUID(),
+      collectionName,
+      filters: getDefaultFilters(),
+      createdAt: Date.now(),
+      lastAccessed: Date.now(),
+    }
+
+    setTabs(prevTabs => [...prevTabs, newTab])
+    setActiveTabId(newTab.id)
+  }, [])
+
   // Toggle sidebar
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed(prev => !prev)
@@ -172,10 +174,10 @@ export function TabsProvider({ windowId, children }: TabsProviderProps) {
     activeTabId,
     activeTab,
     sidebarCollapsed,
-    createTab,
     closeTab,
     switchTab,
     updateTabFilters,
+    openCollection,
     toggleSidebar,
     loadState,
     clearAllTabs,

@@ -12,7 +12,6 @@ export function TabBar() {
     <div className="h-12 bg-gray-50 border-b border-gray-200 flex items-center px-2 overflow-x-auto">
       {tabs.map(tab => {
         const isActive = tab.id === activeTabId
-        const label = tab.label || tab.collectionName || 'New Tab'
 
         return (
           <div
@@ -28,7 +27,7 @@ export function TabBar() {
             onClick={() => switchTab(tab.id)}
           >
             <span className="flex-1 truncate text-sm font-medium">
-              {label}
+              {tab.collectionName}
             </span>
             <Button
               onClick={(e) => {

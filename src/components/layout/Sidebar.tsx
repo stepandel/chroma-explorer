@@ -4,10 +4,10 @@ import { Button } from '../ui/button'
 
 export function Sidebar() {
   const { collections, collectionsLoading, collectionsError, refreshCollections } = useChromaDB()
-  const { createTab, sidebarCollapsed } = useTabs()
+  const { openCollection, sidebarCollapsed } = useTabs()
 
   const handleCollectionClick = (collectionName: string) => {
-    createTab(collectionName)
+    openCollection(collectionName)
   }
 
   const handleRefresh = () => {

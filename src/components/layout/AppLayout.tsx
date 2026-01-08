@@ -6,21 +6,12 @@ import { TabBar } from './TabBar'
 import { MainContent } from './MainContent'
 
 export function AppLayout() {
-  const { loadState, tabs, createTab } = useTabs()
+  const { loadState } = useTabs()
 
   // Load persisted tabs on mount
   useEffect(() => {
-    const initializeTabs = async () => {
-      await loadState()
-
-      // If no tabs were loaded, create a blank tab
-      if (tabs.length === 0) {
-        createTab()
-      }
-    }
-
-    initializeTabs()
-  }, []) // Only run once on mount
+    loadState()
+  }, [loadState])
 
   return (
     <div className="flex h-screen bg-gray-100">

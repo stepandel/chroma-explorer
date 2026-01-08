@@ -1,14 +1,8 @@
 import { useChromaDB } from '../../providers/ChromaDBProvider'
-import { useTabs } from '../../context/TabsContext'
 import { Button } from '../ui/button'
 
 export function TopBar() {
   const { currentProfile } = useChromaDB()
-  const { createTab } = useTabs()
-
-  const handleNewTab = () => {
-    createTab() // Creates a blank tab
-  }
 
   const handleDisconnect = async () => {
     if (confirm('Are you sure you want to disconnect? This will close this window.')) {
@@ -38,9 +32,6 @@ export function TopBar() {
         className="flex items-center gap-2 pr-4"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <Button onClick={handleNewTab} size="sm" variant="ghost" className="h-7 text-xs">
-          + New Tab
-        </Button>
         <Button onClick={handleDisconnect} size="sm" variant="ghost" className="h-7 text-xs text-gray-600">
           Disconnect
         </Button>
