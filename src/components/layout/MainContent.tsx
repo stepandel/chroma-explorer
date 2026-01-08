@@ -6,8 +6,8 @@ export function MainContent() {
 
   if (!activeCollection) {
     return (
-      <main className="flex-1 overflow-auto flex items-center justify-center">
-        <div className="text-center text-gray-500">
+      <main className="flex-1 overflow-auto flex items-center justify-center bg-background">
+        <div className="text-center text-muted-foreground">
           <p className="text-lg mb-2">No collection selected</p>
           <p className="text-sm">Select a collection from the sidebar to get started</p>
         </div>
@@ -16,7 +16,7 @@ export function MainContent() {
   }
 
   return (
-    <main className="flex-1 overflow-auto">
+    <main className="flex-1 overflow-auto bg-background">
       <DocumentsView collectionName={activeCollection} />
     </main>
   )

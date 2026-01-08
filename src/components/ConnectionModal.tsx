@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 
 interface ConnectionModalProps {
   isOpen: boolean
@@ -19,7 +18,6 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const [tenant, setTenant] = useState('')
   const [database, setDatabase] = useState('')
   const [apiKey, setApiKey] = useState('')
-  const [saveProfile, setSaveProfile] = useState(false)
   const [error, setError] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
 
@@ -65,7 +63,6 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     setTenant('')
     setDatabase('')
     setApiKey('')
-    setSaveProfile(false)
   }
 
   const handleDeleteProfile = async () => {
@@ -84,8 +81,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   }
 
   const validateForm = (): string | null => {
-    if (saveProfile && !profileName.trim()) {
-      return 'Profile name is required when saving'
+    if (!profileName.trim()) {
+      return 'Profile name is required'
     }
 
     if (!url.trim()) {
@@ -138,10 +135,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         throw new Error(`Connection failed: ${errorMessage}`)
       }
 
-      // Connection successful - save profile if requested
-      if (saveProfile || selectedProfileId) {
-        await window.electronAPI.profiles.save(profile)
-      }
+      // Connection successful - save profile
+      await window.electronAPI.profiles.save(profile)
 
       // Proceed to main app
       onConnect(profile)
@@ -155,158 +150,151 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Connect to ChromaDB
-        </h2>
-        <p className="text-gray-600 mb-6">
-          Choose a saved profile or create a new connection
-        </p>
-
-        {/* Saved Profiles Dropdown */}
-        <div className="mb-6 flex gap-2">
-          <div className="flex-1">
-            <Label className="block mb-2">
-              Saved Profiles
-            </Label>
-            <Select
-              value={selectedProfileId || '__new__'}
-              onValueChange={handleProfileSelect}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Create new connection..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__new__">Create new connection...</SelectItem>
-                {profiles.map((profile) => (
-                  <SelectItem key={profile.id} value={profile.id}>
-                    {profile.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="bg-card/95 backdrop-blur-xl shadow-2xl border border-border w-full h-full flex overflow-hidden">
+        {/* Left side - Connection Form */}
+        <div className="flex-1 flex flex-col">
+          <div className="p-3 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground text-center">
+              {selectedProfileId ? 'Edit Connection' : 'New Connection'}
+            </h2>
           </div>
-          {selectedProfileId && (
-            <Button
-              type="button"
-              onClick={handleDeleteProfile}
-              variant="ghost"
-              className="mt-7 text-red-600 hover:text-red-800 hover:bg-red-50"
-              title="Delete profile"
-            >
-              Delete
-            </Button>
-          )}
+
+          <div className="flex-1 overflow-y-auto p-4">
+            <form onSubmit={handleSubmit} className="space-y-2">
+              {/* Profile Name */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="profileName" className="text-xs w-20 text-right">Name</Label>
+                <Input
+                  type="text"
+                  id="profileName"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="My Connection"
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+
+              {/* URL */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="url" className="text-xs w-20 text-right">URL *</Label>
+                <Input
+                  type="text"
+                  id="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="http://localhost:8000"
+                  required
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+
+              {/* Tenant */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="tenant" className="text-xs w-20 text-right">Tenant</Label>
+                <Input
+                  type="text"
+                  id="tenant"
+                  value={tenant}
+                  onChange={(e) => setTenant(e.target.value)}
+                  placeholder="Optional"
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+
+              {/* Database */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="database" className="text-xs w-20 text-right">Database</Label>
+                <Input
+                  type="text"
+                  id="database"
+                  value={database}
+                  onChange={(e) => setDatabase(e.target.value)}
+                  placeholder="Optional"
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+
+              {/* API Key */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="apiKey" className="text-xs w-20 text-right">API Key</Label>
+                <Input
+                  type="password"
+                  id="apiKey"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Optional"
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="p-2 bg-destructive/10 border border-destructive/30 rounded ml-[92px]">
+                  <p className="text-xs text-destructive">{error}</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-3 ml-[92px]">
+                <Button
+                  type="submit"
+                  disabled={isConnecting}
+                  className="flex-1 h-7 text-xs"
+                >
+                  {isConnecting ? 'Connecting...' : 'Connect'}
+                </Button>
+                {selectedProfileId && (
+                  <Button
+                    type="button"
+                    onClick={handleDeleteProfile}
+                    variant="destructive"
+                    className="h-7 text-xs"
+                  >
+                    Delete
+                  </Button>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {/* Profile Name */}
-          <div className="mb-4">
-            <Label htmlFor="profileName" className="block mb-2">
-              Profile Name
-            </Label>
-            <Input
-              type="text"
-              id="profileName"
-              value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
-              placeholder="My ChromaDB Connection"
-            />
+        {/* Right sidebar - Saved Connections */}
+        <div className="w-64 bg-sidebar/70 backdrop-blur-xl border-l border-sidebar-border flex flex-col">
+          <div className="p-4 border-b border-sidebar-border">
+            <h3 className="text-sm font-semibold text-foreground">Saved Connections</h3>
           </div>
-
-          {/* URL Field */}
-          <div className="mb-4">
-            <Label htmlFor="url" className="block mb-2">
-              Connection URL *
-            </Label>
-            <Input
-              type="text"
-              id="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="http://localhost:8000"
-              required
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Examples: http://localhost:8000, https://api.trychroma.com
-            </p>
+          <div className="flex-1 overflow-y-auto">
+            {profiles.length === 0 ? (
+              <div className="p-4 text-xs text-muted-foreground text-center">
+                No saved connections
+              </div>
+            ) : (
+              <div className="py-1">
+                {profiles.map((profile) => (
+                  <button
+                    key={profile.id}
+                    onClick={() => handleProfileSelect(profile.id)}
+                    className={`w-full px-4 py-2 text-left transition-colors ${
+                      selectedProfileId === profile.id
+                        ? 'bg-sidebar-accent border-r-2 border-sidebar-primary'
+                        : 'hover:bg-sidebar-accent/50 border-r-2 border-transparent'
+                    }`}
+                  >
+                    <div className={`text-sm font-medium truncate ${
+                      selectedProfileId === profile.id ? 'text-sidebar-primary' : 'text-sidebar-foreground'
+                    }`}>
+                      {profile.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate mt-0.5">
+                      {profile.url}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-
-          {/* Optional Remote/Cloud Fields */}
-          <div className="mb-4 p-4 bg-gray-50 rounded-md border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
-              Optional: For Remote/Cloud Connections
-            </h3>
-
-            <div className="mb-3">
-              <Label htmlFor="tenant" className="block mb-2">
-                Tenant
-              </Label>
-              <Input
-                type="text"
-                id="tenant"
-                value={tenant}
-                onChange={(e) => setTenant(e.target.value)}
-                placeholder="your-tenant-id"
-              />
-            </div>
-
-            <div className="mb-3">
-              <Label htmlFor="database" className="block mb-2">
-                Database
-              </Label>
-              <Input
-                type="text"
-                id="database"
-                value={database}
-                onChange={(e) => setDatabase(e.target.value)}
-                placeholder="your-database-name"
-              />
-            </div>
-
-            <div className="mb-0">
-              <Label htmlFor="apiKey" className="block mb-2">
-                API Key
-              </Label>
-              <Input
-                type="password"
-                id="apiKey"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="your-api-key"
-              />
-            </div>
-          </div>
-
-          {/* Save Profile Checkbox */}
-          {!selectedProfileId && (
-            <div className="mb-6 flex items-center space-x-2">
-              <Checkbox
-                id="saveProfile"
-                checked={saveProfile}
-                onCheckedChange={(checked) => setSaveProfile(checked as boolean)}
-              />
-              <Label htmlFor="saveProfile" className="text-sm font-medium cursor-pointer">
-                Save this profile
-              </Label>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            disabled={isConnecting}
-            className="w-full"
-          >
-            {isConnecting ? 'Testing connection...' : 'Connect'}
-          </Button>
-        </form>
+        </div>
       </div>
     </div>
   )

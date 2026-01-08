@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useChromaDB } from '../providers/ChromaDBProvider'
 import { useDocumentsQuery } from '../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
-import { FilterSection } from './FilterSection'
 import { MetadataFilter, DocumentFilters } from '../types/filters'
+import { Input } from './ui/input'
+import { Button } from './ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 interface DocumentRecord {
   id: string
@@ -27,6 +29,15 @@ function getDefaultFilters(): DocumentFilters {
 export default function DocumentsView({ collectionName }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
   const [filters, setFilters] = useState<DocumentFilters>(getDefaultFilters())
+  const [metaKey, setMetaKey] = useState('')
+  const [metaValue, setMetaValue] = useState('')
+
+  // Reset filters when collection changes
+  useEffect(() => {
+    setFilters(getDefaultFilters())
+    setMetaKey('')
+    setMetaValue('')
+  }, [collectionName])
 
   // Build search params
   const searchParams = useMemo(() => ({
@@ -89,20 +100,127 @@ export default function DocumentsView({ collectionName }: DocumentsViewProps) {
   }), [filters, searchParams])
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{collectionName}</h1>
-        <p className="text-gray-600 text-sm mt-1">
-          {!loading && !error && `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
-        </p>
+    <div className="flex flex-col h-full">
+      {/* Row 1: Collection name and count */}
+      <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
+        <span className="text-xs text-muted-foreground">
+          {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
+        </span>
       </div>
 
-      <FilterSection filterHook={filterHook} />
+      {/* Row 2: Search, filters, and limit */}
+      <div className="px-4 py-2 border-b border-border">
+        <div className="flex gap-2 items-center">
+          {/* Search input */}
+          <div className="flex-1 relative">
+            <Input
+              type="text"
+              value={filterHook.filters.queryText}
+              onChange={(e) => filterHook.setQueryText(e.target.value)}
+              placeholder="Search..."
+              className="w-full pr-8 h-8 text-xs"
+            />
+            {filterHook.filters.queryText && (
+              <Button
+                onClick={() => filterHook.setQueryText('')}
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </Button>
+            )}
+          </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">Documents</h2>
+          {/* Metadata filter */}
+          <Input
+            type="text"
+            placeholder="Filter key"
+            value={metaKey}
+            onChange={(e) => setMetaKey(e.target.value)}
+            className="w-28 h-8 text-xs"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && metaKey.trim() && metaValue.trim()) {
+                filterHook.addMetadataFilter(metaKey.trim(), '$eq', metaValue.trim())
+                setMetaKey('')
+                setMetaValue('')
+              }
+            }}
+          />
+          <Input
+            type="text"
+            placeholder="Filter value"
+            value={metaValue}
+            onChange={(e) => setMetaValue(e.target.value)}
+            className="w-28 h-8 text-xs"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && metaKey.trim() && metaValue.trim()) {
+                filterHook.addMetadataFilter(metaKey.trim(), '$eq', metaValue.trim())
+                setMetaKey('')
+                setMetaValue('')
+              }
+            }}
+          />
+
+          {/* Limit selector */}
+          <Select
+            value={filterHook.filters.nResults.toString()}
+            onValueChange={(value) => filterHook.setNResults(parseInt(value, 10))}
+          >
+            <SelectTrigger className="w-20 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+              <SelectItem value="500">500</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* Active filters display */}
+        {filterHook.hasActiveFilters && (
+          <div className="mt-2 flex gap-2 flex-wrap">
+            {filterHook.filters.queryText && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
+                Search: {filterHook.filters.queryText}
+                <button
+                  onClick={() => filterHook.setQueryText('')}
+                  className="hover:text-primary/80"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+            {filterHook.filters.metadataFilters.map(filter => (
+              <span
+                key={filter.id}
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs"
+              >
+                {filter.key} {filter.operator} {filter.value}
+                <button
+                  onClick={() => filterHook.removeMetadataFilter(filter.id)}
+                  className="hover:text-primary/80"
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+            <button
+              onClick={filterHook.clearAllFilters}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="flex-1 overflow-auto">
         <DocumentsTable
           documents={documents}
           loading={loading}

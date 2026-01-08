@@ -49,8 +49,11 @@ class WindowManager {
 
     // Create new setup window
     const win = new BrowserWindow({
-      width: 600,
-      height: 700,
+      width: 800,
+      height: 340,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
       titleBarStyle: 'hiddenInset',
       title: 'Chroma Explorer - Setup',
       center: true,
