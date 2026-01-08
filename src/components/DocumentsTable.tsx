@@ -119,14 +119,14 @@ export default function DocumentsTable({
       <table className="min-w-full">
         <thead className="bg-secondary sticky top-0 z-10 border-b border-border">
           <tr>
-            <th className="px-3 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              ID
+            <th className="px-3 py-1 text-left text-xs font-medium text-muted-foreground">
+              id
             </th>
-            <th className="px-3 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Document
+            <th className="px-3 py-1 text-left text-xs font-medium text-muted-foreground">
+              document
             </th>
             {metadataKeys.map(key => (
-              <th key={key} className="px-3 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th key={key} className="px-3 py-1 text-left text-xs font-medium text-muted-foreground">
                 {key}
               </th>
             ))}
