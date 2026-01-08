@@ -3,18 +3,17 @@ import { useTabs } from '../../context/TabsContext'
 import { Button } from '../ui/button'
 
 export function TopBar() {
-  const { currentProfile, disconnect } = useChromaDB()
-  const { createTab, clearAllTabs } = useTabs()
+  const { currentProfile } = useChromaDB()
+  const { createTab } = useTabs()
 
   const handleNewTab = () => {
     createTab() // Creates a blank tab
   }
 
   const handleDisconnect = async () => {
-    if (confirm('Are you sure you want to disconnect? This will close all tabs.')) {
-      await clearAllTabs()
-      disconnect()
-      // App.tsx will handle showing the connection modal again
+    if (confirm('Are you sure you want to disconnect? This will close this window.')) {
+      // Close the window - cleanup happens automatically
+      await window.electronAPI.window.closeCurrent()
     }
   }
 

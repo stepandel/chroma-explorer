@@ -1,9 +1,11 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromaDBService } from './chromadb-service'
+import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
 import { tabsStore } from './tabs-store'
+import { windowManager } from './window-manager'
+import { createApplicationMenu } from './menu'
 import { ConnectionProfile, SearchDocumentsParams } from './types'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -13,33 +15,10 @@ process.env.VITE_PUBLIC = app.isPackaged
   ? process.env.DIST
   : path.join(process.env.DIST, '../public')
 
-let win: BrowserWindow | null
-
-function createWindow() {
-  win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    titleBarStyle: 'hiddenInset', // macOS: show traffic lights, hide title
-    title: '', // Remove default title
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  })
-
-  if (process.env.VITE_DEV_SERVER_URL) {
-    win.loadURL(process.env.VITE_DEV_SERVER_URL)
-    win.webContents.openDevTools()
-  } else {
-    win.loadFile(path.join(process.env.DIST, 'index.html'))
-  }
-}
-
 // Set up IPC handlers
-ipcMain.handle('chromadb:connect', async (_event, profile: ConnectionProfile) => {
+ipcMain.handle('chromadb:connect', async (_event, profileId: string, profile: ConnectionProfile) => {
   try {
-    await chromaDBService.connect(profile)
+    await chromaDBConnectionPool.connect(profileId, profile)
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to connect to ChromaDB'
@@ -47,9 +26,13 @@ ipcMain.handle('chromadb:connect', async (_event, profile: ConnectionProfile) =>
   }
 })
 
-ipcMain.handle('chromadb:listCollections', async () => {
+ipcMain.handle('chromadb:listCollections', async (_event, profileId: string) => {
   try {
-    const collections = await chromaDBService.listCollections()
+    const service = chromaDBConnectionPool.getConnection(profileId)
+    if (!service) {
+      return { success: false, error: 'Not connected to ChromaDB' }
+    }
+    const collections = await service.listCollections()
     return { success: true, data: collections }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch collections'
@@ -57,9 +40,13 @@ ipcMain.handle('chromadb:listCollections', async () => {
   }
 })
 
-ipcMain.handle('chromadb:getDocuments', async (_event, collectionName: string) => {
+ipcMain.handle('chromadb:getDocuments', async (_event, profileId: string, collectionName: string) => {
   try {
-    const documents = await chromaDBService.getCollectionDocuments(collectionName)
+    const service = chromaDBConnectionPool.getConnection(profileId)
+    if (!service) {
+      return { success: false, error: 'Not connected to ChromaDB' }
+    }
+    const documents = await service.getCollectionDocuments(collectionName)
     return { success: true, data: documents }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch documents'
@@ -67,9 +54,13 @@ ipcMain.handle('chromadb:getDocuments', async (_event, collectionName: string) =
   }
 })
 
-ipcMain.handle('chromadb:searchDocuments', async (_event, params: SearchDocumentsParams) => {
+ipcMain.handle('chromadb:searchDocuments', async (_event, profileId: string, params: SearchDocumentsParams) => {
   try {
-    const documents = await chromaDBService.searchDocuments(params)
+    const service = chromaDBConnectionPool.getConnection(profileId)
+    if (!service) {
+      return { success: false, error: 'Not connected to ChromaDB' }
+    }
+    const documents = await service.searchDocuments(params)
     return { success: true, data: documents }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to search documents'
@@ -129,9 +120,9 @@ ipcMain.handle('profiles:setLastActive', async (_event, id: string | null) => {
 })
 
 // Tabs management IPC handlers
-ipcMain.handle('tabs:save', async (_event, data: any) => {
+ipcMain.handle('tabs:save', async (_event, windowId: string, data: any) => {
   try {
-    tabsStore.save(data)
+    tabsStore.save(windowId, data)
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to save tabs'
@@ -139,9 +130,9 @@ ipcMain.handle('tabs:save', async (_event, data: any) => {
   }
 })
 
-ipcMain.handle('tabs:load', async () => {
+ipcMain.handle('tabs:load', async (_event, windowId: string) => {
   try {
-    const data = tabsStore.load()
+    const data = tabsStore.load(windowId)
     return { success: true, data }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load tabs'
@@ -149,9 +140,9 @@ ipcMain.handle('tabs:load', async () => {
   }
 })
 
-ipcMain.handle('tabs:clear', async () => {
+ipcMain.handle('tabs:clear', async (_event, windowId: string) => {
   try {
-    tabsStore.clear()
+    tabsStore.clear(windowId)
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to clear tabs'
@@ -159,7 +150,105 @@ ipcMain.handle('tabs:clear', async () => {
   }
 })
 
-app.whenReady().then(createWindow)
+// Window management IPC handlers
+ipcMain.handle('window:create-connection', async (_event, profile: ConnectionProfile) => {
+  try {
+    const { window: win, windowId } = windowManager.createConnectionWindow(profile)
+    return { success: true, data: { windowId } }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create connection window'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('window:get-info', async (event) => {
+  try {
+    // Get the window that made the request
+    const webContents = event.sender
+    const win = BrowserWindow.fromWebContents(webContents)
+
+    if (!win) {
+      return { success: false, error: 'Window not found' }
+    }
+
+    // Check if it's a connection window
+    for (const { windowId, window: w, profileId } of windowManager.getAllConnectionWindows()) {
+      if (w === win) {
+        return {
+          success: true,
+          data: {
+            type: 'connection',
+            windowId,
+            profileId,
+          },
+        }
+      }
+    }
+
+    // Check if it's the setup window
+    if (win === windowManager.getSetupWindow()) {
+      return {
+        success: true,
+        data: {
+          type: 'setup',
+        },
+      }
+    }
+
+    return { success: false, error: 'Window type unknown' }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get window info'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('window:close-current', async (event) => {
+  try {
+    const webContents = event.sender
+    const win = BrowserWindow.fromWebContents(webContents)
+
+    if (!win) {
+      return { success: false, error: 'Window not found' }
+    }
+
+    win.close()
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to close window'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('window:get-profile', async (_event, profileId: string) => {
+  try {
+    // Try to get from cache first (for unsaved profiles)
+    const cachedProfile = windowManager.getCachedProfile(profileId)
+    if (cachedProfile) {
+      return { success: true, data: cachedProfile }
+    }
+
+    // Fall back to saved profiles
+    const profiles = connectionStore.getProfiles()
+    const profile = profiles.find(p => p.id === profileId)
+
+    if (!profile) {
+      return { success: false, error: `Profile not found: ${profileId}` }
+    }
+
+    return { success: true, data: profile }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get profile'
+    return { success: false, error: message }
+  }
+})
+
+app.whenReady().then(() => {
+  // Create application menu
+  createApplicationMenu()
+
+  // Create setup window
+  windowManager.createSetupWindow()
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -169,6 +258,6 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
+    windowManager.createSetupWindow()
   }
 })

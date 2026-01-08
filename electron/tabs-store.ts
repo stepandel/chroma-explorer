@@ -7,39 +7,47 @@ interface TabsStoreData {
   lastSaveTime: number
 }
 
-const store = new Store<{ tabsData: TabsStoreData }>({
-  defaults: {
-    tabsData: {
-      tabs: [],
-      activeTabId: '',
-      sidebarCollapsed: false,
-      lastSaveTime: 0,
-    },
-  },
-})
+// Use a generic store that can hold multiple window-scoped tab states
+const store = new Store<Record<string, TabsStoreData>>()
 
 export const tabsStore = {
-  save(data: Omit<TabsStoreData, 'lastSaveTime'>): void {
-    store.set('tabsData', {
+  /**
+   * Save tab state for a specific window
+   */
+  save(windowId: string, data: Omit<TabsStoreData, 'lastSaveTime'>): void {
+    const key = `tabs:${windowId}`
+    store.set(key, {
       ...data,
       lastSaveTime: Date.now(),
     })
   },
 
-  load(): TabsStoreData | null {
-    const data = store.get('tabsData')
+  /**
+   * Load tab state for a specific window
+   */
+  load(windowId: string): TabsStoreData | null {
+    const key = `tabs:${windowId}`
+    const data = store.get(key)
+
     if (!data || !data.tabs || data.tabs.length === 0) {
       return null
     }
+
     return data
   },
 
-  clear(): void {
-    store.set('tabsData', {
-      tabs: [],
-      activeTabId: '',
-      sidebarCollapsed: false,
-      lastSaveTime: 0,
-    })
+  /**
+   * Clear tab state for a specific window
+   */
+  clear(windowId: string): void {
+    const key = `tabs:${windowId}`
+    store.delete(key)
+  },
+
+  /**
+   * Clear all tab states (for debugging)
+   */
+  clearAll(): void {
+    store.clear()
   },
 }

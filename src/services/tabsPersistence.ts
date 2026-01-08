@@ -11,7 +11,7 @@ interface TabsStoreData {
 // The main process will handle the actual store operations
 
 export const tabsPersistence = {
-  save: async (state: TabsState): Promise<void> => {
+  save: async (windowId: string, state: TabsState): Promise<void> => {
     try {
       const data: TabsStoreData = {
         tabs: state.tabs,
@@ -20,15 +20,15 @@ export const tabsPersistence = {
         lastSaveTime: Date.now(),
       }
 
-      await window.electronAPI.tabs.save(data)
+      await window.electronAPI.tabs.save(windowId, data)
     } catch (error) {
       console.error('Failed to save tabs state:', error)
     }
   },
 
-  load: async (): Promise<TabsState | null> => {
+  load: async (windowId: string): Promise<TabsState | null> => {
     try {
-      const data = await window.electronAPI.tabs.load()
+      const data = await window.electronAPI.tabs.load(windowId)
 
       if (!data || !data.tabs || data.tabs.length === 0) {
         return null
@@ -45,9 +45,9 @@ export const tabsPersistence = {
     }
   },
 
-  clear: async (): Promise<void> => {
+  clear: async (windowId: string): Promise<void> => {
     try {
-      await window.electronAPI.tabs.clear()
+      await window.electronAPI.tabs.clear(windowId)
     } catch (error) {
       console.error('Failed to clear tabs state:', error)
     }

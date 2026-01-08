@@ -24,12 +24,12 @@ interface ChromaDBContextValue {
 const ChromaDBContext = createContext<ChromaDBContextValue | null>(null)
 
 interface ChromaDBProviderProps {
-  profile: ConnectionProfile | null
-  onDisconnect?: () => void
+  profile: ConnectionProfile
+  windowId: string // For future use if needed
   children: ReactNode
 }
 
-export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBProviderProps) {
+export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProviderProps) {
   const [currentProfile, setCurrentProfile] = useState<ConnectionProfile | null>(profile)
   const [isConnected, setIsConnected] = useState(false)
   const [collections, setCollections] = useState<CollectionInfo[]>([])
@@ -41,13 +41,23 @@ export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBPr
 
   const connect = useCallback(async (newProfile: ConnectionProfile) => {
     try {
-      await window.electronAPI.chromadb.connect(newProfile)
+      await window.electronAPI.chromadb.connect(newProfile.id, newProfile)
       setCurrentProfile(newProfile)
       setIsConnected(true)
       setCollectionsError(null)
 
-      // Fetch collections after connecting
-      await refreshCollections()
+      // Fetch collections after connecting (inline to avoid circular dependency)
+      setCollectionsLoading(true)
+      try {
+        const collectionsList = await window.electronAPI.chromadb.listCollections(newProfile.id)
+        setCollections(collectionsList)
+      } catch (collError) {
+        const errorMessage = collError instanceof Error ? collError.message : 'Failed to fetch collections'
+        setCollectionsError(errorMessage)
+        console.error('Error fetching collections:', collError)
+      } finally {
+        setCollectionsLoading(false)
+      }
     } catch (error) {
       setIsConnected(false)
       setCollectionsError(error instanceof Error ? error.message : 'Failed to connect')
@@ -61,8 +71,8 @@ export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBPr
     setCollections([])
     setCollectionsError(null)
     queryCache.current.clear()
-    onDisconnect?.()
-  }, [onDisconnect])
+    // Note: Window will close instead of showing modal
+  }, [])
 
   const refreshCollections = useCallback(async () => {
     if (!currentProfile) return
@@ -71,7 +81,7 @@ export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBPr
     setCollectionsError(null)
 
     try {
-      const collectionsList = await window.electronAPI.chromadb.listCollections()
+      const collectionsList = await window.electronAPI.chromadb.listCollections(currentProfile.id)
       setCollections(collectionsList)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch collections'
@@ -83,6 +93,10 @@ export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBPr
   }, [currentProfile])
 
   const searchDocuments = useCallback(async (params: SearchDocumentsParams): Promise<DocumentRecord[]> => {
+    if (!currentProfile) {
+      throw new Error('Not connected to ChromaDB')
+    }
+
     // Create cache key from params
     const cacheKey = JSON.stringify(params)
 
@@ -93,7 +107,7 @@ export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBPr
 
     // Fetch documents
     try {
-      const results = await window.electronAPI.chromadb.searchDocuments(params)
+      const results = await window.electronAPI.chromadb.searchDocuments(currentProfile.id, params)
 
       // Cache the results
       queryCache.current.set(cacheKey, results)
@@ -103,7 +117,7 @@ export function ChromaDBProvider({ profile, onDisconnect, children }: ChromaDBPr
       console.error('Error searching documents:', error)
       throw error
     }
-  }, [])
+  }, [currentProfile])
 
   const invalidateCache = useCallback(() => {
     queryCache.current.clear()

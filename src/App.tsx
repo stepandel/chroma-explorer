@@ -1,32 +1,23 @@
-import { useState } from 'react'
-import ConnectionModal from './components/ConnectionModal'
-import { ChromaDBProvider } from './providers/ChromaDBProvider'
-import { TabsProvider } from './context/TabsContext'
-import { AppLayout } from './components/layout/AppLayout'
-import { ConnectionProfile } from '../electron/types'
+import { useWindowInfo } from './hooks/useWindowInfo'
+import { SetupWindow } from './windows/SetupWindow'
+import { ConnectionWindow } from './windows/ConnectionWindow'
 
 export default function App() {
-  const [currentProfile, setCurrentProfile] = useState<ConnectionProfile | null>(null)
+  const { windowType, windowId, profileId } = useWindowInfo()
 
-  const handleConnect = async (profile: ConnectionProfile) => {
-    setCurrentProfile(profile)
-    // Track last active profile for UI convenience
-    await window.electronAPI.profiles.setLastActive(profile.id)
+  // Route based on window type
+  if (windowType === 'setup') {
+    return <SetupWindow />
   }
 
-  const handleDisconnect = () => {
-    setCurrentProfile(null)
+  if (windowType === 'connection' && windowId && profileId) {
+    return <ConnectionWindow windowId={windowId} profileId={profileId} />
   }
 
-  if (!currentProfile) {
-    return <ConnectionModal isOpen={true} onConnect={handleConnect} />
-  }
-
+  // Fallback for unknown window type
   return (
-    <ChromaDBProvider profile={currentProfile} onDisconnect={handleDisconnect}>
-      <TabsProvider>
-        <AppLayout />
-      </TabsProvider>
-    </ChromaDBProvider>
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-red-600">Error: Unknown window type</div>
+    </div>
   )
 }

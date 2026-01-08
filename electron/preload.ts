@@ -10,28 +10,28 @@ console.log('Preload script is running!')
 
 contextBridge.exposeInMainWorld('electronAPI', {
   chromadb: {
-    connect: async (profile: ConnectionProfile): Promise<void> => {
-      const result = await ipcRenderer.invoke('chromadb:connect', profile)
+    connect: async (profileId: string, profile: ConnectionProfile): Promise<void> => {
+      const result = await ipcRenderer.invoke('chromadb:connect', profileId, profile)
       if (!result.success) {
         throw new Error(result.error)
       }
     },
-    listCollections: async (): Promise<CollectionInfo[]> => {
-      const result = await ipcRenderer.invoke('chromadb:listCollections')
-      if (!result.success) {
-        throw new Error(result.error)
-      }
-      return result.data
-    },
-    getDocuments: async (collectionName: string): Promise<DocumentRecord[]> => {
-      const result = await ipcRenderer.invoke('chromadb:getDocuments', collectionName)
+    listCollections: async (profileId: string): Promise<CollectionInfo[]> => {
+      const result = await ipcRenderer.invoke('chromadb:listCollections', profileId)
       if (!result.success) {
         throw new Error(result.error)
       }
       return result.data
     },
-    searchDocuments: async (params: SearchDocumentsParams): Promise<DocumentRecord[]> => {
-      const result = await ipcRenderer.invoke('chromadb:searchDocuments', params)
+    getDocuments: async (profileId: string, collectionName: string): Promise<DocumentRecord[]> => {
+      const result = await ipcRenderer.invoke('chromadb:getDocuments', profileId, collectionName)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    searchDocuments: async (profileId: string, params: SearchDocumentsParams): Promise<DocumentRecord[]> => {
+      const result = await ipcRenderer.invoke('chromadb:searchDocuments', profileId, params)
       if (!result.success) {
         throw new Error(result.error)
       }
@@ -73,24 +73,53 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
   tabs: {
-    save: async (data: any): Promise<void> => {
-      const result = await ipcRenderer.invoke('tabs:save', data)
+    save: async (windowId: string, data: any): Promise<void> => {
+      const result = await ipcRenderer.invoke('tabs:save', windowId, data)
       if (!result.success) {
         throw new Error(result.error)
       }
     },
-    load: async (): Promise<any> => {
-      const result = await ipcRenderer.invoke('tabs:load')
+    load: async (windowId: string): Promise<any> => {
+      const result = await ipcRenderer.invoke('tabs:load', windowId)
       if (!result.success) {
         throw new Error(result.error)
       }
       return result.data
     },
-    clear: async (): Promise<void> => {
-      const result = await ipcRenderer.invoke('tabs:clear')
+    clear: async (windowId: string): Promise<void> => {
+      const result = await ipcRenderer.invoke('tabs:clear', windowId)
       if (!result.success) {
         throw new Error(result.error)
       }
+    },
+  },
+  window: {
+    createConnection: async (profile: ConnectionProfile): Promise<{ windowId: string }> => {
+      const result = await ipcRenderer.invoke('window:create-connection', profile)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    getInfo: async (): Promise<{ type: string; windowId?: string; profileId?: string }> => {
+      const result = await ipcRenderer.invoke('window:get-info')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    closeCurrent: async (): Promise<void> => {
+      const result = await ipcRenderer.invoke('window:close-current')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    getProfile: async (profileId: string): Promise<ConnectionProfile> => {
+      const result = await ipcRenderer.invoke('window:get-profile', profileId)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
     },
   },
 })

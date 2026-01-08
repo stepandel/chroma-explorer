@@ -128,7 +128,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
 
       // Test connection first before saving or proceeding
       try {
-        await window.electronAPI.chromadb.connect(profile)
+        await window.electronAPI.chromadb.connect(profile.id, profile)
       } catch (connectionError) {
         // Connection failed - show detailed error message
         const errorMessage = connectionError instanceof Error

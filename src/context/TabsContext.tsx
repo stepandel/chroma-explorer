@@ -36,10 +36,11 @@ function getDefaultFilters(): DocumentFilters {
 }
 
 interface TabsProviderProps {
+  windowId: string
   children: ReactNode
 }
 
-export function TabsProvider({ children }: TabsProviderProps) {
+export function TabsProvider({ windowId, children }: TabsProviderProps) {
   const [tabs, setTabs] = useState<Tab[]>([])
   const [activeTabId, setActiveTabId] = useState<string>('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -57,10 +58,10 @@ export function TabsProvider({ children }: TabsProviderProps) {
     return (state: TabsState) => {
       clearTimeout(timeoutId)
       timeoutId = setTimeout(() => {
-        tabsPersistence.save(state)
+        tabsPersistence.save(windowId, state)
       }, 500)
     }
-  }, [])
+  }, [windowId])
 
   // Save state whenever it changes
   useEffect(() => {
@@ -71,7 +72,7 @@ export function TabsProvider({ children }: TabsProviderProps) {
 
   // Load state on mount
   const loadState = useCallback(async () => {
-    const savedState = await tabsPersistence.load()
+    const savedState = await tabsPersistence.load(windowId)
 
     if (savedState && savedState.tabs.length > 0) {
       setTabs(savedState.tabs)
@@ -80,7 +81,7 @@ export function TabsProvider({ children }: TabsProviderProps) {
     }
 
     setIsLoaded(true)
-  }, [])
+  }, [windowId])
 
   // Create a new tab
   const createTab = useCallback((collectionName?: string): string => {
@@ -161,8 +162,8 @@ export function TabsProvider({ children }: TabsProviderProps) {
   const clearAllTabs = useCallback(async () => {
     setTabs([])
     setActiveTabId('')
-    await tabsPersistence.clear()
-  }, [])
+    await tabsPersistence.clear(windowId)
+  }, [windowId])
 
   const value: TabsContextValue = {
     tabs,

@@ -10,9 +10,14 @@ import {
 class ChromaDBService {
   private client: ChromaClient | CloudClient | null = null
   private embedder: DefaultEmbeddingFunction
+  private profile: ConnectionProfile | null = null
 
   constructor() {
     this.embedder = new DefaultEmbeddingFunction()
+  }
+
+  getProfile(): ConnectionProfile | null {
+    return this.profile
   }
 
   async connect(profile: ConnectionProfile): Promise<void> {
@@ -47,10 +52,19 @@ class ChromaDBService {
 
       // Test connection with heartbeat
       await this.client.heartbeat()
+
+      // Store profile on successful connection
+      this.profile = profile
     } catch (error) {
       this.client = null
+      this.profile = null
       throw error
     }
+  }
+
+  disconnect(): void {
+    this.client = null
+    this.profile = null
   }
 
   async listCollections(): Promise<CollectionInfo[]> {
@@ -154,4 +168,84 @@ class ChromaDBService {
   }
 }
 
+/**
+ * Connection pool for managing multiple ChromaDB connections by profile
+ */
+class ChromaDBConnectionPool {
+  private connections: Map<string, { service: ChromaDBService; refCount: number }> = new Map()
+
+  /**
+   * Connect to a profile (or increment refCount if already connected)
+   */
+  async connect(profileId: string, profile: ConnectionProfile): Promise<ChromaDBService> {
+    const existing = this.connections.get(profileId)
+
+    if (existing) {
+      // Connection already exists, increment reference count
+      existing.refCount++
+      console.log(`[ChromaDB Pool] Reusing connection for profile ${profileId} (refCount: ${existing.refCount})`)
+      return existing.service
+    }
+
+    // Create new connection
+    const service = new ChromaDBService()
+    await service.connect(profile)
+
+    this.connections.set(profileId, {
+      service,
+      refCount: 1,
+    })
+
+    console.log(`[ChromaDB Pool] Created new connection for profile ${profileId}`)
+    return service
+  }
+
+  /**
+   * Decrement refCount for a profile connection
+   * Disconnects and removes if refCount reaches 0
+   */
+  disconnect(profileId: string): void {
+    const connection = this.connections.get(profileId)
+
+    if (!connection) {
+      console.warn(`[ChromaDB Pool] Attempted to disconnect unknown profile ${profileId}`)
+      return
+    }
+
+    connection.refCount--
+    console.log(`[ChromaDB Pool] Decremented refCount for profile ${profileId} (refCount: ${connection.refCount})`)
+
+    if (connection.refCount <= 0) {
+      connection.service.disconnect()
+      this.connections.delete(profileId)
+      console.log(`[ChromaDB Pool] Disconnected and removed profile ${profileId}`)
+    }
+  }
+
+  /**
+   * Get an existing connection (without incrementing refCount)
+   */
+  getConnection(profileId: string): ChromaDBService | null {
+    return this.connections.get(profileId)?.service || null
+  }
+
+  /**
+   * Check if a profile is connected
+   */
+  isConnected(profileId: string): boolean {
+    return this.connections.has(profileId)
+  }
+
+  /**
+   * Get refCount for a profile
+   */
+  getRefCount(profileId: string): number {
+    return this.connections.get(profileId)?.refCount || 0
+  }
+}
+
+// Export singleton connection pool
+export const chromaDBConnectionPool = new ChromaDBConnectionPool()
+
+// Keep legacy export for backwards compatibility (will be removed)
 export const chromaDBService = new ChromaDBService()

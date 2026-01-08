@@ -40,10 +40,10 @@ interface TabsStoreData {
 
 interface ElectronAPI {
   chromadb: {
-    connect: (profile: ConnectionProfile) => Promise<void>
-    listCollections: () => Promise<CollectionInfo[]>
-    getDocuments: (collectionName: string) => Promise<DocumentRecord[]>
-    searchDocuments: (params: SearchDocumentsParams) => Promise<DocumentRecord[]>
+    connect: (profileId: string, profile: ConnectionProfile) => Promise<void>
+    listCollections: (profileId: string) => Promise<CollectionInfo[]>
+    getDocuments: (profileId: string, collectionName: string) => Promise<DocumentRecord[]>
+    searchDocuments: (profileId: string, params: SearchDocumentsParams) => Promise<DocumentRecord[]>
   }
   profiles: {
     getAll: () => Promise<ConnectionProfile[]>
@@ -53,9 +53,15 @@ interface ElectronAPI {
     setLastActive: (id: string | null) => Promise<void>
   }
   tabs: {
-    save: (data: TabsStoreData) => Promise<void>
-    load: () => Promise<TabsStoreData | null>
-    clear: () => Promise<void>
+    save: (windowId: string, data: TabsStoreData) => Promise<void>
+    load: (windowId: string) => Promise<TabsStoreData | null>
+    clear: (windowId: string) => Promise<void>
+  }
+  window: {
+    createConnection: (profile: ConnectionProfile) => Promise<{ windowId: string }>
+    getInfo: () => Promise<{ type: string; windowId?: string; profileId?: string }>
+    closeCurrent: () => Promise<void>
+    getProfile: (profileId: string) => Promise<ConnectionProfile>
   }
 }
 
