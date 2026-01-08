@@ -119,44 +119,41 @@ export default function DocumentsTable({
       <table className="min-w-full">
         <thead className="bg-secondary sticky top-0 z-10 border-b border-border">
           <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="px-3 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               ID
             </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="px-3 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Document
             </th>
             {metadataKeys.map(key => (
-              <th key={key} className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th key={key} className="px-3 py-1 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 {key}
               </th>
             ))}
-            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Embedding
-            </th>
           </tr>
         </thead>
         <tbody className="bg-background divide-y divide-border">
           {documents.map((doc) => (
             <tr key={doc.id} className="hover:bg-secondary/30 transition-colors">
-              <td className="px-3 py-1.5 text-xs font-mono text-foreground align-top">
+              <td className="px-3 py-0.5 text-xs font-mono text-foreground align-top">
                 {doc.id}
               </td>
-              <td className="px-3 py-1.5 text-xs text-foreground max-w-md align-top">
-                <div className="line-clamp-3">
+              <td className="px-3 py-0.5 text-xs text-foreground max-w-md align-top">
+                <div className="line-clamp-2">
                   {doc.document || <span className="text-muted-foreground italic">No document</span>}
                 </div>
               </td>
               {metadataKeys.map(key => {
                 const value = doc.metadata?.[key]
                 return (
-                  <td key={key} className="px-3 py-1.5 text-xs text-foreground max-w-md align-top">
+                  <td key={key} className="px-3 py-0.5 text-xs text-foreground max-w-md align-top">
                     {value !== undefined && value !== null ? (
                       typeof value === 'object' ? (
-                        <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto line-clamp-3">
+                        <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto line-clamp-2">
                           {JSON.stringify(value, null, 2)}
                         </pre>
                       ) : (
-                        <div className="line-clamp-3">
+                        <div className="line-clamp-2">
                           {String(value)}
                         </div>
                       )
@@ -166,9 +163,6 @@ export default function DocumentsTable({
                   </td>
                 )
               })}
-              <td className="px-3 py-1.5 text-xs text-muted-foreground max-w-md align-top">
-                <EmbeddingCell embedding={doc.embedding} />
-              </td>
             </tr>
           ))}
         </tbody>
