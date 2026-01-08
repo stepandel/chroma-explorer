@@ -155,12 +155,12 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-border">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
           Connect to ChromaDB
         </h2>
-        <p className="text-gray-600 mb-6">
+        <p className="text-muted-foreground mb-6">
           Choose a saved profile or create a new connection
         </p>
 
@@ -191,8 +191,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
             <Button
               type="button"
               onClick={handleDeleteProfile}
-              variant="ghost"
-              className="mt-7 text-red-600 hover:text-red-800 hover:bg-red-50"
+              variant="destructive"
+              className="mt-7"
               title="Delete profile"
             >
               Delete
@@ -234,8 +234,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
           </div>
 
           {/* Optional Remote/Cloud Fields */}
-          <div className="mb-4 p-4 bg-gray-50 rounded-md border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
+          <div className="mb-4 p-4 bg-secondary rounded-lg border border-border">
+            <h3 className="text-sm font-medium text-foreground mb-3">
               Optional: For Remote/Cloud Connections
             </h3>
 
@@ -294,8 +294,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
           )}
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 

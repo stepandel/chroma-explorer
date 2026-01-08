@@ -91,17 +91,17 @@ export default function DocumentsView({ collectionName }: DocumentsViewProps) {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{collectionName}</h1>
-        <p className="text-gray-600 text-sm mt-1">
+        <h1 className="text-3xl font-bold text-foreground">{collectionName}</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           {!loading && !error && `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
         </p>
       </div>
 
       <FilterSection filterHook={filterHook} />
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">Documents</h2>
+      <div className="bg-card/80 backdrop-blur-sm rounded-xl shadow-sm border border-border">
+        <div className="px-6 py-4 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Documents</h2>
         </div>
         <DocumentsTable
           documents={documents}

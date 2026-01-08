@@ -19,7 +19,7 @@ function EmbeddingCell({ embedding }: { embedding: number[] | null }) {
   const [expanded, setExpanded] = useState(false)
 
   if (!embedding) {
-    return <span className="text-gray-400 italic">No embedding</span>
+    return <span className="text-muted-foreground italic">No embedding</span>
   }
 
   const previewCount = 5
@@ -28,7 +28,7 @@ function EmbeddingCell({ embedding }: { embedding: number[] | null }) {
   if (expanded) {
     return (
       <div className="space-y-2">
-        <div className="text-xs bg-gray-50 p-2 rounded font-mono max-h-40 overflow-y-auto">
+        <div className="text-xs bg-secondary p-2 rounded-lg font-mono max-h-40 overflow-y-auto">
           [{embedding.join(', ')}]
         </div>
         <Button
@@ -72,7 +72,7 @@ export default function DocumentsTable({
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="text-gray-600">
+        <div className="text-muted-foreground">
           {hasActiveFilters ? 'Searching documents...' : 'Loading documents...'}
         </div>
       </div>
@@ -82,9 +82,9 @@ export default function DocumentsTable({
   if (error) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-red-800 font-semibold mb-2">Error</h3>
-          <p className="text-red-600">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+          <h3 className="text-destructive font-semibold mb-2">Error</h3>
+          <p className="text-destructive">{error}</p>
         </div>
       </div>
     )
@@ -94,8 +94,8 @@ export default function DocumentsTable({
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center">
-          <h3 className="text-gray-700 font-semibold text-lg mb-2">No Documents Found</h3>
-          <p className="text-gray-500">
+          <h3 className="text-foreground font-semibold text-lg mb-2">No Documents Found</h3>
+          <p className="text-muted-foreground">
             {hasActiveFilters
               ? 'No documents match your filters. Try adjusting your search criteria.'
               : "This collection doesn't have any documents yet."}
@@ -107,42 +107,42 @@ export default function DocumentsTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50 sticky top-0">
+      <table className="min-w-full divide-y divide-border">
+        <thead className="bg-secondary/50 sticky top-0">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               ID
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Document
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Metadata
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Embedding
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-card divide-y divide-border">
           {documents.map((doc) => (
-            <tr key={doc.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 text-sm font-mono text-gray-900 align-top">
+            <tr key={doc.id} className="hover:bg-secondary/30 transition-colors">
+              <td className="px-6 py-4 text-sm font-mono text-foreground align-top">
                 {doc.id}
               </td>
-              <td className="px-6 py-4 text-sm text-gray-900 max-w-md align-top">
-                {doc.document || <span className="text-gray-400 italic">No document</span>}
+              <td className="px-6 py-4 text-sm text-foreground max-w-md align-top">
+                {doc.document || <span className="text-muted-foreground italic">No document</span>}
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500 align-top">
+              <td className="px-6 py-4 text-sm text-muted-foreground align-top">
                 {doc.metadata ? (
-                  <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto max-w-xs">
+                  <pre className="text-xs bg-secondary p-2 rounded-lg overflow-x-auto max-w-xs">
                     {JSON.stringify(doc.metadata, null, 2)}
                   </pre>
                 ) : (
-                  <span className="text-gray-400 italic">No metadata</span>
+                  <span className="text-muted-foreground italic">No metadata</span>
                 )}
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500 align-top">
+              <td className="px-6 py-4 text-sm text-muted-foreground align-top">
                 <EmbeddingCell embedding={doc.embedding} />
               </td>
             </tr>

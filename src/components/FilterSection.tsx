@@ -9,9 +9,9 @@ interface FilterSectionProps {
 
 export function FilterSection({ filterHook }: FilterSectionProps) {
   return (
-    <div className="bg-white rounded-lg shadow mb-6">
+    <div className="bg-card/80 backdrop-blur-sm rounded-xl shadow-sm border border-border mb-6">
       <div className="px-6 py-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Filter Documents</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Filter Documents</h2>
 
         <div className="space-y-4">
           <SemanticSearchInput
