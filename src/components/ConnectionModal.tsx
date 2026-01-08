@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 
 interface ConnectionModalProps {
   isOpen: boolean
@@ -19,7 +18,6 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const [tenant, setTenant] = useState('')
   const [database, setDatabase] = useState('')
   const [apiKey, setApiKey] = useState('')
-  const [saveProfile, setSaveProfile] = useState(false)
   const [error, setError] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
 
@@ -65,7 +63,6 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     setTenant('')
     setDatabase('')
     setApiKey('')
-    setSaveProfile(false)
   }
 
   const handleDeleteProfile = async () => {
@@ -84,8 +81,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   }
 
   const validateForm = (): string | null => {
-    if (saveProfile && !profileName.trim()) {
-      return 'Profile name is required when saving'
+    if (!profileName.trim()) {
+      return 'Profile name is required'
     }
 
     if (!url.trim()) {
@@ -138,10 +135,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         throw new Error(`Connection failed: ${errorMessage}`)
       }
 
-      // Connection successful - save profile if requested
-      if (saveProfile || selectedProfileId) {
-        await window.electronAPI.profiles.save(profile)
-      }
+      // Connection successful - save profile
+      await window.electronAPI.profiles.save(profile)
 
       // Proceed to main app
       onConnect(profile)
@@ -166,23 +161,23 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-2">
               {/* Profile Name */}
-              <div>
-                <Label htmlFor="profileName" className="text-xs">Name</Label>
+              <div className="flex items-center gap-3">
+                <Label htmlFor="profileName" className="text-xs w-20 text-right">Name</Label>
                 <Input
                   type="text"
                   id="profileName"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   placeholder="My Connection"
-                  className="h-8 text-xs mt-1"
+                  className="h-7 text-xs flex-1"
                 />
               </div>
 
               {/* URL */}
-              <div>
-                <Label htmlFor="url" className="text-xs">URL *</Label>
+              <div className="flex items-center gap-3">
+                <Label htmlFor="url" className="text-xs w-20 text-right">URL *</Label>
                 <Input
                   type="text"
                   id="url"
@@ -190,74 +185,62 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="http://localhost:8000"
                   required
-                  className="h-8 text-xs mt-1"
+                  className="h-7 text-xs flex-1"
                 />
               </div>
 
-              {/* Optional fields in grid */}
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label htmlFor="tenant" className="text-xs">Tenant</Label>
-                  <Input
-                    type="text"
-                    id="tenant"
-                    value={tenant}
-                    onChange={(e) => setTenant(e.target.value)}
-                    placeholder="Optional"
-                    className="h-8 text-xs mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="database" className="text-xs">Database</Label>
-                  <Input
-                    type="text"
-                    id="database"
-                    value={database}
-                    onChange={(e) => setDatabase(e.target.value)}
-                    placeholder="Optional"
-                    className="h-8 text-xs mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="apiKey" className="text-xs">API Key</Label>
-                  <Input
-                    type="password"
-                    id="apiKey"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Optional"
-                    className="h-8 text-xs mt-1"
-                  />
-                </div>
+              {/* Tenant */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="tenant" className="text-xs w-20 text-right">Tenant</Label>
+                <Input
+                  type="text"
+                  id="tenant"
+                  value={tenant}
+                  onChange={(e) => setTenant(e.target.value)}
+                  placeholder="Optional"
+                  className="h-7 text-xs flex-1"
+                />
               </div>
 
-              {/* Save checkbox */}
-              {!selectedProfileId && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="saveProfile"
-                    checked={saveProfile}
-                    onCheckedChange={(checked) => setSaveProfile(checked as boolean)}
-                  />
-                  <Label htmlFor="saveProfile" className="text-xs cursor-pointer">
-                    Save this connection
-                  </Label>
-                </div>
-              )}
+              {/* Database */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="database" className="text-xs w-20 text-right">Database</Label>
+                <Input
+                  type="text"
+                  id="database"
+                  value={database}
+                  onChange={(e) => setDatabase(e.target.value)}
+                  placeholder="Optional"
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+
+              {/* API Key */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="apiKey" className="text-xs w-20 text-right">API Key</Label>
+                <Input
+                  type="password"
+                  id="apiKey"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Optional"
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
 
               {/* Error */}
               {error && (
-                <div className="p-2 bg-destructive/10 border border-destructive/30 rounded">
+                <div className="p-2 bg-destructive/10 border border-destructive/30 rounded ml-[92px]">
                   <p className="text-xs text-destructive">{error}</p>
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-3 ml-[92px]">
                 <Button
                   type="submit"
                   disabled={isConnecting}
-                  className="flex-1 h-8 text-xs"
+                  className="flex-1 h-7 text-xs"
                 >
                   {isConnecting ? 'Connecting...' : 'Connect'}
                 </Button>
@@ -266,7 +249,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                     type="button"
                     onClick={handleDeleteProfile}
                     variant="destructive"
-                    className="h-8 text-xs"
+                    className="h-7 text-xs"
                   >
                     Delete
                   </Button>
