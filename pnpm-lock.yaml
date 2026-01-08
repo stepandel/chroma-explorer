@@ -23,6 +23,9 @@ dependencies:
   '@radix-ui/react-slot':
     specifier: ^1.2.4
     version: 1.2.4(@types/react@19.2.7)(react@19.2.3)
+  '@tanstack/react-query':
+    specifier: ^5.90.16
+    version: 5.90.16(react@19.2.3)
   chromadb:
     specifier: ^3.2.0
     version: 3.2.0
@@ -1817,6 +1820,19 @@ packages:
       postcss: 8.5.6
       tailwindcss: 4.1.18
     dev: true
+
+  /@tanstack/query-core@5.90.16:
+    resolution: {integrity: sha512-MvtWckSVufs/ja463/K4PyJeqT+HMlJWtw6PrCpywznd2NSgO3m4KwO9RqbFqGg6iDE8vVMFWMeQI4Io3eEYww==}
+    dev: false
+
+  /@tanstack/react-query@5.90.16(react@19.2.3):
+    resolution: {integrity: sha512-bpMGOmV4OPmif7TNMteU/Ehf/hoC0Kf98PDc0F4BZkFrEapRMEqI/V6YS0lyzwSV6PQpY1y4xxArUIfBW5LVxQ==}
+    peerDependencies:
+      react: ^18 || ^19
+    dependencies:
+      '@tanstack/query-core': 5.90.16
+      react: 19.2.3
+    dev: false
 
   /@tootallnate/once@2.0.0:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}

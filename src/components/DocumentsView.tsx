@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useChromaDB } from '../providers/ChromaDBProvider'
 import { useTabs } from '../context/TabsContext'
+import { useDocumentsQuery } from '../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { FilterSection } from './FilterSection'
 import { MetadataFilter } from '../types/filters'
@@ -17,11 +18,7 @@ interface DocumentsViewProps {
 }
 
 export default function DocumentsView({ collectionName }: DocumentsViewProps) {
-  const [documents, setDocuments] = useState<DocumentRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const { searchDocuments } = useChromaDB()
+  const { currentProfile } = useChromaDB()
   const { activeTab, updateTabFilters } = useTabs()
 
   if (!activeTab) {
@@ -29,6 +26,26 @@ export default function DocumentsView({ collectionName }: DocumentsViewProps) {
   }
 
   const filters = activeTab.filters
+
+  // Build search params
+  const searchParams = useMemo(() => ({
+    collectionName,
+    queryText: filters.queryText || undefined,
+    nResults: filters.nResults,
+    metadataFilter: filters.metadataFilters.length > 0
+      ? filters.metadataFilters.reduce((acc, filter) => ({
+          ...acc,
+          [filter.key]: { [filter.operator]: filter.value },
+        }), {})
+      : undefined,
+  }), [collectionName, filters])
+
+  // Use React Query for documents with debouncing via staleTime
+  const {
+    data: documents = [],
+    isLoading: loading,
+    error,
+  } = useDocumentsQuery(currentProfile?.id || null, searchParams)
 
   // Create a hook-compatible interface for FilterSection
   const filterHook = useMemo(() => ({
@@ -71,44 +88,8 @@ export default function DocumentsView({ collectionName }: DocumentsViewProps) {
       })
     },
 
-    buildSearchParams: () => ({
-      collectionName,
-      queryText: filters.queryText || undefined,
-      nResults: filters.nResults,
-      metadataFilter: filters.metadataFilters.length > 0
-        ? filters.metadataFilters.reduce((acc, filter) => ({
-            ...acc,
-            [filter.key]: { [filter.operator]: filter.value },
-          }), {})
-        : undefined,
-    }),
-  }), [filters, activeTab.id, collectionName, updateTabFilters])
-
-  useEffect(() => {
-    async function fetchDocuments() {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const params = filterHook.buildSearchParams()
-        const docs = await searchDocuments(params)
-        setDocuments(docs)
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch documents'
-        setError(errorMessage)
-        console.error('Error fetching documents:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    // Debounce for query text to avoid excessive API calls
-    const timeoutId = setTimeout(() => {
-      fetchDocuments()
-    }, 500)
-
-    return () => clearTimeout(timeoutId)
-  }, [collectionName, filters, searchDocuments])
+    buildSearchParams: () => searchParams,
+  }), [filters, activeTab.id, searchParams, updateTabFilters])
 
   return (
     <div className="p-8">
@@ -128,7 +109,7 @@ export default function DocumentsView({ collectionName }: DocumentsViewProps) {
         <DocumentsTable
           documents={documents}
           loading={loading}
-          error={error}
+          error={error ? (error as Error).message : null}
           hasActiveFilters={filterHook.hasActiveFilters}
         />
       </div>

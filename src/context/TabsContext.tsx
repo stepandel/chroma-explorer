@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react'
 import { Tab, TabsState } from '../types/tabs'
 import { DocumentFilters } from '../types/filters'
-import { tabsPersistence } from '../services/tabsPersistence'
+import { useTabsQuery, useSaveTabsMutation } from '../hooks/useChromaQueries'
 
 interface TabsContextValue {
   // State
@@ -46,6 +46,10 @@ export function TabsProvider({ windowId, children }: TabsProviderProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
 
+  // Use React Query for loading tabs
+  const { data: savedTabsData } = useTabsQuery(windowId)
+  const saveTabsMutation = useSaveTabsMutation(windowId)
+
   // Get active tab
   const activeTab = useMemo(() => {
     return tabs.find(t => t.id === activeTabId) || null
@@ -58,10 +62,10 @@ export function TabsProvider({ windowId, children }: TabsProviderProps) {
     return (state: TabsState) => {
       clearTimeout(timeoutId)
       timeoutId = setTimeout(() => {
-        tabsPersistence.save(windowId, state)
+        saveTabsMutation.mutate(state)
       }, 500)
     }
-  }, [windowId])
+  }, [windowId, saveTabsMutation])
 
   // Save state whenever it changes
   useEffect(() => {
@@ -70,18 +74,16 @@ export function TabsProvider({ windowId, children }: TabsProviderProps) {
     }
   }, [tabs, activeTabId, sidebarCollapsed, isLoaded, debouncedSave])
 
-  // Load state on mount
+  // Load state on mount from React Query
   const loadState = useCallback(async () => {
-    const savedState = await tabsPersistence.load(windowId)
-
-    if (savedState && savedState.tabs.length > 0) {
-      setTabs(savedState.tabs)
-      setActiveTabId(savedState.activeTabId)
-      setSidebarCollapsed(savedState.sidebarCollapsed)
+    if (savedTabsData && savedTabsData.tabs.length > 0) {
+      setTabs(savedTabsData.tabs)
+      setActiveTabId(savedTabsData.activeTabId)
+      setSidebarCollapsed(savedTabsData.sidebarCollapsed)
     }
 
     setIsLoaded(true)
-  }, [windowId])
+  }, [savedTabsData])
 
   // Create a new tab
   const createTab = useCallback((collectionName?: string): string => {
@@ -162,7 +164,7 @@ export function TabsProvider({ windowId, children }: TabsProviderProps) {
   const clearAllTabs = useCallback(async () => {
     setTabs([])
     setActiveTabId('')
-    await tabsPersistence.clear(windowId)
+    await window.electronAPI.tabs.clear(windowId)
   }, [windowId])
 
   const value: TabsContextValue = {

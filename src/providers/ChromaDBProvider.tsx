@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useRef, useEffect, useCallback, ReactNode } from 'react'
-import { ConnectionProfile, CollectionInfo, DocumentRecord, SearchDocumentsParams } from '../../electron/types'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { ConnectionProfile, DocumentRecord, SearchDocumentsParams } from '../../electron/types'
+import { useCollectionsQuery, useConnectMutation, useRefreshCollectionsMutation } from '../hooks/useChromaQueries'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface ChromaDBContextValue {
   // Connection state
@@ -9,7 +11,7 @@ interface ChromaDBContextValue {
   disconnect: () => void
 
   // Collections
-  collections: CollectionInfo[]
+  collections: any[]
   collectionsLoading: boolean
   collectionsError: string | null
   refreshCollections: () => Promise<void>
@@ -32,86 +34,53 @@ interface ChromaDBProviderProps {
 export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProviderProps) {
   const [currentProfile, setCurrentProfile] = useState<ConnectionProfile | null>(profile)
   const [isConnected, setIsConnected] = useState(false)
-  const [collections, setCollections] = useState<CollectionInfo[]>([])
-  const [collectionsLoading, setCollectionsLoading] = useState(false)
-  const [collectionsError, setCollectionsError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
-  // Query cache to avoid duplicate requests
-  const queryCache = useRef<Map<string, DocumentRecord[]>>(new Map())
+  // Use React Query for collections
+  const {
+    data: collections = [],
+    isLoading: collectionsLoading,
+    error: collectionsError,
+  } = useCollectionsQuery(currentProfile?.id || null, isConnected)
+
+  // Connect mutation
+  const connectMutation = useConnectMutation()
+  const refreshMutation = useRefreshCollectionsMutation(currentProfile?.id || '')
 
   const connect = useCallback(async (newProfile: ConnectionProfile) => {
     try {
-      await window.electronAPI.chromadb.connect(newProfile.id, newProfile)
+      await connectMutation.mutateAsync(newProfile)
       setCurrentProfile(newProfile)
       setIsConnected(true)
-      setCollectionsError(null)
-
-      // Fetch collections after connecting (inline to avoid circular dependency)
-      setCollectionsLoading(true)
-      try {
-        const collectionsList = await window.electronAPI.chromadb.listCollections(newProfile.id)
-        setCollections(collectionsList)
-      } catch (collError) {
-        const errorMessage = collError instanceof Error ? collError.message : 'Failed to fetch collections'
-        setCollectionsError(errorMessage)
-        console.error('Error fetching collections:', collError)
-      } finally {
-        setCollectionsLoading(false)
-      }
     } catch (error) {
       setIsConnected(false)
-      setCollectionsError(error instanceof Error ? error.message : 'Failed to connect')
       throw error
     }
-  }, [])
+  }, [connectMutation])
 
   const disconnect = useCallback(() => {
     setCurrentProfile(null)
     setIsConnected(false)
-    setCollections([])
-    setCollectionsError(null)
-    queryCache.current.clear()
-    // Note: Window will close instead of showing modal
-  }, [])
+    // Clear all queries for this profile
+    if (currentProfile) {
+      queryClient.removeQueries({ queryKey: ['chroma', 'collections', currentProfile.id] })
+      queryClient.removeQueries({ queryKey: ['chroma', 'documents', currentProfile.id] })
+    }
+  }, [currentProfile, queryClient])
 
   const refreshCollections = useCallback(async () => {
     if (!currentProfile) return
-
-    setCollectionsLoading(true)
-    setCollectionsError(null)
-
-    try {
-      const collectionsList = await window.electronAPI.chromadb.listCollections(currentProfile.id)
-      setCollections(collectionsList)
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch collections'
-      setCollectionsError(errorMessage)
-      console.error('Error fetching collections:', error)
-    } finally {
-      setCollectionsLoading(false)
-    }
-  }, [currentProfile])
+    await refreshMutation.mutateAsync()
+  }, [currentProfile, refreshMutation])
 
   const searchDocuments = useCallback(async (params: SearchDocumentsParams): Promise<DocumentRecord[]> => {
     if (!currentProfile) {
       throw new Error('Not connected to ChromaDB')
     }
 
-    // Create cache key from params
-    const cacheKey = JSON.stringify(params)
-
-    // Return cached result if available
-    if (queryCache.current.has(cacheKey)) {
-      return queryCache.current.get(cacheKey)!
-    }
-
-    // Fetch documents
+    // Fetch documents directly (React Query will cache at component level)
     try {
       const results = await window.electronAPI.chromadb.searchDocuments(currentProfile.id, params)
-
-      // Cache the results
-      queryCache.current.set(cacheKey, results)
-
       return results
     } catch (error) {
       console.error('Error searching documents:', error)
@@ -120,8 +89,10 @@ export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProvid
   }, [currentProfile])
 
   const invalidateCache = useCallback(() => {
-    queryCache.current.clear()
-  }, [])
+    if (currentProfile) {
+      queryClient.invalidateQueries({ queryKey: ['chroma', 'documents', currentProfile.id] })
+    }
+  }, [currentProfile, queryClient])
 
   // Auto-connect when profile changes or on initial mount
   useEffect(() => {
@@ -137,7 +108,7 @@ export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProvid
     disconnect,
     collections,
     collectionsLoading,
-    collectionsError,
+    collectionsError: collectionsError ? (collectionsError as Error).message : null,
     refreshCollections,
     searchDocuments,
     invalidateCache,

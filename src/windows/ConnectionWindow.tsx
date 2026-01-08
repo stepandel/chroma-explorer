@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
 import { ChromaDBProvider } from '../providers/ChromaDBProvider'
 import { TabsProvider } from '../context/TabsContext'
 import { AppLayout } from '../components/layout/AppLayout'
-import { ConnectionProfile } from '../../electron/types'
+import { useProfileQuery } from '../hooks/useChromaQueries'
 
 interface ConnectionWindowProps {
   windowId: string
@@ -10,26 +9,7 @@ interface ConnectionWindowProps {
 }
 
 export function ConnectionWindow({ windowId, profileId }: ConnectionWindowProps) {
-  const [profile, setProfile] = useState<ConnectionProfile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        // Get the profile for this window (from cache or storage)
-        const loadedProfile = await window.electronAPI.window.getProfile(profileId)
-        setProfile(loadedProfile)
-        setLoading(false)
-      } catch (err) {
-        console.error('Failed to load profile:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load profile')
-        setLoading(false)
-      }
-    }
-
-    loadProfile()
-  }, [profileId])
+  const { data: profile, isLoading: loading, error } = useProfileQuery(profileId)
 
   if (loading) {
     return (
@@ -42,7 +22,9 @@ export function ConnectionWindow({ windowId, profileId }: ConnectionWindowProps)
   if (error || !profile) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-red-600">Error: {error || 'Profile not found'}</div>
+        <div className="text-red-600">
+          Error: {error ? (error as Error).message : 'Profile not found'}
+        </div>
       </div>
     )
   }
