@@ -4,11 +4,8 @@ import { ConnectionProfile } from '../../electron/types'
 export function SetupWindow() {
   const handleConnect = async (profile: ConnectionProfile) => {
     try {
-      // Create a new connection window
+      // Create a new connection window (window manager will close setup window)
       await window.electronAPI.window.createConnection(profile)
-
-      // Close the setup window
-      await window.electronAPI.window.closeCurrent()
     } catch (error) {
       console.error('Failed to create connection window:', error)
       // Show error to user

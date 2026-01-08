@@ -89,6 +89,11 @@ class WindowManager {
     // Cache the profile (in case it's not saved to storage yet)
     this.profileCache.set(profileId, profile)
 
+    // Close setup window when creating a connection window
+    if (this.registry.setup && !this.registry.setup.isDestroyed()) {
+      this.registry.setup.close()
+    }
+
     // Calculate cascade position (offset each window)
     const existingCount = this.registry.connections.size
     const offset = existingCount * 30
@@ -138,6 +143,11 @@ class WindowManager {
         .some(conn => conn.profileId === profileId)
       if (!stillInUse) {
         this.profileCache.delete(profileId)
+      }
+
+      // If no connection windows remain, show setup window
+      if (this.registry.connections.size === 0) {
+        this.createSetupWindow()
       }
     })
 
