@@ -311,19 +311,6 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
               </div>
             )}
           </div>
-          <div className="p-3 border-t border-sidebar-border">
-            <Button
-              onClick={() => {
-                setSelectedProfileId('')
-                resetForm()
-              }}
-              variant="outline"
-              size="sm"
-              className="w-full text-xs"
-            >
-              + New Connection
-            </Button>
-          </div>
         </div>
       </div>
     </div>
