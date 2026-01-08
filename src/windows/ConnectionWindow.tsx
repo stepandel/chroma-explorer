@@ -1,5 +1,5 @@
 import { ChromaDBProvider } from '../providers/ChromaDBProvider'
-import { TabsProvider } from '../context/TabsContext'
+import { CollectionProvider } from '../context/CollectionContext'
 import { AppLayout } from '../components/layout/AppLayout'
 import { useProfileQuery } from '../hooks/useChromaQueries'
 
@@ -31,9 +31,9 @@ export function ConnectionWindow({ windowId, profileId }: ConnectionWindowProps)
 
   return (
     <ChromaDBProvider profile={profile} windowId={windowId}>
-      <TabsProvider windowId={windowId}>
+      <CollectionProvider>
         <AppLayout />
-      </TabsProvider>
+      </CollectionProvider>
     </ChromaDBProvider>
   )
 }

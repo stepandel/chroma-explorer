@@ -1,14 +1,14 @@
-import { useTabs } from '../../context/TabsContext'
+import { useCollection } from '../../context/CollectionContext'
 import DocumentsView from '../DocumentsView'
 
 export function MainContent() {
-  const { activeTab } = useTabs()
+  const { activeCollection } = useCollection()
 
-  if (!activeTab) {
+  if (!activeCollection) {
     return (
       <main className="flex-1 overflow-auto flex items-center justify-center">
         <div className="text-center text-gray-500">
-          <p className="text-lg mb-2">No collection open</p>
+          <p className="text-lg mb-2">No collection selected</p>
           <p className="text-sm">Select a collection from the sidebar to get started</p>
         </div>
       </main>
@@ -17,7 +17,7 @@ export function MainContent() {
 
   return (
     <main className="flex-1 overflow-auto">
-      <DocumentsView collectionName={activeTab.collectionName} />
+      <DocumentsView collectionName={activeCollection} />
     </main>
   )
 }

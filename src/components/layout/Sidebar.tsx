@@ -1,25 +1,17 @@
 import { useChromaDB } from '../../providers/ChromaDBProvider'
-import { useTabs } from '../../context/TabsContext'
+import { useCollection } from '../../context/CollectionContext'
 import { Button } from '../ui/button'
 
 export function Sidebar() {
   const { collections, collectionsLoading, collectionsError, refreshCollections } = useChromaDB()
-  const { openCollection, sidebarCollapsed } = useTabs()
+  const { activeCollection, setActiveCollection } = useCollection()
 
   const handleCollectionClick = (collectionName: string) => {
-    openCollection(collectionName)
+    setActiveCollection(collectionName)
   }
 
   const handleRefresh = () => {
     refreshCollections()
-  }
-
-  if (sidebarCollapsed) {
-    return (
-      <aside className="w-12 bg-white border-r border-gray-200 flex flex-col">
-        {/* Collapsed sidebar - could show icons */}
-      </aside>
-    )
   }
 
   return (
@@ -59,20 +51,29 @@ export function Sidebar() {
 
         {!collectionsLoading && !collectionsError && collections.length > 0 && (
           <div className="py-2">
-            {collections.map(collection => (
-              <button
-                key={collection.id}
-                onClick={() => handleCollectionClick(collection.name)}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors group"
-              >
-                <div className="text-sm font-medium text-gray-900 truncate">
-                  {collection.name}
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {collection.count.toLocaleString()} docs
-                </div>
-              </button>
-            ))}
+            {collections.map(collection => {
+              const isActive = collection.name === activeCollection
+              return (
+                <button
+                  key={collection.id}
+                  onClick={() => handleCollectionClick(collection.name)}
+                  className={`w-full px-4 py-2 text-left transition-colors ${
+                    isActive
+                      ? 'bg-blue-50 border-l-2 border-blue-500'
+                      : 'hover:bg-gray-100 border-l-2 border-transparent'
+                  }`}
+                >
+                  <div className={`text-sm font-medium truncate ${
+                    isActive ? 'text-blue-900' : 'text-gray-900'
+                  }`}>
+                    {collection.name}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {collection.count.toLocaleString()} docs
+                  </div>
+                </button>
+              )
+            })}
           </div>
         )}
       </div>

@@ -1,10 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useChromaDB } from '../providers/ChromaDBProvider'
-import { useTabs } from '../context/TabsContext'
 import { useDocumentsQuery } from '../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { FilterSection } from './FilterSection'
-import { MetadataFilter } from '../types/filters'
+import { MetadataFilter, DocumentFilters } from '../types/filters'
 
 interface DocumentRecord {
   id: string
@@ -17,15 +16,17 @@ interface DocumentsViewProps {
   collectionName: string
 }
 
+function getDefaultFilters(): DocumentFilters {
+  return {
+    queryText: '',
+    nResults: 10,
+    metadataFilters: [],
+  }
+}
+
 export default function DocumentsView({ collectionName }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
-  const { activeTab, updateTabFilters } = useTabs()
-
-  if (!activeTab) {
-    return null
-  }
-
-  const filters = activeTab.filters
+  const [filters, setFilters] = useState<DocumentFilters>(getDefaultFilters())
 
   // Build search params
   const searchParams = useMemo(() => ({
@@ -53,11 +54,11 @@ export default function DocumentsView({ collectionName }: DocumentsViewProps) {
     hasActiveFilters: filters.queryText.trim() !== '' || filters.metadataFilters.length > 0,
 
     setQueryText: (queryText: string) => {
-      updateTabFilters(activeTab.id, { ...filters, queryText })
+      setFilters(prev => ({ ...prev, queryText }))
     },
 
     setNResults: (nResults: number) => {
-      updateTabFilters(activeTab.id, { ...filters, nResults })
+      setFilters(prev => ({ ...prev, nResults }))
     },
 
     addMetadataFilter: (key: string, operator: any, value: string) => {
@@ -67,29 +68,25 @@ export default function DocumentsView({ collectionName }: DocumentsViewProps) {
         operator,
         value,
       }
-      updateTabFilters(activeTab.id, {
-        ...filters,
-        metadataFilters: [...filters.metadataFilters, newFilter],
-      })
+      setFilters(prev => ({
+        ...prev,
+        metadataFilters: [...prev.metadataFilters, newFilter],
+      }))
     },
 
     removeMetadataFilter: (id: string) => {
-      updateTabFilters(activeTab.id, {
-        ...filters,
-        metadataFilters: filters.metadataFilters.filter(f => f.id !== id),
-      })
+      setFilters(prev => ({
+        ...prev,
+        metadataFilters: prev.metadataFilters.filter(f => f.id !== id),
+      }))
     },
 
     clearAllFilters: () => {
-      updateTabFilters(activeTab.id, {
-        queryText: '',
-        nResults: 10,
-        metadataFilters: [],
-      })
+      setFilters(getDefaultFilters())
     },
 
     buildSearchParams: () => searchParams,
-  }), [filters, activeTab.id, searchParams, updateTabFilters])
+  }), [filters, searchParams])
 
   return (
     <div className="p-8">
