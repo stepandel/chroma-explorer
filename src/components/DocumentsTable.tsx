@@ -119,14 +119,14 @@ export default function DocumentsTable({
       <table className="min-w-full">
         <thead className="bg-secondary sticky top-0 z-10 border-b border-border">
           <tr>
-            <th className="px-3 py-1 text-left text-xs font-medium text-muted-foreground">
+            <th className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border">
               id
             </th>
-            <th className="px-3 py-1 text-left text-xs font-medium text-muted-foreground">
+            <th className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border">
               document
             </th>
             {metadataKeys.map(key => (
-              <th key={key} className="px-3 py-1 text-left text-xs font-medium text-muted-foreground">
+              <th key={key} className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border">
                 {key}
               </th>
             ))}
@@ -135,10 +135,10 @@ export default function DocumentsTable({
         <tbody className="bg-background divide-y divide-border">
           {documents.map((doc) => (
             <tr key={doc.id} className="hover:bg-secondary/30 transition-colors">
-              <td className="px-3 py-0.5 text-xs font-mono text-foreground align-top">
+              <td className="pl-3 py-0.5 text-xs font-mono text-foreground align-top border-r border-border">
                 {doc.id}
               </td>
-              <td className="px-3 py-0.5 text-xs text-foreground max-w-md align-top">
+              <td className="pl-3 py-0.5 text-xs text-foreground max-w-md align-top border-r border-border">
                 <div className="line-clamp-2">
                   {doc.document || <span className="text-muted-foreground italic">No document</span>}
                 </div>
@@ -146,7 +146,7 @@ export default function DocumentsTable({
               {metadataKeys.map(key => {
                 const value = doc.metadata?.[key]
                 return (
-                  <td key={key} className="px-3 py-0.5 text-xs text-foreground max-w-md align-top">
+                  <td key={key} className="pl-3 py-0.5 text-xs text-foreground max-w-md align-top border-r border-border">
                     {value !== undefined && value !== null ? (
                       typeof value === 'object' ? (
                         <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto line-clamp-2">
