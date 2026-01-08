@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ConnectionProfile, CollectionInfo, DocumentRecord, SearchDocumentsParams } from '../../electron/types'
+import { ConnectionProfile, SearchDocumentsParams } from '../../electron/types'
 
 // Query Keys
 export const chromaQueryKeys = {
@@ -8,7 +8,6 @@ export const chromaQueryKeys = {
   collections: (profileId: string) => [...chromaQueryKeys.all, 'collections', profileId] as const,
   documents: (profileId: string, params: SearchDocumentsParams) =>
     [...chromaQueryKeys.all, 'documents', profileId, params] as const,
-  tabs: (windowId: string) => ['tabs', windowId] as const,
 }
 
 // Profile Query
@@ -93,29 +92,3 @@ export function useRefreshCollectionsMutation(profileId: string) {
   })
 }
 
-// Tabs Persistence
-export function useTabsQuery(windowId: string) {
-  return useQuery({
-    queryKey: chromaQueryKeys.tabs(windowId),
-    queryFn: async () => {
-      const data = await window.electronAPI.tabs.load(windowId)
-      return data
-    },
-    staleTime: Infinity, // Don't refetch tabs automatically
-  })
-}
-
-export function useSaveTabsMutation(windowId: string) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (data: any) => {
-      await window.electronAPI.tabs.save(windowId, data)
-      return data
-    },
-    onSuccess: (data) => {
-      // Update the cache
-      queryClient.setQueryData(chromaQueryKeys.tabs(windowId), data)
-    },
-  })
-}
