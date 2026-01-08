@@ -69,6 +69,15 @@ export default function DocumentsTable({
   error,
   hasActiveFilters = false,
 }: DocumentsTableProps) {
+  // Extract all unique metadata keys from documents
+  const metadataKeys = Array.from(
+    new Set(
+      documents.flatMap(doc =>
+        doc.metadata ? Object.keys(doc.metadata) : []
+      )
+    )
+  ).sort()
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -116,9 +125,11 @@ export default function DocumentsTable({
             <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Document
             </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Metadata
-            </th>
+            {metadataKeys.map(key => (
+              <th key={key} className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {key}
+              </th>
+            ))}
             <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Embedding
             </th>
@@ -135,15 +146,24 @@ export default function DocumentsTable({
                   {doc.document || <span className="text-muted-foreground italic">No document</span>}
                 </div>
               </td>
-              <td className="px-3 py-1.5 text-xs text-muted-foreground align-top">
-                {doc.metadata ? (
-                  <pre className="text-xs bg-secondary/50 p-1.5 rounded overflow-x-auto max-w-xs line-clamp-3">
-                    {JSON.stringify(doc.metadata, null, 2)}
-                  </pre>
-                ) : (
-                  <span className="text-muted-foreground italic">No metadata</span>
-                )}
-              </td>
+              {metadataKeys.map(key => {
+                const value = doc.metadata?.[key]
+                return (
+                  <td key={key} className="px-3 py-1.5 text-xs text-foreground align-top">
+                    {value !== undefined && value !== null ? (
+                      typeof value === 'object' ? (
+                        <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto max-w-[200px]">
+                          {JSON.stringify(value, null, 2)}
+                        </pre>
+                      ) : (
+                        String(value)
+                      )
+                    ) : (
+                      <span className="text-muted-foreground italic">-</span>
+                    )}
+                  </td>
+                )
+              })}
               <td className="px-3 py-1.5 text-xs text-muted-foreground align-top">
                 <EmbeddingCell embedding={doc.embedding} />
               </td>
