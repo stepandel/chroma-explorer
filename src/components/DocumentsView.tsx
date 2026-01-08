@@ -89,20 +89,19 @@ export default function DocumentsView({ collectionName }: DocumentsViewProps) {
   }), [filters, searchParams])
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">{collectionName}</h1>
+    <div className="flex flex-col h-full">
+      <div className="px-6 py-4 border-b border-border">
+        <h1 className="text-2xl font-bold text-foreground">{collectionName}</h1>
         <p className="text-muted-foreground text-sm mt-1">
           {!loading && !error && `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
         </p>
       </div>
 
-      <FilterSection filterHook={filterHook} />
+      <div className="px-6 py-4 border-b border-border">
+        <FilterSection filterHook={filterHook} />
+      </div>
 
-      <div className="bg-card/80 backdrop-blur-sm rounded-xl shadow-sm border border-border">
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-xl font-semibold text-foreground">Documents</h2>
-        </div>
+      <div className="flex-1 overflow-auto">
         <DocumentsTable
           documents={documents}
           loading={loading}

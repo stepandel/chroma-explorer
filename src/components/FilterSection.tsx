@@ -9,28 +9,26 @@ interface FilterSectionProps {
 
 export function FilterSection({ filterHook }: FilterSectionProps) {
   return (
-    <div className="bg-card/80 backdrop-blur-sm rounded-xl shadow-sm border border-border mb-6">
-      <div className="px-6 py-4">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Filter Documents</h2>
+    <div className="bg-secondary/30 rounded-lg p-4">
+      <h2 className="text-sm font-semibold text-foreground mb-3">Filter Documents</h2>
 
-        <div className="space-y-4">
-          <SemanticSearchInput
-            value={filterHook.filters.queryText}
-            nResults={filterHook.filters.nResults}
-            onChange={filterHook.setQueryText}
-            onNResultsChange={filterHook.setNResults}
-          />
-
-          <MetadataFilterInput onAdd={filterHook.addMetadataFilter} />
-        </div>
-
-        <ActiveFiltersDisplay
-          filters={filterHook.filters}
-          onRemoveQueryText={() => filterHook.setQueryText('')}
-          onRemoveMetadataFilter={filterHook.removeMetadataFilter}
-          onClearAll={filterHook.clearAllFilters}
+      <div className="space-y-3">
+        <SemanticSearchInput
+          value={filterHook.filters.queryText}
+          nResults={filterHook.filters.nResults}
+          onChange={filterHook.setQueryText}
+          onNResultsChange={filterHook.setNResults}
         />
+
+        <MetadataFilterInput onAdd={filterHook.addMetadataFilter} />
       </div>
+
+      <ActiveFiltersDisplay
+        filters={filterHook.filters}
+        onRemoveQueryText={() => filterHook.setQueryText('')}
+        onRemoveMetadataFilter={filterHook.removeMetadataFilter}
+        onClearAll={filterHook.clearAllFilters}
+      />
     </div>
   )
 }

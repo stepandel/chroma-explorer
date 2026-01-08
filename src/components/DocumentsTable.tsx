@@ -106,43 +106,45 @@ export default function DocumentsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-auto h-full">
       <table className="min-w-full divide-y divide-border">
-        <thead className="bg-secondary/50 sticky top-0">
+        <thead className="bg-secondary/50 sticky top-0 z-10">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               ID
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Document
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Metadata
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Embedding
             </th>
           </tr>
         </thead>
-        <tbody className="bg-card divide-y divide-border">
+        <tbody className="bg-background divide-y divide-border">
           {documents.map((doc) => (
             <tr key={doc.id} className="hover:bg-secondary/30 transition-colors">
-              <td className="px-6 py-4 text-sm font-mono text-foreground align-top">
+              <td className="px-3 py-1.5 text-xs font-mono text-foreground align-top">
                 {doc.id}
               </td>
-              <td className="px-6 py-4 text-sm text-foreground max-w-md align-top">
-                {doc.document || <span className="text-muted-foreground italic">No document</span>}
+              <td className="px-3 py-1.5 text-xs text-foreground max-w-md align-top">
+                <div className="line-clamp-3">
+                  {doc.document || <span className="text-muted-foreground italic">No document</span>}
+                </div>
               </td>
-              <td className="px-6 py-4 text-sm text-muted-foreground align-top">
+              <td className="px-3 py-1.5 text-xs text-muted-foreground align-top">
                 {doc.metadata ? (
-                  <pre className="text-xs bg-secondary p-2 rounded-lg overflow-x-auto max-w-xs">
+                  <pre className="text-xs bg-secondary/50 p-1.5 rounded overflow-x-auto max-w-xs line-clamp-3">
                     {JSON.stringify(doc.metadata, null, 2)}
                   </pre>
                 ) : (
                   <span className="text-muted-foreground italic">No metadata</span>
                 )}
               </td>
-              <td className="px-6 py-4 text-sm text-muted-foreground align-top">
+              <td className="px-3 py-1.5 text-xs text-muted-foreground align-top">
                 <EmbeddingCell embedding={doc.embedding} />
               </td>
             </tr>
