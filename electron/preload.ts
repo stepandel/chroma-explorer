@@ -72,27 +72,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
     },
   },
-  tabs: {
-    save: async (windowId: string, data: any): Promise<void> => {
-      const result = await ipcRenderer.invoke('tabs:save', windowId, data)
-      if (!result.success) {
-        throw new Error(result.error)
-      }
-    },
-    load: async (windowId: string): Promise<any> => {
-      const result = await ipcRenderer.invoke('tabs:load', windowId)
-      if (!result.success) {
-        throw new Error(result.error)
-      }
-      return result.data
-    },
-    clear: async (windowId: string): Promise<void> => {
-      const result = await ipcRenderer.invoke('tabs:clear', windowId)
-      if (!result.success) {
-        throw new Error(result.error)
-      }
-    },
-  },
   window: {
     createConnection: async (profile: ConnectionProfile): Promise<{ windowId: string }> => {
       const result = await ipcRenderer.invoke('window:create-connection', profile)
