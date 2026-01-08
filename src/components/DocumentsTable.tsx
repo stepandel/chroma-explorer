@@ -149,14 +149,16 @@ export default function DocumentsTable({
               {metadataKeys.map(key => {
                 const value = doc.metadata?.[key]
                 return (
-                  <td key={key} className="px-3 py-1.5 text-xs text-foreground align-top">
+                  <td key={key} className="px-3 py-1.5 text-xs text-foreground max-w-md align-top">
                     {value !== undefined && value !== null ? (
                       typeof value === 'object' ? (
-                        <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto max-w-[200px]">
+                        <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto line-clamp-3">
                           {JSON.stringify(value, null, 2)}
                         </pre>
                       ) : (
-                        String(value)
+                        <div className="line-clamp-3">
+                          {String(value)}
+                        </div>
                       )
                     ) : (
                       <span className="text-muted-foreground italic">-</span>
@@ -164,7 +166,7 @@ export default function DocumentsTable({
                   </td>
                 )
               })}
-              <td className="px-3 py-1.5 text-xs text-muted-foreground align-top">
+              <td className="px-3 py-1.5 text-xs text-muted-foreground max-w-md align-top">
                 <EmbeddingCell embedding={doc.embedding} />
               </td>
             </tr>
