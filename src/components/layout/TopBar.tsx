@@ -56,20 +56,18 @@ export function TopBar() {
         </Button>
 
         {/* Right Panel Toggle */}
-        {selectedDocumentId && (
-          <Button
-            onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0"
-          >
-            {rightPanelOpen ? (
-              <PanelRight className="h-5 w-5 text-primary" />
-            ) : (
-              <PanelRightDashed className="h-5 w-5" />
-            )}
-          </Button>
-        )}
+        <Button
+          onClick={() => setRightPanelOpen(!rightPanelOpen)}
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0"
+        >
+          {rightPanelOpen ? (
+            <PanelRight className="h-5 w-5 text-primary" />
+          ) : (
+            <PanelRightDashed className="h-5 w-5" />
+          )}
+        </Button>
 
         <Button onClick={handleDisconnect} size="sm" variant="ghost" className="h-7 text-xs">
           Disconnect

@@ -74,14 +74,14 @@ export function MainContent() {
 
         {/* Right Panel: Document Detail Drawer - Always present, collapsed when not in use */}
         <Separator className={`w-px transition-colors duration-150 ${
-          rightPanelOpen && selectedDocument
+          rightPanelOpen
             ? 'bg-border hover:bg-primary active:bg-primary cursor-col-resize'
             : 'bg-transparent pointer-events-none'
         }`} />
 
         <Panel
           key={`right-panel-${rightPanelOpen}`}
-          defaultSize={rightPanelOpen && selectedDocument ? "30" : "0"}
+          defaultSize={rightPanelOpen ? "30" : "0"}
           minSize="20"
           maxSize="50"
           collapsible={true}
@@ -94,8 +94,14 @@ export function MainContent() {
             }
           }}
         >
-          {selectedDocument && (
+          {selectedDocument ? (
             <DocumentDetailPanel document={selectedDocument} />
+          ) : (
+            <div className="flex items-center justify-center h-full bg-background">
+              <div className="text-center text-muted-foreground">
+                <p className="text-sm">No document selected</p>
+              </div>
+            </div>
           )}
         </Panel>
       </Group>
