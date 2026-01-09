@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, session } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { ConnectionProfile } from './types'
@@ -7,6 +7,30 @@ import { chromaDBConnectionPool } from './chromadb-service'
 import { randomUUID } from 'crypto'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * Set up Content Security Policy for a window session
+ */
+function setupCSP(windowSession: Electron.Session): void {
+  windowSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          [
+            "default-src 'self'",
+            "script-src 'self'",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob:",
+            "font-src 'self' data:",
+            "connect-src 'self' http: https: ws: wss:",
+            "worker-src 'self' blob:",
+          ].join('; ')
+        ]
+      }
+    })
+  })
+}
 
 interface WindowRegistry {
   setup: BrowserWindow | null
@@ -64,6 +88,9 @@ class WindowManager {
       },
     })
 
+    // Set up Content Security Policy
+    setupCSP(win.webContents.session)
+
     // Load window content
     if (process.env.VITE_DEV_SERVER_URL) {
       win.loadURL(this.getWindowUrl({ type: 'setup' }))
@@ -114,6 +141,9 @@ class WindowManager {
         nodeIntegration: false,
       },
     })
+
+    // Set up Content Security Policy
+    setupCSP(win.webContents.session)
 
     // Load window content
     if (process.env.VITE_DEV_SERVER_URL) {
