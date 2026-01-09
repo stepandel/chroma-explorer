@@ -9,7 +9,7 @@ export default function EmbeddingCell({ embedding }: EmbeddingCellProps) {
   const [expanded, setExpanded] = useState(false)
 
   if (!embedding) {
-    return <span className="text-muted-foreground italic">No embedding</span>
+    return <span className="text-muted-foreground italic text-xs">No embedding</span>
   }
 
   const previewCount = 5
@@ -17,8 +17,8 @@ export default function EmbeddingCell({ embedding }: EmbeddingCellProps) {
 
   if (expanded) {
     return (
-      <div className="space-y-2">
-        <div className="text-xs bg-secondary p-2 rounded-lg font-mono max-h-40 overflow-y-auto">
+      <div className="space-y-1">
+        <div className="text-xs bg-secondary p-1.5 rounded font-mono max-h-32 overflow-y-auto">
           [{embedding.join(', ')}]
         </div>
         <Button
@@ -37,7 +37,7 @@ export default function EmbeddingCell({ embedding }: EmbeddingCellProps) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <span className="text-xs font-mono">
         [{embedding.slice(0, previewCount).join(', ')}
         {hasMore && '...'}]

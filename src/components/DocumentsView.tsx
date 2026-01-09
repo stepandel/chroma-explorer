@@ -257,24 +257,8 @@ export default function DocumentsView({
         }`}
       >
         {rightDrawerOpen && selectedDocument && (
-          <div className="w-[600px] h-full flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-lg font-semibold leading-none tracking-tight">Document Details</h2>
-              <Button
-                onClick={onCloseRightDrawer}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 rounded-sm opacity-70 hover:opacity-100"
-              >
-                <span className="text-xl leading-none">✕</span>
-                <span className="sr-only">Close</span>
-              </Button>
-            </div>
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <DocumentDetailPanel document={selectedDocument} />
-            </div>
+          <div className="w-[600px] h-full overflow-y-auto">
+            <DocumentDetailPanel document={selectedDocument} />
           </div>
         )}
       </div>
