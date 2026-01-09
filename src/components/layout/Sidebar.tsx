@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useCollection } from '../../context/CollectionContext'
 import { Button } from '../ui/button'
+import { Input } from '../ui/input'
 
 export function Sidebar() {
   const { collections, collectionsLoading, collectionsError, refreshCollections } = useChromaDB()
   const { activeCollection, setActiveCollection } = useCollection()
+  const [searchTerm, setSearchTerm] = useState('')
 
   const handleCollectionClick = (collectionName: string) => {
     setActiveCollection(collectionName)
@@ -14,10 +17,14 @@ export function Sidebar() {
     refreshCollections()
   }
 
+  const filteredCollections = collections.filter(collection =>
+    collection.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
     <aside className="w-60 bg-sidebar/70 backdrop-blur-xl border-r border-sidebar-border flex flex-col">
       {/* Header - with spacing for traffic lights */}
-      <div className="pt-14 px-4 pb-3 border-b border-sidebar-border">
+      <div className="pt-14 px-4 pb-3 border-b border-sidebar-border space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             {collections.length} collection{collections.length !== 1 ? 's' : ''}
@@ -25,6 +32,25 @@ export function Sidebar() {
           <Button onClick={handleRefresh} variant="ghost" size="sm" className="h-7 w-7 p-0">
             ↻
           </Button>
+        </div>
+
+        {/* Search input */}
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="Search collections..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-7 text-[11px] py-0.5 px-2 pr-6 placeholder:text-[11px]"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs w-4 h-4 flex items-center justify-center"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
@@ -49,9 +75,15 @@ export function Sidebar() {
           </div>
         )}
 
-        {!collectionsLoading && !collectionsError && collections.length > 0 && (
+        {!collectionsLoading && !collectionsError && collections.length > 0 && filteredCollections.length === 0 && (
+          <div className="p-4 text-sm text-muted-foreground text-center">
+            No collections match "{searchTerm}"
+          </div>
+        )}
+
+        {!collectionsLoading && !collectionsError && filteredCollections.length > 0 && (
           <div className="py-2">
-            {collections.map(collection => {
+            {filteredCollections.map(collection => {
               const isActive = collection.name === activeCollection
               return (
                 <button
