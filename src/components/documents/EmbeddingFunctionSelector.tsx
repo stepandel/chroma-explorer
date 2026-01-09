@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Button } from '../ui/button'
 import { Label } from '../ui/label'
@@ -141,19 +142,22 @@ export function EmbeddingFunctionSelector({
           {/* Selector */}
           <div className="px-1 space-y-1.5">
             <Label htmlFor="ef-select" className="text-[11px] font-normal">Embedding function</Label>
-            <select
-              id="ef-select"
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-2.5 py-1.5 text-[13px] shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50"
-            >
-              <option value="">Select...</option>
-              {EMBEDDING_FUNCTIONS.map(ef => (
-                <option key={ef.id} value={ef.id}>
-                  {ef.label} ({ef.dimensions}d)
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="ef-select"
+                value={selectedId}
+                onChange={(e) => setSelectedId(e.target.value)}
+                className="w-full h-[22px] appearance-none rounded-[5px] border-none bg-white/10 dark:bg-white/5 pl-2 pr-6 text-[13px] text-foreground shadow-[0_0.5px_1px_rgba(0,0,0,0.1),inset_0_0.5px_0.5px_rgba(255,255,255,0.1)] ring-1 ring-black/10 dark:ring-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-default"
+              >
+                <option value="">Select...</option>
+                {EMBEDDING_FUNCTIONS.map(ef => (
+                  <option key={ef.id} value={ef.id}>
+                    {ef.label} ({ef.dimensions}d)
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/70" />
+            </div>
           </div>
 
           {/* Selected info */}
