@@ -2,12 +2,10 @@ import { useMemo, useState, useEffect } from 'react'
 import { useChromaDB } from '../providers/ChromaDBProvider'
 import { useDocumentsQuery } from '../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
-import DocumentDetailPanel from './DocumentDetailPanel'
 import { MetadataFilter, DocumentFilters } from '../types/filters'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import { Panel, Group, Separator } from 'react-resizable-panels'
 
 interface DocumentRecord {
   id: string
@@ -20,8 +18,7 @@ interface DocumentsViewProps {
   collectionName: string
   selectedDocumentId: string | null
   onDocumentSelect: (id: string) => void
-  rightDrawerOpen: boolean
-  onCloseRightDrawer: () => void
+  onSelectedDocumentChange: (document: DocumentRecord | null) => void
 }
 
 function getDefaultFilters(): DocumentFilters {
@@ -36,8 +33,7 @@ export default function DocumentsView({
   collectionName,
   selectedDocumentId,
   onDocumentSelect,
-  rightDrawerOpen,
-  onCloseRightDrawer,
+  onSelectedDocumentChange,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
   const [filters, setFilters] = useState<DocumentFilters>(getDefaultFilters())
@@ -116,12 +112,13 @@ export default function DocumentsView({
     ? documents.find(doc => doc.id === selectedDocumentId)
     : null
 
+  // Notify parent when selected document changes
+  useEffect(() => {
+    onSelectedDocumentChange(selectedDocument || null)
+  }, [selectedDocument, onSelectedDocumentChange])
+
   return (
-    <div className="flex h-full">
-      <Group orientation="horizontal">
-        {/* Left Panel: Filters and Table */}
-        <Panel defaultSize={rightDrawerOpen && selectedDocument ? "70" : "100"} minSize="40">
-          <div className="flex flex-col min-w-0 h-full">
+    <div className="flex flex-col h-full">
             {/* Row 1: Collection name and count */}
             <div className="px-4 py-2 border-b border-border flex items-center justify-between">
               <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
@@ -240,45 +237,17 @@ export default function DocumentsView({
               )}
             </div>
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
-              <DocumentsTable
-                documents={documents}
-                loading={loading}
-                error={error ? (error as Error).message : null}
-                hasActiveFilters={filterHook.hasActiveFilters}
-                selectedDocumentId={selectedDocumentId}
-                onDocumentSelect={onDocumentSelect}
-              />
-            </div>
-          </div>
-        </Panel>
-
-        {/* Resize Handle - only when drawer is open */}
-        {rightDrawerOpen && selectedDocument && (
-          <>
-            <Separator className="w-px bg-border hover:bg-primary active:bg-primary transition-colors duration-150 cursor-col-resize" />
-
-            {/* Right Panel: Document Detail Drawer */}
-            <Panel
-              defaultSize="30"
-              minSize="20"
-              maxSize="50"
-              collapsible={true}
-              onResize={(size) => {
-                // When panel is collapsed (size is 0), close the drawer
-                if (size.asPercentage === 0) {
-                  onCloseRightDrawer()
-                }
-              }}
-            >
-              <div className="h-full overflow-y-auto bg-background border-l border-border">
-                <DocumentDetailPanel document={selectedDocument} />
-              </div>
-            </Panel>
-          </>
-        )}
-      </Group>
+      {/* Table */}
+      <div className="flex-1 overflow-auto">
+        <DocumentsTable
+          documents={documents}
+          loading={loading}
+          error={error ? (error as Error).message : null}
+          hasActiveFilters={filterHook.hasActiveFilters}
+          selectedDocumentId={selectedDocumentId}
+          onDocumentSelect={onDocumentSelect}
+        />
+      </div>
     </div>
   )
 }
