@@ -183,27 +183,32 @@ export default function DocumentsTable({
           ))}
         </thead>
         <tbody className="divide-y divide-border">
-          {table.getRowModel().rows.map((row, index) => (
-            <tr
-              key={row.id}
-              className={`hover:bg-secondary/30 transition-colors cursor-pointer ${
-                index % 2 === 0 ? 'bg-background' : 'bg-muted/100'
-              }`}
-              onClick={() => onDocumentSelect(row.original.id)}
-            >
-              {row.getVisibleCells().map(cell => (
-                <td
-                  key={cell.id}
-                  className="pl-3 py-0.5 align-top border-r border-border"
-                  style={{ width: cell.column.getSize() }}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-              {/* Filler cell to extend table structure */}
-              <td className="border-r border-border"></td>
-            </tr>
-          ))}
+          {table.getRowModel().rows.map((row, index) => {
+            const isSelected = selectedDocumentId === row.original.id
+            return (
+              <tr
+                key={row.id}
+                className={`transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-100'
+                    : index % 2 === 0 ? 'bg-background' : 'bg-muted/100'
+                }`}
+                onClick={() => onDocumentSelect(row.original.id)}
+              >
+                {row.getVisibleCells().map(cell => (
+                  <td
+                    key={cell.id}
+                    className="pl-3 py-0.5 align-top border-r border-border"
+                    style={{ width: cell.column.getSize() }}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+                {/* Filler cell to extend table structure */}
+                <td className="border-r border-border"></td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
