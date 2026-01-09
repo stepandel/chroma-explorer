@@ -1,7 +1,14 @@
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { Button } from '../ui/button'
+import { PanelRightOpen, PanelRightClose } from 'lucide-react'
 
-export function TopBar() {
+interface TopBarProps {
+  rightDrawerOpen: boolean
+  onToggleRightDrawer: () => void
+  hasSelectedDocument: boolean
+}
+
+export function TopBar({ rightDrawerOpen, onToggleRightDrawer, hasSelectedDocument }: TopBarProps) {
   const { currentProfile } = useChromaDB()
 
   const handleDisconnect = async () => {
@@ -32,6 +39,26 @@ export function TopBar() {
         className="flex items-center gap-2 pr-4"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
+        {hasSelectedDocument && (
+          <Button
+            onClick={onToggleRightDrawer}
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs flex items-center gap-1.5"
+          >
+            {rightDrawerOpen ? (
+              <>
+                <PanelRightClose className="h-3.5 w-3.5" />
+                <span>Close Details</span>
+              </>
+            ) : (
+              <>
+                <PanelRightOpen className="h-3.5 w-3.5" />
+                <span>Open Details</span>
+              </>
+            )}
+          </Button>
+        )}
         <Button onClick={handleDisconnect} size="sm" variant="ghost" className="h-7 text-xs">
           Disconnect
         </Button>
