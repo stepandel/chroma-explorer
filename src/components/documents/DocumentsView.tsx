@@ -1,11 +1,11 @@
 import { useMemo, useState, useEffect } from 'react'
-import { useChromaDB } from '../providers/ChromaDBProvider'
-import { useDocumentsQuery } from '../hooks/useChromaQueries'
+import { useChromaDB } from '../../providers/ChromaDBProvider'
+import { useDocumentsQuery } from '../../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
-import { MetadataFilter, DocumentFilters } from '../types/filters'
-import { Input } from './ui/input'
-import { Button } from './ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { MetadataFilter, DocumentFilters } from '../../types/filters'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 interface DocumentRecord {
   id: string

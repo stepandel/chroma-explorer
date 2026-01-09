@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect } from 'react'
-import { ConnectionProfile } from '../../electron/types'
+import { ConnectionProfile } from '../../../electron/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

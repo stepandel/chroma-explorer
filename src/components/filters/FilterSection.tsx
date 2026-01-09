@@ -1,7 +1,7 @@
 import { SemanticSearchInput } from './SemanticSearchInput'
 import { MetadataFilterInput } from './MetadataFilterInput'
 import { ActiveFiltersDisplay } from './ActiveFiltersDisplay'
-import { UseDocumentFiltersReturn } from '../hooks/useDocumentFilters'
+import { UseDocumentFiltersReturn } from '../../hooks/useDocumentFilters'
 
 interface FilterSectionProps {
   filterHook: UseDocumentFiltersReturn

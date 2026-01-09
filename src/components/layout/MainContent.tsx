@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useCollection } from '../../context/CollectionContext'
-import { Sidebar } from './Sidebar'
-import DocumentsView from '../DocumentsView'
-import DocumentDetailPanel from '../DocumentDetailPanel'
+import { CollectionPanel } from '../collections/CollectionPanel'
+import DocumentsView from '../documents/DocumentsView'
+import DocumentDetailPanel from '../documents/DocumentDetailPanel'
 import { Panel, Group, Separator } from 'react-resizable-panels'
 
 interface DocumentRecord {
@@ -50,7 +50,7 @@ export function MainContent({
             }
           }}
         >
-          <Sidebar />
+          <CollectionPanel />
         </Panel>
 
         <Separator className={`w-px transition-colors duration-150 ${

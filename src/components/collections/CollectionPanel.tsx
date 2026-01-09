@@ -4,7 +4,7 @@ import { useCollection } from '../../context/CollectionContext'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 
-export function Sidebar() {
+export function CollectionPanel() {
   const { collections, collectionsLoading, collectionsError, refreshCollections } = useChromaDB()
   const { activeCollection, setActiveCollection } = useCollection()
   const [searchTerm, setSearchTerm] = useState('')

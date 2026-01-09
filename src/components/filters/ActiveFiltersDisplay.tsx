@@ -1,5 +1,5 @@
 import { FilterChip } from './FilterChip'
-import { DocumentFilters } from '../types/filters'
+import { DocumentFilters } from '../../types/filters'
 import { Button } from '@/components/ui/button'
 
 interface ActiveFiltersDisplayProps {
