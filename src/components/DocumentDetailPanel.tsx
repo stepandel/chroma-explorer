@@ -17,7 +17,7 @@ export default function DocumentDetailPanel({ document }: DocumentDetailPanelPro
       {/* ID Section */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">ID</h3>
-        <div className="p-2 bg-secondary/50 rounded">
+        <div className="p-2 bg-secondary/50 rounded border border-border">
           <code className="text-xs font-mono break-all">{document.id}</code>
         </div>
       </section>
@@ -25,7 +25,7 @@ export default function DocumentDetailPanel({ document }: DocumentDetailPanelPro
       {/* Document Text Section */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">Document</h3>
-        <div className="p-2 bg-secondary/50 rounded">
+        <div className="p-2 bg-secondary/50 rounded border border-border">
           {document.document ? (
             <p className="text-xs whitespace-pre-wrap">{document.document}</p>
           ) : (
@@ -37,15 +37,15 @@ export default function DocumentDetailPanel({ document }: DocumentDetailPanelPro
       {/* Metadata Section */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">Metadata</h3>
-        <div className="p-2 bg-secondary/50 rounded">
+        <div className="p-2 bg-secondary/50 rounded border border-border">
           {document.metadata && Object.keys(document.metadata).length > 0 ? (
             <div className="space-y-1.5">
               {Object.entries(document.metadata).map(([key, value]) => (
-                <div key={key} className="flex flex-col gap-0.5">
+                <div key={key} className="flex flex-col gap-0.5 pb-1.5 last:pb-0 border-b border-border last:border-0">
                   <span className="text-xs font-semibold text-foreground">{key}</span>
                   <div className="pl-2">
                     {typeof value === 'object' && value !== null ? (
-                      <pre className="text-xs font-mono bg-background p-1.5 rounded overflow-x-auto">
+                      <pre className="text-xs font-mono bg-background p-1.5 rounded border border-border overflow-x-auto">
                         {JSON.stringify(value, null, 2)}
                       </pre>
                     ) : (
@@ -64,7 +64,7 @@ export default function DocumentDetailPanel({ document }: DocumentDetailPanelPro
       {/* Embedding Section */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">Embedding</h3>
-        <div className="p-2 bg-secondary/50 rounded">
+        <div className="p-2 bg-secondary/50 rounded border border-border">
           <EmbeddingCell embedding={document.embedding} />
         </div>
       </section>
