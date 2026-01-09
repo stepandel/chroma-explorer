@@ -4,6 +4,9 @@ import { ConnectionProfile, EmbeddingFunctionOverride } from './types'
 interface StoreSchema {
   profiles: ConnectionProfile[]
   lastActiveProfileId: string | null
+  // Store overrides separately so they persist even for unsaved profiles
+  // Key format: "profileId:collectionName"
+  embeddingOverrides: Record<string, EmbeddingFunctionOverride>
 }
 
 const store = new Store<StoreSchema>({
@@ -11,6 +14,7 @@ const store = new Store<StoreSchema>({
   defaults: {
     profiles: [],
     lastActiveProfileId: null,
+    embeddingOverrides: {},
   },
   encryptionKey: 'chroma-explorer-obfuscation-key-v1',
 })
@@ -54,34 +58,23 @@ export class ConnectionStore {
   }
 
   getEmbeddingOverride(profileId: string, collectionName: string): EmbeddingFunctionOverride | null {
-    const profiles = this.getProfiles()
-    const profile = profiles.find((p) => p.id === profileId)
-    return profile?.embeddingOverrides?.[collectionName] ?? null
+    const key = `${profileId}:${collectionName}`
+    const overrides = store.get('embeddingOverrides', {})
+    return overrides[key] ?? null
   }
 
   setEmbeddingOverride(profileId: string, collectionName: string, override: EmbeddingFunctionOverride): void {
-    const profiles = this.getProfiles()
-    const profileIndex = profiles.findIndex((p) => p.id === profileId)
-
-    if (profileIndex >= 0) {
-      const profile = profiles[profileIndex]
-      profile.embeddingOverrides = profile.embeddingOverrides || {}
-      profile.embeddingOverrides[collectionName] = override
-      store.set('profiles', profiles)
-    }
+    const key = `${profileId}:${collectionName}`
+    const overrides = store.get('embeddingOverrides', {})
+    overrides[key] = override
+    store.set('embeddingOverrides', overrides)
   }
 
   clearEmbeddingOverride(profileId: string, collectionName: string): void {
-    const profiles = this.getProfiles()
-    const profileIndex = profiles.findIndex((p) => p.id === profileId)
-
-    if (profileIndex >= 0) {
-      const profile = profiles[profileIndex]
-      if (profile.embeddingOverrides) {
-        delete profile.embeddingOverrides[collectionName]
-        store.set('profiles', profiles)
-      }
-    }
+    const key = `${profileId}:${collectionName}`
+    const overrides = store.get('embeddingOverrides', {})
+    delete overrides[key]
+    store.set('embeddingOverrides', overrides)
   }
 }
 
