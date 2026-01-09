@@ -257,7 +257,7 @@ export default function DocumentsView({
         {/* Resize Handle - only when drawer is open */}
         {rightDrawerOpen && selectedDocument && (
           <>
-            <Separator className="w-1 bg-border hover:bg-primary active:bg-primary transition-colors duration-150 cursor-col-resize" />
+            <Separator className="w-px bg-border hover:bg-primary active:bg-primary transition-colors duration-150 cursor-col-resize" />
 
             {/* Right Panel: Document Detail Drawer */}
             <Panel
