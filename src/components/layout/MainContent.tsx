@@ -30,6 +30,7 @@ export function MainContent() {
       <Group orientation="horizontal" className="h-full">
         {/* Left Panel: Sidebar - Collapsible */}
         <Panel
+          key={`left-panel-${leftPanelOpen}`}
           defaultSize={leftPanelOpen ? "15" : "0"}
           minSize="12"
           maxSize="25"
@@ -79,6 +80,7 @@ export function MainContent() {
         }`} />
 
         <Panel
+          key={`right-panel-${rightPanelOpen}`}
           defaultSize={rightPanelOpen && selectedDocument ? "30" : "0"}
           minSize="20"
           maxSize="50"

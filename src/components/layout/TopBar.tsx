@@ -7,9 +7,9 @@ export function TopBar() {
   const { currentProfile } = useChromaDB()
   const {
     leftPanelOpen,
-    toggleLeftPanel,
+    setLeftPanelOpen,
     rightPanelOpen,
-    toggleRightPanel,
+    setRightPanelOpen,
     selectedDocumentId
   } = usePanel()
 
@@ -43,7 +43,7 @@ export function TopBar() {
       >
         {/* Left Panel Toggle */}
         <Button
-          onClick={toggleLeftPanel}
+          onClick={() => setLeftPanelOpen(!leftPanelOpen)}
           size="sm"
           variant="ghost"
           className="h-7 w-7 p-0"
@@ -58,7 +58,7 @@ export function TopBar() {
         {/* Right Panel Toggle */}
         {selectedDocumentId && (
           <Button
-            onClick={toggleRightPanel}
+            onClick={() => setRightPanelOpen(!rightPanelOpen)}
             size="sm"
             variant="ghost"
             className="h-7 w-7 p-0"

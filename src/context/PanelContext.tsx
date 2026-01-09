@@ -3,12 +3,10 @@ import { createContext, useContext, useState, ReactNode } from 'react'
 interface PanelContextType {
   // Left panel (CollectionPanel) state
   leftPanelOpen: boolean
-  toggleLeftPanel: () => void
   setLeftPanelOpen: (open: boolean) => void
 
   // Right panel (DocumentDetailPanel) state
   rightPanelOpen: boolean
-  toggleRightPanel: () => void
   setRightPanelOpen: (open: boolean) => void
 
   // Selected document state
@@ -25,14 +23,6 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const [rightPanelOpen, setRightPanelOpen] = useState(false)
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
 
-  const toggleLeftPanel = () => {
-    setLeftPanelOpen(prev => !prev)
-  }
-
-  const toggleRightPanel = () => {
-    setRightPanelOpen(prev => !prev)
-  }
-
   const selectDocument = (id: string) => {
     setSelectedDocumentId(id)
     setRightPanelOpen(true)
@@ -47,10 +37,8 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     <PanelContext.Provider
       value={{
         leftPanelOpen,
-        toggleLeftPanel,
         setLeftPanelOpen,
         rightPanelOpen,
-        toggleRightPanel,
         setRightPanelOpen,
         selectedDocumentId,
         setSelectedDocumentId,
