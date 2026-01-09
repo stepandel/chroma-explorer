@@ -166,8 +166,6 @@ class ChromaDBService {
       efConfig
     )
 
-    console.log('embeddingFunction', embeddingFunction)
-
     const collection = await this.client.getCollection({
       name: params.collectionName,
       embeddingFunction,
