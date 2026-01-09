@@ -31,15 +31,15 @@ export function MainContent({
   return (
     <main className="flex-1 overflow-auto bg-background">
       <Group orientation="horizontal" className="h-full">
-        {/* Left Panel: Sidebar */}
-        <Panel defaultSize="15" minSize="12" maxSize="25">
+        {/* Left Panel: Sidebar - Fixed size, won't resize when right panel opens */}
+        <Panel defaultSize="15" minSize="12" maxSize="25" id="sidebar">
           <Sidebar />
         </Panel>
 
         <Separator className="w-px bg-sidebar-border" />
 
-        {/* Middle Panel: DocumentsView or Empty State */}
-        <Panel defaultSize={rightDrawerOpen && selectedDocument ? "55" : "85"} minSize="40">
+        {/* Middle Panel: DocumentsView or Empty State - Flexible */}
+        <Panel minSize="40" id="main-content">
           {activeCollection ? (
             <DocumentsView
               collectionName={activeCollection}
@@ -57,27 +57,31 @@ export function MainContent({
           )}
         </Panel>
 
-        {/* Right Panel: Document Detail Drawer (conditional) */}
-        {rightDrawerOpen && selectedDocument && (
-          <>
-            <Separator className="w-px bg-border hover:bg-primary active:bg-primary transition-colors duration-150 cursor-col-resize" />
+        {/* Right Panel: Document Detail Drawer - Always present, collapsed when not in use */}
+        <Separator className={`w-px transition-colors duration-150 ${
+          rightDrawerOpen && selectedDocument
+            ? 'bg-border hover:bg-primary active:bg-primary cursor-col-resize'
+            : 'bg-transparent pointer-events-none'
+        }`} />
 
-            <Panel
-              defaultSize="30"
-              minSize="20"
-              maxSize="50"
-              collapsible={true}
-              onResize={(size) => {
-                // When panel is collapsed (size is 0), close the drawer
-                if (size.asPercentage === 0) {
-                  onCloseRightDrawer()
-                }
-              }}
-            >
-              <DocumentDetailPanel document={selectedDocument} />
-            </Panel>
-          </>
-        )}
+        <Panel
+          defaultSize={rightDrawerOpen && selectedDocument ? "30" : "0"}
+          minSize="20"
+          maxSize="50"
+          collapsible={true}
+          collapsedSize={0}
+          id="document-detail"
+          onResize={(size) => {
+            // When panel is collapsed (size is 0), close the drawer
+            if (size.asPercentage === 0 && rightDrawerOpen) {
+              onCloseRightDrawer()
+            }
+          }}
+        >
+          {selectedDocument && (
+            <DocumentDetailPanel document={selectedDocument} />
+          )}
+        </Panel>
       </Group>
     </main>
   )
