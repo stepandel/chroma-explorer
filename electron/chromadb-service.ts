@@ -1,19 +1,20 @@
 import { ChromaClient, Collection, CloudClient, ChromaClientArgs } from 'chromadb'
-import { DefaultEmbeddingFunction } from '@chroma-core/default-embed'
 import {
   ConnectionProfile,
   CollectionInfo,
   DocumentRecord,
   SearchDocumentsParams,
 } from './types'
+import { EmbeddingFunctionFactory } from './embedding-function-factory'
 
 class ChromaDBService {
   private client: ChromaClient | CloudClient | null = null
-  private embedder: DefaultEmbeddingFunction
+  private efFactory: EmbeddingFunctionFactory | null = null
   private profile: ConnectionProfile | null = null
+  private collectionsCache: CollectionInfo[] = []
 
   constructor() {
-    this.embedder = new DefaultEmbeddingFunction()
+    // Factory will be initialized when client connects
   }
 
   getProfile(): ConnectionProfile | null {
@@ -53,18 +54,25 @@ class ChromaDBService {
       // Test connection with heartbeat
       await this.client.heartbeat()
 
+      // Initialize embedding function factory
+      this.efFactory = new EmbeddingFunctionFactory(this.client)
+
       // Store profile on successful connection
       this.profile = profile
     } catch (error) {
       this.client = null
+      this.efFactory = null
       this.profile = null
       throw error
     }
   }
 
   disconnect(): void {
+    this.efFactory?.clearCache()
+    this.efFactory = null
     this.client = null
     this.profile = null
+    this.collectionsCache = []
   }
 
   async listCollections(): Promise<CollectionInfo[]> {
@@ -114,6 +122,8 @@ class ChromaDBService {
       })
     )
 
+    // Update cache for searchDocuments to use
+    this.collectionsCache = collectionsWithCounts
     return collectionsWithCounts
   }
 
@@ -146,9 +156,21 @@ class ChromaDBService {
       throw new Error('ChromaDB client not connected. Please connect first.')
     }
 
+    // Find the collection's embedding function config from cache
+    const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
+    const efConfig = collectionInfo?.embeddingFunction
+
+    // Get the appropriate embedding function for this collection
+    const embeddingFunction = await this.efFactory?.getEmbeddingFunction(
+      params.collectionName,
+      efConfig
+    )
+
+    console.log('embeddingFunction', embeddingFunction)
+
     const collection = await this.client.getCollection({
       name: params.collectionName,
-      embeddingFunction: this.embedder,
+      embeddingFunction,
     })
 
     // If queryText is provided, use semantic search (query method)

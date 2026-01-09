@@ -30,7 +30,13 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['@chroma-core/default-embed', 'onnxruntime-node', 'sharp'],
+              external: [
+                '@chroma-core/default-embed',
+                '@chroma-core/openai',
+                'onnxruntime-node',
+                'sharp',
+                'openai',
+              ],
             },
           },
         },
