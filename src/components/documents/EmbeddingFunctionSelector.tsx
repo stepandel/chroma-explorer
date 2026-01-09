@@ -129,16 +129,6 @@ export function EmbeddingFunctionSelector({
             </p>
           </div>
 
-          {/* Current override status */}
-          {currentOverride && (
-            <div className="px-1">
-              <Label className="text-muted-foreground text-[11px] font-normal">Current override</Label>
-              <p className="font-mono text-[11px] text-primary mt-0.5">
-                {currentOverride.type}: {currentOverride.modelName}
-              </p>
-            </div>
-          )}
-
           {/* Selector */}
           <div className="px-1 space-y-1.5">
             <Label htmlFor="ef-select" className="text-[11px] font-normal">Embedding function</Label>
@@ -161,13 +151,16 @@ export function EmbeddingFunctionSelector({
           </div>
 
           {/* Selected info */}
-          {selectedEF && (
-            <div className="mx-1 text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-2 rounded-md space-y-0.5">
-              <p><span className="text-foreground/70">Type:</span> {selectedEF.type}</p>
-              <p><span className="text-foreground/70">Model:</span> {selectedEF.modelName}</p>
-              <p><span className="text-foreground/70">Dimensions:</span> {selectedEF.dimensions}</p>
-            </div>
-          )}
+          {(() => {
+            const displayEF = selectedEF || EMBEDDING_FUNCTIONS.find(ef => ef.id === 'default')!
+            return (
+              <div className="mx-1 text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-2 rounded-md space-y-0.5">
+                <p><span className="text-foreground/70">Type:</span> {displayEF.type}</p>
+                <p><span className="text-foreground/70">Model:</span> {displayEF.modelName}</p>
+                <p><span className="text-foreground/70">Dimensions:</span> {displayEF.dimensions}</p>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Footer */}
