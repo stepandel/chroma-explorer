@@ -18,6 +18,7 @@ interface CollectionInfo {
   embeddingFunction?: {
     name: string
     type: 'known' | 'legacy' | 'unknown'
+    config?: Record<string, unknown>
   } | null
 }
 

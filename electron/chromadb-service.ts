@@ -88,7 +88,8 @@ class ChromaDBService {
           if (efConfig.type === 'known') {
             embeddingFunction = {
               name: efConfig.name,
-              type: 'known'
+              type: 'known',
+              config: efConfig.config as Record<string, unknown> | undefined
             }
           } else if (efConfig.type === 'legacy') {
             embeddingFunction = {
