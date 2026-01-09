@@ -16,7 +16,7 @@ export default function DocumentDetailPanel({ document }: DocumentDetailPanelPro
     <div className="space-y-3 p-3">
       {/* ID Section */}
       <section>
-        <h3 className="text-xs font-semibold text-muted-foreground mb-1">ID</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
         <div className="p-2 bg-secondary/50 rounded border border-border">
           <code className="text-xs font-mono break-all">{document.id}</code>
         </div>
@@ -24,7 +24,7 @@ export default function DocumentDetailPanel({ document }: DocumentDetailPanelPro
 
       {/* Document Text Section */}
       <section>
-        <h3 className="text-xs font-semibold text-muted-foreground mb-1">Document</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
         <div className="p-2 bg-secondary/50 rounded border border-border">
           {document.document ? (
             <p className="text-xs whitespace-pre-wrap">{document.document}</p>
@@ -34,36 +34,25 @@ export default function DocumentDetailPanel({ document }: DocumentDetailPanelPro
         </div>
       </section>
 
-      {/* Metadata Section */}
-      <section>
-        <h3 className="text-xs font-semibold text-muted-foreground mb-1">Metadata</h3>
-        <div className="p-2 bg-secondary/50 rounded border border-border">
-          {document.metadata && Object.keys(document.metadata).length > 0 ? (
-            <div className="space-y-1.5">
-              {Object.entries(document.metadata).map(([key, value]) => (
-                <div key={key} className="flex flex-col gap-0.5 pb-1.5 last:pb-0 border-b border-border last:border-0">
-                  <span className="text-xs font-semibold text-foreground">{key}</span>
-                  <div className="pl-2">
-                    {typeof value === 'object' && value !== null ? (
-                      <pre className="text-xs font-mono bg-background p-1.5 rounded border border-border overflow-x-auto">
-                        {JSON.stringify(value, null, 2)}
-                      </pre>
-                    ) : (
-                      <span className="text-xs">{String(value)}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <span className="text-muted-foreground italic text-xs">No metadata</span>
-          )}
-        </div>
-      </section>
+      {/* Metadata Fields - Each as Individual Section */}
+      {document.metadata && Object.entries(document.metadata).map(([key, value]) => (
+        <section key={key}>
+          <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
+          <div className="p-2 bg-secondary/50 rounded border border-border">
+            {typeof value === 'object' && value !== null ? (
+              <pre className="text-xs font-mono overflow-x-auto">
+                {JSON.stringify(value, null, 2)}
+              </pre>
+            ) : (
+              <span className="text-xs">{String(value)}</span>
+            )}
+          </div>
+        </section>
+      ))}
 
       {/* Embedding Section */}
       <section>
-        <h3 className="text-xs font-semibold text-muted-foreground mb-1">Embedding</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground mb-1">embedding</h3>
         <div className="p-2 bg-secondary/50 rounded border border-border">
           <EmbeddingCell embedding={document.embedding} />
         </div>
