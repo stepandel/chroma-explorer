@@ -17,7 +17,7 @@ interface DocumentRecord {
 interface DocumentsViewProps {
   collectionName: string
   selectedDocumentId: string | null
-  onDocumentSelect: (id: string) => void
+  onDocumentSelect: (id: string | null) => void
   onSelectedDocumentChange: (document: DocumentRecord | null) => void
 }
 

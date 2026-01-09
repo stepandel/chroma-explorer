@@ -21,9 +21,20 @@ export function MainContent() {
     rightPanelOpen,
     setRightPanelOpen,
     selectedDocumentId,
-    selectDocument
+    selectDocument,
+    setSelectedDocumentId
   } = usePanel()
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
+
+  const handleDocumentSelect = (id: string | null) => {
+    if (id === null) {
+      // Deselect
+      setSelectedDocumentId(null)
+    } else {
+      // Select and open panel
+      selectDocument(id)
+    }
+  }
 
   return (
     <main className="flex-1 overflow-auto bg-background">
@@ -59,7 +70,7 @@ export function MainContent() {
             <DocumentsView
               collectionName={activeCollection}
               selectedDocumentId={selectedDocumentId}
-              onDocumentSelect={selectDocument}
+              onDocumentSelect={handleDocumentSelect}
               onSelectedDocumentChange={setSelectedDocument}
             />
           ) : (
