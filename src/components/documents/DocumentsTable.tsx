@@ -21,7 +21,7 @@ interface DocumentsTableProps {
   error: string | null
   hasActiveFilters?: boolean
   selectedDocumentId: string | null
-  onDocumentSelect: (id: string) => void
+  onDocumentSelect: (id: string | null) => void
 }
 
 export default function DocumentsTable({
@@ -193,7 +193,7 @@ export default function DocumentsTable({
                     ? 'bg-blue-100'
                     : index % 2 === 0 ? 'bg-background' : 'bg-muted/100'
                 }`}
-                onClick={() => onDocumentSelect(row.original.id)}
+                onClick={() => onDocumentSelect(isSelected ? null : row.original.id)}
               >
                 {row.getVisibleCells().map(cell => (
                   <td

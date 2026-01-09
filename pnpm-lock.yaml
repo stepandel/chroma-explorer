@@ -50,6 +50,9 @@ dependencies:
   react-dom:
     specifier: ^19.2.3
     version: 19.2.3(react@19.2.3)
+  react-resizable-panels:
+    specifier: ^4.3.2
+    version: 4.3.2(react-dom@19.2.3)(react@19.2.3)
   tailwind-merge:
     specifier: ^3.4.0
     version: 3.4.0
@@ -4143,6 +4146,16 @@ packages:
       tslib: 2.8.1
       use-callback-ref: 1.3.3(@types/react@19.2.7)(react@19.2.3)
       use-sidecar: 1.1.3(@types/react@19.2.7)(react@19.2.3)
+    dev: false
+
+  /react-resizable-panels@4.3.2(react-dom@19.2.3)(react@19.2.3):
+    resolution: {integrity: sha512-Rg6kSKK9yxfaJIaj/nXsmTNX/8hexrksXSjfL9SEIfeApcSXs35aG2HFxjwW5oobHKh/Mr/BkH9m4fgPBq3CTg==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
     dev: false
 
   /react-style-singleton@2.2.3(@types/react@19.2.7)(react@19.2.3):

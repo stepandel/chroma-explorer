@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MetadataOperator } from '../types/filters'
+import { MetadataOperator } from '../../types/filters'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

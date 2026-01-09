@@ -1,15 +1,17 @@
 import { useChromaDB } from '../../providers/ChromaDBProvider'
+import { usePanel } from '../../context/PanelContext'
 import { Button } from '../ui/button'
-import { PanelRightOpen, PanelRightClose } from 'lucide-react'
+import { PanelLeft, PanelRight, PanelLeftDashed, PanelRightDashed } from 'lucide-react'
 
-interface TopBarProps {
-  rightDrawerOpen: boolean
-  onToggleRightDrawer: () => void
-  hasSelectedDocument: boolean
-}
-
-export function TopBar({ rightDrawerOpen, onToggleRightDrawer, hasSelectedDocument }: TopBarProps) {
+export function TopBar() {
   const { currentProfile } = useChromaDB()
+  const {
+    leftPanelOpen,
+    setLeftPanelOpen,
+    rightPanelOpen,
+    setRightPanelOpen,
+    selectedDocumentId
+  } = usePanel()
 
   const handleDisconnect = async () => {
     if (confirm('Are you sure you want to disconnect? This will close this window.')) {
@@ -39,26 +41,34 @@ export function TopBar({ rightDrawerOpen, onToggleRightDrawer, hasSelectedDocume
         className="flex items-center gap-2 pr-4"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        {hasSelectedDocument && (
-          <Button
-            onClick={onToggleRightDrawer}
-            size="sm"
-            variant="ghost"
-            className="h-7 text-xs flex items-center gap-1.5"
-          >
-            {rightDrawerOpen ? (
-              <>
-                <PanelRightClose className="h-3.5 w-3.5" />
-                <span>Close Details</span>
-              </>
-            ) : (
-              <>
-                <PanelRightOpen className="h-3.5 w-3.5" />
-                <span>Open Details</span>
-              </>
-            )}
-          </Button>
-        )}
+        {/* Left Panel Toggle */}
+        <Button
+          onClick={() => setLeftPanelOpen(!leftPanelOpen)}
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0"
+        >
+          {leftPanelOpen ? (
+            <PanelLeft className="h-5 w-5 text-primary" />
+          ) : (
+            <PanelLeftDashed className="h-5 w-5" />
+          )}
+        </Button>
+
+        {/* Right Panel Toggle */}
+        <Button
+          onClick={() => setRightPanelOpen(!rightPanelOpen)}
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0"
+        >
+          {rightPanelOpen ? (
+            <PanelRight className="h-5 w-5 text-primary" />
+          ) : (
+            <PanelRightDashed className="h-5 w-5" />
+          )}
+        </Button>
+
         <Button onClick={handleDisconnect} size="sm" variant="ghost" className="h-7 text-xs">
           Disconnect
         </Button>

@@ -4,7 +4,7 @@ import { useCollection } from '../../context/CollectionContext'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 
-export function Sidebar() {
+export function CollectionPanel() {
   const { collections, collectionsLoading, collectionsError, refreshCollections } = useChromaDB()
   const { activeCollection, setActiveCollection } = useCollection()
   const [searchTerm, setSearchTerm] = useState('')
@@ -18,7 +18,7 @@ export function Sidebar() {
   )
 
   return (
-    <aside className="w-60 bg-sidebar/70 backdrop-blur-xl border-r border-sidebar-border flex flex-col">
+    <aside className="w-full h-full bg-sidebar/70 backdrop-blur-xl flex flex-col">
       {/* Header - with spacing for traffic lights */}
       <div className="pt-14 px-4 pb-2">
         {/* Search input */}

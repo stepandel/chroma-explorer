@@ -1,4 +1,4 @@
-import ConnectionModal from '../components/ConnectionModal'
+import ConnectionModal from '../components/modals/ConnectionModal'
 import { ConnectionProfile } from '../../electron/types'
 
 export function SetupWindow() {
