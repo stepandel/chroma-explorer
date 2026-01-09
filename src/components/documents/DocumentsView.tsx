@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
-import { useDocumentsQuery } from '../../hooks/useChromaQueries'
+import { useDocumentsQuery, useCollectionsQuery } from '../../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { MetadataFilter, DocumentFilters } from '../../types/filters'
 import { Input } from '../ui/input'
@@ -37,6 +37,10 @@ export default function DocumentsView({
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
   const [filters, setFilters] = useState<DocumentFilters>(getDefaultFilters())
+
+  // Fetch collections to get the current collection's info
+  const { data: collections = [] } = useCollectionsQuery(currentProfile?.id || null)
+  const currentCollection = collections.find(c => c.name === collectionName)
   const [metaKey, setMetaKey] = useState('')
   const [metaValue, setMetaValue] = useState('')
 
@@ -121,7 +125,14 @@ export default function DocumentsView({
     <div className="flex flex-col h-full">
             {/* Row 1: Collection name and count */}
             <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-              <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
+                {currentCollection?.embeddingFunction && (
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                    {currentCollection.embeddingFunction.name}
+                  </span>
+                )}
+              </div>
               <span className="text-xs text-muted-foreground">
                 {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
               </span>

@@ -77,11 +77,38 @@ class ChromaDBService {
     const collectionsWithCounts = await Promise.all(
       collectionsList.map(async (collection: Collection) => {
         const count = await collection.count()
+
+        // Extract embedding function info from configuration
+        // Note: API returns snake_case (embedding_function), client interface uses camelCase
+        const config = collection.configuration as any
+        const efConfig = config?.embedding_function ?? config?.embeddingFunction
+        let embeddingFunction: CollectionInfo['embeddingFunction'] = null
+
+        if (efConfig) {
+          if (efConfig.type === 'known') {
+            embeddingFunction = {
+              name: efConfig.name,
+              type: 'known'
+            }
+          } else if (efConfig.type === 'legacy') {
+            embeddingFunction = {
+              name: 'legacy',
+              type: 'legacy'
+            }
+          } else {
+            embeddingFunction = {
+              name: 'unknown',
+              type: 'unknown'
+            }
+          }
+        }
+
         return {
           name: collection.name,
           id: collection.id,
-          metadata: collection.metadata,
+          metadata: collection.metadata ?? null,
           count,
+          embeddingFunction,
         }
       })
     )

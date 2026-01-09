@@ -19,6 +19,11 @@ export interface CollectionInfo {
   id: string
   metadata: Record<string, unknown> | null
   count: number
+  dimension?: number | null
+  embeddingFunction?: {
+    name: string
+    type: 'known' | 'legacy' | 'unknown'
+  } | null
 }
 
 export interface DocumentRecord {
