@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { MainContent } from './MainContent'
 
 export function AppLayout() {
   // Drawer state management
-  const [leftDrawerOpen, setLeftDrawerOpen] = useState(true) // Collections sidebar (for future)
-  const [rightDrawerOpen, setRightDrawerOpen] = useState(false) // Document details
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false)
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
 
   // Handlers
@@ -25,27 +23,21 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar />
+    <div className="flex flex-col h-screen bg-gray-100">
+      {/* Top Bar */}
+      <TopBar
+        rightDrawerOpen={rightDrawerOpen}
+        onToggleRightDrawer={handleToggleRightDrawer}
+        hasSelectedDocument={selectedDocumentId !== null}
+      />
 
-      {/* Main Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <TopBar
-          rightDrawerOpen={rightDrawerOpen}
-          onToggleRightDrawer={handleToggleRightDrawer}
-          hasSelectedDocument={selectedDocumentId !== null}
-        />
-
-        {/* Content Area */}
-        <MainContent
-          selectedDocumentId={selectedDocumentId}
-          onDocumentSelect={handleDocumentSelect}
-          rightDrawerOpen={rightDrawerOpen}
-          onCloseRightDrawer={handleCloseRightDrawer}
-        />
-      </div>
+      {/* Main Content with all panels (Sidebar, Documents, Detail) */}
+      <MainContent
+        selectedDocumentId={selectedDocumentId}
+        onDocumentSelect={handleDocumentSelect}
+        rightDrawerOpen={rightDrawerOpen}
+        onCloseRightDrawer={handleCloseRightDrawer}
+      />
     </div>
   )
 }
