@@ -20,7 +20,7 @@ export function Sidebar() {
   return (
     <aside className="w-60 bg-sidebar/70 backdrop-blur-xl border-r border-sidebar-border flex flex-col">
       {/* Header - with spacing for traffic lights */}
-      <div className="pt-14 px-4 pb-3 border-b border-sidebar-border">
+      <div className="pt-14 px-4 pb-2">
         {/* Search input */}
         <div className="relative">
           <Input
@@ -28,12 +28,13 @@ export function Sidebar() {
             placeholder="Search collections..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-7 text-[11px] py-0.5 px-2 pr-6 placeholder:text-[11px]"
+            className="h-6 text-[11px] py-0 px-1.5 pr-5 placeholder:text-[11px]"
+            style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs w-4 h-4 flex items-center justify-center"
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs w-4 h-4 flex items-center justify-center"
             >
               ✕
             </button>
@@ -76,13 +77,13 @@ export function Sidebar() {
                 <button
                   key={collection.id}
                   onClick={() => handleCollectionClick(collection.name)}
-                  className={`w-full px-4 py-1.5 text-left transition-all duration-150 ${
+                  className={`w-full px-4 py-1 text-left transition-all duration-150 ${
                     isActive
                       ? 'bg-sidebar-accent border-l-2 border-sidebar-primary'
                       : 'hover:bg-sidebar-accent/50 border-l-2 border-transparent'
                   }`}
                 >
-                  <div className={`text-sm font-medium truncate ${
+                  <div className={`text-xs font-medium truncate ${
                     isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground'
                   }`}>
                     {collection.name}
