@@ -11,6 +11,18 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    exclude: ['chromadb']
+  },
+  build: {
+    commonjsOptions: {
+      include: [/chromadb/, /node_modules/]
+    }
+  },
+  esbuild: {
+    target: 'esnext',
+    keepNames: true
+  },
   plugins: [
     electron({
       main: {
