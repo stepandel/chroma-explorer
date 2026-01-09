@@ -62,14 +62,13 @@ export class EmbeddingFunctionFactory {
   ): Promise<EmbeddingFunction | undefined> {
     const packageName = PYTHON_TO_JS_PACKAGE[efConfig.name] || efConfig.name
 
-    // Resolve config with API key from environment
-    const resolvedConfig = this.resolveConfigWithApiKey(efConfig.config || {})
-
     try {
       // Handle each supported embedding function
       switch (packageName) {
         case 'default-embed': {
-          return new DefaultEmbeddingFunction(resolvedConfig)
+          // buildFromConfig accepts snake_case config (model_name, etc.)
+          // which matches the collection config format
+          return DefaultEmbeddingFunction.buildFromConfig(efConfig.config as any || {})
         }
 
         case 'openai': {
@@ -111,32 +110,6 @@ export class EmbeddingFunctionFactory {
       )
       return undefined
     }
-  }
-
-  private resolveConfigWithApiKey(
-    config: Record<string, unknown>
-  ): Record<string, unknown> {
-    const resolved = { ...config }
-
-    // Handle api_key_env_var pattern
-    if (typeof config.api_key_env_var === 'string') {
-      const envVarName = config.api_key_env_var
-      const apiKey = process.env[envVarName]
-
-      if (!apiKey) {
-        console.warn(
-          `[EF Factory] Environment variable "${envVarName}" not set. ` +
-          `API calls may fail.`
-        )
-      } else {
-        resolved.api_key = apiKey
-      }
-
-      // Remove env var reference from config
-      delete resolved.api_key_env_var
-    }
-
-    return resolved
   }
 
   clearCache(): void {
