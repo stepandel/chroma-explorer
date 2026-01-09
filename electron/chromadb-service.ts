@@ -1,19 +1,21 @@
 import { ChromaClient, Collection, CloudClient, ChromaClientArgs } from 'chromadb'
-import { DefaultEmbeddingFunction } from '@chroma-core/default-embed'
 import {
   ConnectionProfile,
   CollectionInfo,
   DocumentRecord,
   SearchDocumentsParams,
+  EmbeddingFunctionOverride,
 } from './types'
+import { EmbeddingFunctionFactory } from './embedding-function-factory'
 
 class ChromaDBService {
   private client: ChromaClient | CloudClient | null = null
-  private embedder: DefaultEmbeddingFunction
+  private efFactory: EmbeddingFunctionFactory | null = null
   private profile: ConnectionProfile | null = null
+  private collectionsCache: CollectionInfo[] = []
 
   constructor() {
-    this.embedder = new DefaultEmbeddingFunction()
+    // Factory will be initialized when client connects
   }
 
   getProfile(): ConnectionProfile | null {
@@ -53,18 +55,25 @@ class ChromaDBService {
       // Test connection with heartbeat
       await this.client.heartbeat()
 
+      // Initialize embedding function factory
+      this.efFactory = new EmbeddingFunctionFactory(this.client)
+
       // Store profile on successful connection
       this.profile = profile
     } catch (error) {
       this.client = null
+      this.efFactory = null
       this.profile = null
       throw error
     }
   }
 
   disconnect(): void {
+    this.efFactory?.clearCache()
+    this.efFactory = null
     this.client = null
     this.profile = null
+    this.collectionsCache = []
   }
 
   async listCollections(): Promise<CollectionInfo[]> {
@@ -77,15 +86,45 @@ class ChromaDBService {
     const collectionsWithCounts = await Promise.all(
       collectionsList.map(async (collection: Collection) => {
         const count = await collection.count()
+
+        // Extract embedding function info from configuration
+        // Note: API returns snake_case (embedding_function), client interface uses camelCase
+        const config = collection.configuration as any
+        const efConfig = config?.embedding_function ?? config?.embeddingFunction
+        let embeddingFunction: CollectionInfo['embeddingFunction'] = null
+
+        if (efConfig) {
+          if (efConfig.type === 'known') {
+            embeddingFunction = {
+              name: efConfig.name,
+              type: 'known',
+              config: efConfig.config as Record<string, unknown> | undefined
+            }
+          } else if (efConfig.type === 'legacy') {
+            embeddingFunction = {
+              name: 'legacy',
+              type: 'legacy'
+            }
+          } else {
+            embeddingFunction = {
+              name: 'unknown',
+              type: 'unknown'
+            }
+          }
+        }
+
         return {
           name: collection.name,
           id: collection.id,
-          metadata: collection.metadata,
+          metadata: collection.metadata ?? null,
           count,
+          embeddingFunction,
         }
       })
     )
 
+    // Update cache for searchDocuments to use
+    this.collectionsCache = collectionsWithCounts
     return collectionsWithCounts
   }
 
@@ -113,14 +152,41 @@ class ChromaDBService {
     return documents
   }
 
-  async searchDocuments(params: SearchDocumentsParams): Promise<DocumentRecord[]> {
+  async searchDocuments(
+    params: SearchDocumentsParams,
+    embeddingOverride?: EmbeddingFunctionOverride | null
+  ): Promise<DocumentRecord[]> {
     if (!this.client) {
       throw new Error('ChromaDB client not connected. Please connect first.')
     }
 
+    // Find the collection's embedding function config from cache
+    const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
+
+    // Use override if provided, otherwise fall back to server config
+    let efConfig: CollectionInfo['embeddingFunction'] = null
+    if (embeddingOverride) {
+      // Convert override to the format expected by the factory
+      efConfig = {
+        name: embeddingOverride.type === 'default' ? 'default' : 'openai',
+        type: 'known',
+        config: embeddingOverride.type === 'openai'
+          ? { model_name: embeddingOverride.modelName }
+          : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
+      }
+    } else {
+      efConfig = collectionInfo?.embeddingFunction
+    }
+
+    // Get the appropriate embedding function for this collection
+    const embeddingFunction = await this.efFactory?.getEmbeddingFunction(
+      params.collectionName,
+      efConfig
+    )
+
     const collection = await this.client.getCollection({
       name: params.collectionName,
-      embeddingFunction: this.embedder,
+      embeddingFunction,
     })
 
     // If queryText is provided, use semantic search (query method)

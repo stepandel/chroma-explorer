@@ -20,3 +20,17 @@ export interface DocumentFilters {
   nResults: number // Max results for semantic search
   metadataFilters: MetadataFilter[]
 }
+
+// New filter row types
+export type FilterRowType = 'search' | 'metadata'
+
+export interface FilterRow {
+  id: string
+  type: FilterRowType
+  // For search type
+  searchValue?: string
+  // For metadata type
+  metadataKey?: string
+  operator?: MetadataOperator
+  metadataValue?: string
+}

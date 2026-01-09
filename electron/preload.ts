@@ -4,6 +4,7 @@ import {
   CollectionInfo,
   DocumentRecord,
   SearchDocumentsParams,
+  EmbeddingFunctionOverride,
 } from './types'
 
 console.log('Preload script is running!')
@@ -67,6 +68,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     setLastActive: async (id: string | null): Promise<void> => {
       const result = await ipcRenderer.invoke('profiles:setLastActive', id)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    getEmbeddingOverride: async (profileId: string, collectionName: string): Promise<EmbeddingFunctionOverride | null> => {
+      const result = await ipcRenderer.invoke('profiles:getEmbeddingOverride', profileId, collectionName)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    setEmbeddingOverride: async (profileId: string, collectionName: string, override: EmbeddingFunctionOverride): Promise<void> => {
+      const result = await ipcRenderer.invoke('profiles:setEmbeddingOverride', profileId, collectionName, override)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    clearEmbeddingOverride: async (profileId: string, collectionName: string): Promise<void> => {
+      const result = await ipcRenderer.invoke('profiles:clearEmbeddingOverride', profileId, collectionName)
       if (!result.success) {
         throw new Error(result.error)
       }

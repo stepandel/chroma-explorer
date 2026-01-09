@@ -1,3 +1,8 @@
+export interface EmbeddingFunctionOverride {
+  type: 'default' | 'openai'
+  modelName?: string // e.g., 'text-embedding-3-large', 'Xenova/all-MiniLM-L6-v2'
+}
+
 export interface ConnectionProfile {
   id: string // UUID
   name: string // User-friendly name (e.g., "Production Server")
@@ -12,6 +17,9 @@ export interface ConnectionProfile {
 
   createdAt: number // Timestamp
   lastUsed?: number // Timestamp
+
+  // Embedding function overrides per collection
+  embeddingOverrides?: Record<string, EmbeddingFunctionOverride>
 }
 
 export interface CollectionInfo {
@@ -19,6 +27,12 @@ export interface CollectionInfo {
   id: string
   metadata: Record<string, unknown> | null
   count: number
+  dimension?: number | null
+  embeddingFunction?: {
+    name: string
+    type: 'known' | 'legacy' | 'unknown'
+    config?: Record<string, unknown>
+  } | null
 }
 
 export interface DocumentRecord {
