@@ -3,7 +3,8 @@ import { TopBar } from './TopBar'
 import { MainContent } from './MainContent'
 
 export function AppLayout() {
-  // Drawer state management
+  // Panel state management
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false)
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
 
@@ -18,6 +19,10 @@ export function AppLayout() {
     // Note: Don't clear selectedDocumentId - allows reopening with same document
   }
 
+  const handleToggleLeftPanel = () => {
+    setLeftPanelOpen(prev => !prev)
+  }
+
   const handleToggleRightDrawer = () => {
     setRightDrawerOpen(prev => !prev)
   }
@@ -26,6 +31,8 @@ export function AppLayout() {
     <div className="flex flex-col h-screen bg-gray-100">
       {/* Top Bar */}
       <TopBar
+        leftPanelOpen={leftPanelOpen}
+        onToggleLeftPanel={handleToggleLeftPanel}
         rightDrawerOpen={rightDrawerOpen}
         onToggleRightDrawer={handleToggleRightDrawer}
         hasSelectedDocument={selectedDocumentId !== null}
@@ -33,6 +40,8 @@ export function AppLayout() {
 
       {/* Main Content with all panels (Sidebar, Documents, Detail) */}
       <MainContent
+        leftPanelOpen={leftPanelOpen}
+        setLeftPanelOpen={setLeftPanelOpen}
         selectedDocumentId={selectedDocumentId}
         onDocumentSelect={handleDocumentSelect}
         rightDrawerOpen={rightDrawerOpen}

@@ -1,14 +1,22 @@
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { Button } from '../ui/button'
-import { PanelRightOpen, PanelRightClose } from 'lucide-react'
+import { PanelRightOpen, PanelRightClose, PanelLeftOpen, PanelLeftClose } from 'lucide-react'
 
 interface TopBarProps {
+  leftPanelOpen: boolean
+  onToggleLeftPanel: () => void
   rightDrawerOpen: boolean
   onToggleRightDrawer: () => void
   hasSelectedDocument: boolean
 }
 
-export function TopBar({ rightDrawerOpen, onToggleRightDrawer, hasSelectedDocument }: TopBarProps) {
+export function TopBar({
+  leftPanelOpen,
+  onToggleLeftPanel,
+  rightDrawerOpen,
+  onToggleRightDrawer,
+  hasSelectedDocument
+}: TopBarProps) {
   const { currentProfile } = useChromaDB()
 
   const handleDisconnect = async () => {
@@ -39,6 +47,27 @@ export function TopBar({ rightDrawerOpen, onToggleRightDrawer, hasSelectedDocume
         className="flex items-center gap-2 pr-4"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
+        {/* Left Panel Toggle */}
+        <Button
+          onClick={onToggleLeftPanel}
+          size="sm"
+          variant="ghost"
+          className="h-7 text-xs flex items-center gap-1.5"
+        >
+          {leftPanelOpen ? (
+            <>
+              <PanelLeftClose className="h-3.5 w-3.5" />
+              <span>Hide Sidebar</span>
+            </>
+          ) : (
+            <>
+              <PanelLeftOpen className="h-3.5 w-3.5" />
+              <span>Show Sidebar</span>
+            </>
+          )}
+        </Button>
+
+        {/* Right Panel Toggle */}
         {hasSelectedDocument && (
           <Button
             onClick={onToggleRightDrawer}
@@ -59,6 +88,7 @@ export function TopBar({ rightDrawerOpen, onToggleRightDrawer, hasSelectedDocume
             )}
           </Button>
         )}
+
         <Button onClick={handleDisconnect} size="sm" variant="ghost" className="h-7 text-xs">
           Disconnect
         </Button>

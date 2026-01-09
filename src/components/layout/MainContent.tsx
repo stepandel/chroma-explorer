@@ -13,6 +13,8 @@ interface DocumentRecord {
 }
 
 interface MainContentProps {
+  leftPanelOpen: boolean
+  setLeftPanelOpen: (open: boolean) => void
   selectedDocumentId: string | null
   onDocumentSelect: (id: string) => void
   rightDrawerOpen: boolean
@@ -20,6 +22,8 @@ interface MainContentProps {
 }
 
 export function MainContent({
+  leftPanelOpen,
+  setLeftPanelOpen,
   selectedDocumentId,
   onDocumentSelect,
   rightDrawerOpen,
@@ -31,12 +35,29 @@ export function MainContent({
   return (
     <main className="flex-1 overflow-auto bg-background">
       <Group orientation="horizontal" className="h-full">
-        {/* Left Panel: Sidebar - Fixed size, won't resize when right panel opens */}
-        <Panel defaultSize="15" minSize="12" maxSize="25" id="sidebar">
+        {/* Left Panel: Sidebar - Collapsible */}
+        <Panel
+          defaultSize={leftPanelOpen ? "15" : "0"}
+          minSize="12"
+          maxSize="25"
+          collapsible={true}
+          collapsedSize={0}
+          id="sidebar"
+          onResize={(size) => {
+            // When panel is collapsed (size is 0), update state
+            if (size.asPercentage === 0 && leftPanelOpen) {
+              setLeftPanelOpen(false)
+            }
+          }}
+        >
           <Sidebar />
         </Panel>
 
-        <Separator className="w-px bg-sidebar-border" />
+        <Separator className={`w-px transition-colors duration-150 ${
+          leftPanelOpen
+            ? 'bg-sidebar-border hover:bg-primary active:bg-primary cursor-col-resize'
+            : 'bg-transparent pointer-events-none'
+        }`} />
 
         {/* Middle Panel: DocumentsView or Empty State - Flexible */}
         <Panel minSize="40" id="main-content">
