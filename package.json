@@ -41,6 +41,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.90.16",
+    "@tanstack/react-table": "^8.21.3",
     "chromadb": "^3.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

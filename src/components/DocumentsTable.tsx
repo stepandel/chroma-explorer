@@ -1,5 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  useReactTable,
+  getCoreRowModel,
+  ColumnDef,
+  flexRender,
+  ColumnResizeMode,
+} from '@tanstack/react-table'
 
 interface DocumentRecord {
   id: string
@@ -70,13 +77,86 @@ export default function DocumentsTable({
   hasActiveFilters = false,
 }: DocumentsTableProps) {
   // Extract all unique metadata keys from documents
-  const metadataKeys = Array.from(
-    new Set(
-      documents.flatMap(doc =>
-        doc.metadata ? Object.keys(doc.metadata) : []
+  const metadataKeys = useMemo(() =>
+    Array.from(
+      new Set(
+        documents.flatMap(doc =>
+          doc.metadata ? Object.keys(doc.metadata) : []
+        )
       )
-    )
-  ).sort()
+    ).sort(),
+    [documents]
+  )
+
+  // Define columns
+  const columns = useMemo<ColumnDef<DocumentRecord>[]>(() => {
+    const baseColumns: ColumnDef<DocumentRecord>[] = [
+      {
+        accessorKey: 'id',
+        header: 'id',
+        size: 200,
+        cell: info => (
+          <div className="text-xs font-mono text-foreground">
+            {info.getValue() as string}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'document',
+        header: 'document',
+        size: 300,
+        cell: info => {
+          const value = info.getValue() as string | null
+          return (
+            <div className="text-xs text-foreground">
+              <div className="line-clamp-2">
+                {value || <span className="text-muted-foreground italic">No document</span>}
+              </div>
+            </div>
+          )
+        },
+      },
+    ]
+
+    // Add dynamic metadata columns
+    const metadataColumns: ColumnDef<DocumentRecord>[] = metadataKeys.map(key => ({
+      id: `metadata.${key}`,
+      header: key,
+      size: 150,
+      accessorFn: (row) => row.metadata?.[key],
+      cell: info => {
+        const value = info.getValue()
+        return (
+          <div className="text-xs text-foreground">
+            {value !== undefined && value !== null ? (
+              typeof value === 'object' ? (
+                <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto line-clamp-2">
+                  {JSON.stringify(value, null, 2)}
+                </pre>
+              ) : (
+                <div className="line-clamp-2">
+                  {String(value)}
+                </div>
+              )
+            ) : (
+              <span className="text-muted-foreground italic">-</span>
+            )}
+          </div>
+        )
+      },
+    }))
+
+    return [...baseColumns, ...metadataColumns]
+  }, [metadataKeys])
+
+  const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
+
+  const table = useReactTable({
+    data: documents,
+    columns,
+    columnResizeMode,
+    getCoreRowModel: getCoreRowModel(),
+  })
 
   if (loading) {
     return (
@@ -116,53 +196,46 @@ export default function DocumentsTable({
 
   return (
     <div className="overflow-auto h-full">
-      <table className="min-w-full">
+      <table className="min-w-full" style={{ width: table.getCenterTotalSize() }}>
         <thead className="bg-secondary sticky top-0 z-10 border-b border-border">
-          <tr>
-            <th className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border">
-              id
-            </th>
-            <th className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border">
-              document
-            </th>
-            {metadataKeys.map(key => (
-              <th key={key} className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border">
-                {key}
-              </th>
-            ))}
-          </tr>
+          {table.getHeaderGroups().map(headerGroup => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map(header => (
+                <th
+                  key={header.id}
+                  className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border relative"
+                  style={{ width: header.getSize() }}
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                  <div
+                    onMouseDown={header.getResizeHandler()}
+                    onTouchStart={header.getResizeHandler()}
+                    className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-blue-500 ${
+                      header.column.getIsResizing() ? 'bg-blue-500' : ''
+                    }`}
+                  />
+                </th>
+              ))}
+            </tr>
+          ))}
         </thead>
         <tbody className="bg-background divide-y divide-border">
-          {documents.map((doc) => (
-            <tr key={doc.id} className="hover:bg-secondary/30 transition-colors">
-              <td className="pl-3 py-0.5 text-xs font-mono text-foreground align-top border-r border-border">
-                {doc.id}
-              </td>
-              <td className="pl-3 py-0.5 text-xs text-foreground max-w-md align-top border-r border-border">
-                <div className="line-clamp-2">
-                  {doc.document || <span className="text-muted-foreground italic">No document</span>}
-                </div>
-              </td>
-              {metadataKeys.map(key => {
-                const value = doc.metadata?.[key]
-                return (
-                  <td key={key} className="pl-3 py-0.5 text-xs text-foreground max-w-md align-top border-r border-border">
-                    {value !== undefined && value !== null ? (
-                      typeof value === 'object' ? (
-                        <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto line-clamp-2">
-                          {JSON.stringify(value, null, 2)}
-                        </pre>
-                      ) : (
-                        <div className="line-clamp-2">
-                          {String(value)}
-                        </div>
-                      )
-                    ) : (
-                      <span className="text-muted-foreground italic">-</span>
-                    )}
-                  </td>
-                )
-              })}
+          {table.getRowModel().rows.map(row => (
+            <tr key={row.id} className="hover:bg-secondary/30 transition-colors">
+              {row.getVisibleCells().map(cell => (
+                <td
+                  key={cell.id}
+                  className="pl-3 py-0.5 align-top border-r border-border"
+                  style={{ width: cell.column.getSize() }}
+                >
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
