@@ -53,6 +53,8 @@ export function FilterRow({
     }
   }
 
+  const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
+
   return (
     <div className="flex gap-2 items-center">
       {/* Type selector */}
@@ -60,7 +62,7 @@ export function FilterRow({
         value={row.type}
         onValueChange={handleTypeChange}
       >
-        <SelectTrigger className="w-28 h-8 text-xs">
+        <SelectTrigger className="w-24 h-6 text-[11px]">
           <SelectValue placeholder="Filter type" />
         </SelectTrigger>
         <SelectContent>
@@ -76,7 +78,8 @@ export function FilterRow({
           value={row.searchValue || ''}
           onChange={(e) => onChange(row.id, { searchValue: e.target.value })}
           placeholder="Search query..."
-          className="flex-1 h-8 text-xs"
+          className="flex-1 h-6 text-[11px] py-0 px-1.5 placeholder:text-[11px]"
+          style={inputStyle}
         />
       ) : (
         <>
@@ -86,14 +89,15 @@ export function FilterRow({
             value={row.metadataKey || ''}
             onChange={(e) => onChange(row.id, { metadataKey: e.target.value })}
             placeholder="Field name"
-            className="w-28 h-8 text-xs"
+            className="w-24 h-6 text-[11px] py-0 px-1.5 placeholder:text-[11px]"
+            style={inputStyle}
           />
           {/* Operator selector */}
           <Select
             value={row.operator || '$eq'}
             onValueChange={(value) => onChange(row.id, { operator: value as MetadataOperator })}
           >
-            <SelectTrigger className="w-20 h-8 text-xs">
+            <SelectTrigger className="w-16 h-6 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -110,7 +114,8 @@ export function FilterRow({
             value={row.metadataValue || ''}
             onChange={(e) => onChange(row.id, { metadataValue: e.target.value })}
             placeholder="Value"
-            className="flex-1 h-8 text-xs"
+            className="flex-1 h-6 text-[11px] py-0 px-1.5 placeholder:text-[11px]"
+            style={inputStyle}
           />
         </>
       )}
@@ -122,7 +127,7 @@ export function FilterRow({
             onClick={onAdd}
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0 text-xs"
+            className="h-6 w-6 p-0 text-[11px]"
             title="Add filter"
           >
             +
@@ -133,7 +138,7 @@ export function FilterRow({
             onClick={() => onRemove(row.id)}
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0 text-xs text-muted-foreground hover:text-destructive"
+            className="h-6 w-6 p-0 text-[11px] text-muted-foreground hover:text-destructive"
             title="Remove filter"
           >
             -

@@ -49,13 +49,14 @@ export function MetadataFilterInput({ onAdd }: MetadataFilterInputProps) {
           onChange={(e) => setKey(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Key (e.g., type)"
-          className="flex-1"
+          className="flex-1 h-6 text-[11px] py-0 px-1.5 placeholder:text-[11px]"
+          style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
         />
         <Select
           value={operator}
           onValueChange={(value) => setOperator(value as MetadataOperator)}
         >
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-[160px] h-6 text-[11px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -72,11 +73,14 @@ export function MetadataFilterInput({ onAdd }: MetadataFilterInputProps) {
           onChange={(e) => setValue(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Value"
-          className="flex-1"
+          className="flex-1 h-6 text-[11px] py-0 px-1.5 placeholder:text-[11px]"
+          style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
         />
         <Button
           onClick={handleAdd}
           disabled={!key.trim() || !value.trim()}
+          size="sm"
+          className="h-6 text-[11px] px-2"
         >
           + Add
         </Button>

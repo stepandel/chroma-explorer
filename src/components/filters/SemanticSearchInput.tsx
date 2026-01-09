@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -26,25 +25,24 @@ export function SemanticSearchInput({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Find similar documents..."
-            className="w-full pr-10"
+            className="w-full h-6 text-[11px] py-0 px-1.5 pr-5 placeholder:text-[11px]"
+            style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
           />
           {value && (
-            <Button
+            <button
               onClick={() => onChange('')}
-              variant="ghost"
-              size="sm"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-gray-400 hover:text-gray-600"
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs w-4 h-4 flex items-center justify-center"
               aria-label="Clear search"
             >
               ✕
-            </Button>
+            </button>
           )}
         </div>
         <Select
           value={nResults.toString()}
           onValueChange={(value) => onNResultsChange(parseInt(value, 10))}
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[100px] h-6 text-[11px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
