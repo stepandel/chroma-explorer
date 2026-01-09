@@ -1,23 +1,17 @@
 import { useChromaDB } from '../../providers/ChromaDBProvider'
+import { usePanel } from '../../context/PanelContext'
 import { Button } from '../ui/button'
 import { PanelLeft, PanelRight, PanelLeftDashed, PanelRightDashed } from 'lucide-react'
 
-interface TopBarProps {
-  leftPanelOpen: boolean
-  onToggleLeftPanel: () => void
-  rightDrawerOpen: boolean
-  onToggleRightDrawer: () => void
-  hasSelectedDocument: boolean
-}
-
-export function TopBar({
-  leftPanelOpen,
-  onToggleLeftPanel,
-  rightDrawerOpen,
-  onToggleRightDrawer,
-  hasSelectedDocument
-}: TopBarProps) {
+export function TopBar() {
   const { currentProfile } = useChromaDB()
+  const {
+    leftPanelOpen,
+    toggleLeftPanel,
+    rightPanelOpen,
+    toggleRightPanel,
+    selectedDocumentId
+  } = usePanel()
 
   const handleDisconnect = async () => {
     if (confirm('Are you sure you want to disconnect? This will close this window.')) {
@@ -49,7 +43,7 @@ export function TopBar({
       >
         {/* Left Panel Toggle */}
         <Button
-          onClick={onToggleLeftPanel}
+          onClick={toggleLeftPanel}
           size="sm"
           variant="ghost"
           className="h-7 w-7 p-0"
@@ -62,14 +56,14 @@ export function TopBar({
         </Button>
 
         {/* Right Panel Toggle */}
-        {hasSelectedDocument && (
+        {selectedDocumentId && (
           <Button
-            onClick={onToggleRightDrawer}
+            onClick={toggleRightPanel}
             size="sm"
             variant="ghost"
             className="h-7 w-7 p-0"
           >
-            {rightDrawerOpen ? (
+            {rightPanelOpen ? (
               <PanelRight className="h-5 w-5 text-primary" />
             ) : (
               <PanelRightDashed className="h-5 w-5" />

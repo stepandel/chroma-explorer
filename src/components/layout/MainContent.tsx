@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useCollection } from '../../context/CollectionContext'
+import { usePanel } from '../../context/PanelContext'
 import { CollectionPanel } from '../collections/CollectionPanel'
 import DocumentsView from '../documents/DocumentsView'
 import DocumentDetailPanel from '../documents/DocumentDetailPanel'
@@ -12,24 +13,16 @@ interface DocumentRecord {
   embedding: number[] | null
 }
 
-interface MainContentProps {
-  leftPanelOpen: boolean
-  setLeftPanelOpen: (open: boolean) => void
-  selectedDocumentId: string | null
-  onDocumentSelect: (id: string) => void
-  rightDrawerOpen: boolean
-  onCloseRightDrawer: () => void
-}
-
-export function MainContent({
-  leftPanelOpen,
-  setLeftPanelOpen,
-  selectedDocumentId,
-  onDocumentSelect,
-  rightDrawerOpen,
-  onCloseRightDrawer,
-}: MainContentProps) {
+export function MainContent() {
   const { activeCollection } = useCollection()
+  const {
+    leftPanelOpen,
+    setLeftPanelOpen,
+    rightPanelOpen,
+    setRightPanelOpen,
+    selectedDocumentId,
+    selectDocument
+  } = usePanel()
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
 
   return (
@@ -65,7 +58,7 @@ export function MainContent({
             <DocumentsView
               collectionName={activeCollection}
               selectedDocumentId={selectedDocumentId}
-              onDocumentSelect={onDocumentSelect}
+              onDocumentSelect={selectDocument}
               onSelectedDocumentChange={setSelectedDocument}
             />
           ) : (
@@ -80,13 +73,13 @@ export function MainContent({
 
         {/* Right Panel: Document Detail Drawer - Always present, collapsed when not in use */}
         <Separator className={`w-px transition-colors duration-150 ${
-          rightDrawerOpen && selectedDocument
+          rightPanelOpen && selectedDocument
             ? 'bg-border hover:bg-primary active:bg-primary cursor-col-resize'
             : 'bg-transparent pointer-events-none'
         }`} />
 
         <Panel
-          defaultSize={rightDrawerOpen && selectedDocument ? "30" : "0"}
+          defaultSize={rightPanelOpen && selectedDocument ? "30" : "0"}
           minSize="20"
           maxSize="50"
           collapsible={true}
@@ -94,8 +87,8 @@ export function MainContent({
           id="document-detail"
           onResize={(size) => {
             // When panel is collapsed (size is 0), close the drawer
-            if (size.asPercentage === 0 && rightDrawerOpen) {
-              onCloseRightDrawer()
+            if (size.asPercentage === 0 && rightPanelOpen) {
+              setRightPanelOpen(false)
             }
           }}
         >
