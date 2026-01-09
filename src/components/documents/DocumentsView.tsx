@@ -4,6 +4,8 @@ import { useDocumentsQuery, useCollectionsQuery } from '../../hooks/useChromaQue
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
+import { FilterRow } from '../filters/FilterRow'
 
 interface DocumentRecord {
   id: string
@@ -19,11 +21,11 @@ interface DocumentsViewProps {
   onSelectedDocumentChange: (document: DocumentRecord | null) => void
 }
 
-function getDefaultFilters(): DocumentFilters {
+function createDefaultFilterRow(): FilterRowType {
   return {
-    queryText: '',
-    nResults: 10,
-    metadataFilters: [],
+    id: crypto.randomUUID(),
+    type: 'search',
+    searchValue: '',
   }
 }
 
@@ -34,7 +36,8 @@ export default function DocumentsView({
   onSelectedDocumentChange,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
-  const [filters, setFilters] = useState<DocumentFilters>(getDefaultFilters())
+  const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
+  const [nResults, setNResults] = useState(10)
 
   // Fetch collections to get the current collection's info
   const { data: collections = [] } = useCollectionsQuery(currentProfile?.id || null)
@@ -82,23 +85,34 @@ export default function DocumentsView({
 
   // Reset filters when collection changes
   useEffect(() => {
-    setFilters(getDefaultFilters())
-    setMetaKey('')
-    setMetaValue('')
+    setFilterRows([createDefaultFilterRow()])
+    setNResults(10)
   }, [collectionName])
 
-  // Build search params
-  const searchParams = useMemo(() => ({
-    collectionName,
-    queryText: filters.queryText || undefined,
-    nResults: filters.nResults,
-    metadataFilter: filters.metadataFilters.length > 0
-      ? filters.metadataFilters.reduce((acc, filter) => ({
+  // Build search params from filter rows
+  const searchParams = useMemo(() => {
+    // Extract search query from search-type rows
+    const searchRow = filterRows.find(r => r.type === 'search' && r.searchValue?.trim())
+    const queryText = searchRow?.searchValue?.trim() || undefined
+
+    // Extract metadata filters from metadata-type rows
+    const metadataRows = filterRows.filter(
+      r => r.type === 'metadata' && r.metadataKey?.trim() && r.metadataValue?.trim()
+    )
+    const metadataFilter = metadataRows.length > 0
+      ? metadataRows.reduce((acc, row) => ({
           ...acc,
-          [filter.key]: { [filter.operator]: filter.value },
+          [row.metadataKey!]: { [row.operator || '$eq']: row.metadataValue },
         }), {})
-      : undefined,
-  }), [collectionName, filters])
+      : undefined
+
+    return {
+      collectionName,
+      queryText,
+      nResults,
+      metadataFilter,
+    }
+  }, [collectionName, filterRows, nResults])
 
   // Use React Query for documents with debouncing via staleTime
   const {
@@ -107,45 +121,35 @@ export default function DocumentsView({
     error,
   } = useDocumentsQuery(currentProfile?.id || null, searchParams)
 
-  // Create a hook-compatible interface for FilterSection
-  const filterHook = useMemo(() => ({
-    filters,
-    hasActiveFilters: filters.queryText.trim() !== '' || filters.metadataFilters.length > 0,
+  // Filter row handlers
+  const handleFilterRowChange = useCallback((id: string, updates: Partial<FilterRowType>) => {
+    setFilterRows(prev => prev.map(row =>
+      row.id === id ? { ...row, ...updates } : row
+    ))
+  }, [])
 
-    setQueryText: (queryText: string) => {
-      setFilters(prev => ({ ...prev, queryText }))
-    },
+  const handleAddFilterRow = useCallback(() => {
+    setFilterRows(prev => [...prev, {
+      id: crypto.randomUUID(),
+      type: 'metadata',
+      metadataKey: '',
+      operator: '$eq' as MetadataOperator,
+      metadataValue: '',
+    }])
+  }, [])
 
-    setNResults: (nResults: number) => {
-      setFilters(prev => ({ ...prev, nResults }))
-    },
+  const handleRemoveFilterRow = useCallback((id: string) => {
+    setFilterRows(prev => {
+      const filtered = prev.filter(row => row.id !== id)
+      // Always keep at least one row
+      return filtered.length > 0 ? filtered : [createDefaultFilterRow()]
+    })
+  }, [])
 
-    addMetadataFilter: (key: string, operator: any, value: string) => {
-      const newFilter: MetadataFilter = {
-        id: crypto.randomUUID(),
-        key,
-        operator,
-        value,
-      }
-      setFilters(prev => ({
-        ...prev,
-        metadataFilters: [...prev.metadataFilters, newFilter],
-      }))
-    },
-
-    removeMetadataFilter: (id: string) => {
-      setFilters(prev => ({
-        ...prev,
-        metadataFilters: prev.metadataFilters.filter(f => f.id !== id),
-      }))
-    },
-
-    clearAllFilters: () => {
-      setFilters(getDefaultFilters())
-    },
-
-    buildSearchParams: () => searchParams,
-  }), [filters, searchParams])
+  const hasActiveFilters = filterRows.some(row =>
+    (row.type === 'search' && row.searchValue?.trim()) ||
+    (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim())
+  )
 
   // Find selected document for drawer
   const selectedDocument = selectedDocumentId
@@ -195,90 +199,40 @@ export default function DocumentsView({
               onClear={handleClearOverride}
             />
 
-                {/* Metadata filter */}
-                <Input
-                  type="text"
-                  placeholder="Filter key"
-                  value={metaKey}
-                  onChange={(e) => setMetaKey(e.target.value)}
-                  className="w-28 h-8 text-xs"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && metaKey.trim() && metaValue.trim()) {
-                      filterHook.addMetadataFilter(metaKey.trim(), '$eq', metaValue.trim())
-                      setMetaKey('')
-                      setMetaValue('')
-                    }
-                  }}
-                />
-                <Input
-                  type="text"
-                  placeholder="Filter value"
-                  value={metaValue}
-                  onChange={(e) => setMetaValue(e.target.value)}
-                  className="w-28 h-8 text-xs"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && metaKey.trim() && metaValue.trim()) {
-                      filterHook.addMetadataFilter(metaKey.trim(), '$eq', metaValue.trim())
-                      setMetaKey('')
-                      setMetaValue('')
-                    }
-                  }}
-                />
-
-                {/* Limit selector */}
-                <Select
-                  value={filterHook.filters.nResults.toString()}
-                  onValueChange={(value) => filterHook.setNResults(parseInt(value, 10))}
-                >
-                  <SelectTrigger className="w-20 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="500">500</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Active filters display */}
-              {filterHook.hasActiveFilters && (
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  {filterHook.filters.queryText && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
-                      Search: {filterHook.filters.queryText}
-                      <button
-                        onClick={() => filterHook.setQueryText('')}
-                        className="hover:text-primary/80"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  )}
-                  {filterHook.filters.metadataFilters.map(filter => (
-                    <span
-                      key={filter.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs"
+            {/* Row 2: Filters */}
+            <div className="px-4 py-2 border-b border-border space-y-2">
+              {/* Filter rows */}
+              {filterRows.map((row, index) => (
+                <div key={row.id} className="flex gap-2 items-center">
+                  <FilterRow
+                    row={row}
+                    isFirst={index === 0}
+                    isLast={index === filterRows.length - 1}
+                    canRemove={filterRows.length > 1}
+                    onChange={handleFilterRowChange}
+                    onAdd={handleAddFilterRow}
+                    onRemove={handleRemoveFilterRow}
+                  />
+                  {/* Limit selector - only show on first row */}
+                  {index === 0 && (
+                    <Select
+                      value={nResults.toString()}
+                      onValueChange={(value) => setNResults(parseInt(value, 10))}
                     >
-                      {filter.key} {filter.operator} {filter.value}
-                      <button
-                        onClick={() => filterHook.removeMetadataFilter(filter.id)}
-                        className="hover:text-primary/80"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                  <button
-                    onClick={filterHook.clearAllFilters}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Clear all
-                  </button>
+                      <SelectTrigger className="w-20 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="500">500</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
 
       {/* Table */}
@@ -287,7 +241,7 @@ export default function DocumentsView({
           documents={documents}
           loading={loading}
           error={error ? (error as Error).message : null}
-          hasActiveFilters={filterHook.hasActiveFilters}
+          hasActiveFilters={hasActiveFilters}
           selectedDocumentId={selectedDocumentId}
           onDocumentSelect={onDocumentSelect}
         />
