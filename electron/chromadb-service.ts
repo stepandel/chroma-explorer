@@ -4,6 +4,7 @@ import {
   CollectionInfo,
   DocumentRecord,
   SearchDocumentsParams,
+  EmbeddingFunctionOverride,
 } from './types'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
 
@@ -151,14 +152,31 @@ class ChromaDBService {
     return documents
   }
 
-  async searchDocuments(params: SearchDocumentsParams): Promise<DocumentRecord[]> {
+  async searchDocuments(
+    params: SearchDocumentsParams,
+    embeddingOverride?: EmbeddingFunctionOverride | null
+  ): Promise<DocumentRecord[]> {
     if (!this.client) {
       throw new Error('ChromaDB client not connected. Please connect first.')
     }
 
     // Find the collection's embedding function config from cache
     const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
-    const efConfig = collectionInfo?.embeddingFunction
+
+    // Use override if provided, otherwise fall back to server config
+    let efConfig: CollectionInfo['embeddingFunction'] = null
+    if (embeddingOverride) {
+      // Convert override to the format expected by the factory
+      efConfig = {
+        name: embeddingOverride.type === 'default' ? 'default' : 'openai',
+        type: 'known',
+        config: embeddingOverride.type === 'openai'
+          ? { model_name: embeddingOverride.modelName }
+          : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
+      }
+    } else {
+      efConfig = collectionInfo?.embeddingFunction
+    }
 
     // Get the appropriate embedding function for this collection
     const embeddingFunction = await this.efFactory?.getEmbeddingFunction(

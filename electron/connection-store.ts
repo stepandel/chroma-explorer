@@ -1,5 +1,5 @@
 import Store from 'electron-store'
-import { ConnectionProfile } from './types'
+import { ConnectionProfile, EmbeddingFunctionOverride } from './types'
 
 interface StoreSchema {
   profiles: ConnectionProfile[]
@@ -51,6 +51,37 @@ export class ConnectionStore {
 
   setLastActiveProfileId(id: string | null): void {
     store.set('lastActiveProfileId', id)
+  }
+
+  getEmbeddingOverride(profileId: string, collectionName: string): EmbeddingFunctionOverride | null {
+    const profiles = this.getProfiles()
+    const profile = profiles.find((p) => p.id === profileId)
+    return profile?.embeddingOverrides?.[collectionName] ?? null
+  }
+
+  setEmbeddingOverride(profileId: string, collectionName: string, override: EmbeddingFunctionOverride): void {
+    const profiles = this.getProfiles()
+    const profileIndex = profiles.findIndex((p) => p.id === profileId)
+
+    if (profileIndex >= 0) {
+      const profile = profiles[profileIndex]
+      profile.embeddingOverrides = profile.embeddingOverrides || {}
+      profile.embeddingOverrides[collectionName] = override
+      store.set('profiles', profiles)
+    }
+  }
+
+  clearEmbeddingOverride(profileId: string, collectionName: string): void {
+    const profiles = this.getProfiles()
+    const profileIndex = profiles.findIndex((p) => p.id === profileId)
+
+    if (profileIndex >= 0) {
+      const profile = profiles[profileIndex]
+      if (profile.embeddingOverrides) {
+        delete profile.embeddingOverrides[collectionName]
+        store.set('profiles', profiles)
+      }
+    }
   }
 }
 

@@ -60,7 +60,9 @@ ipcMain.handle('chromadb:searchDocuments', async (_event, profileId: string, par
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
     }
-    const documents = await service.searchDocuments(params)
+    // Check for user embedding override
+    const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
+    const documents = await service.searchDocuments(params, embeddingOverride)
     return { success: true, data: documents }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to search documents'
@@ -115,6 +117,36 @@ ipcMain.handle('profiles:setLastActive', async (_event, id: string | null) => {
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to set last active profile'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('profiles:getEmbeddingOverride', async (_event, profileId: string, collectionName: string) => {
+  try {
+    const override = connectionStore.getEmbeddingOverride(profileId, collectionName)
+    return { success: true, data: override }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get embedding override'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('profiles:setEmbeddingOverride', async (_event, profileId: string, collectionName: string, override: any) => {
+  try {
+    connectionStore.setEmbeddingOverride(profileId, collectionName, override)
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to set embedding override'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('profiles:clearEmbeddingOverride', async (_event, profileId: string, collectionName: string) => {
+  try {
+    connectionStore.clearEmbeddingOverride(profileId, collectionName)
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to clear embedding override'
     return { success: false, error: message }
   }
 })
