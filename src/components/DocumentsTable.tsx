@@ -197,13 +197,13 @@ export default function DocumentsTable({
   return (
     <div className="overflow-auto h-full">
       <table style={{ minWidth: '100%', width: table.getCenterTotalSize() }}>
-        <thead className="bg-secondary sticky top-0 z-10 border-b border-border">
+        <thead className="bg-blue-50 sticky top-0 z-10 border-b border-border">
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map(header => (
                 <th
                   key={header.id}
-                  className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border relative"
+                  className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border relative bg-blue-50"
                   style={{ width: header.getSize() }}
                 >
                   {header.isPlaceholder
@@ -222,13 +222,18 @@ export default function DocumentsTable({
                 </th>
               ))}
               {/* Filler column to extend table structure */}
-              <th className="bg-secondary"></th>
+              <th className="bg-blue-50"></th>
             </tr>
           ))}
         </thead>
-        <tbody className="bg-background divide-y divide-border">
-          {table.getRowModel().rows.map(row => (
-            <tr key={row.id} className="hover:bg-secondary/30 transition-colors">
+        <tbody className="divide-y divide-border">
+          {table.getRowModel().rows.map((row, index) => (
+            <tr
+              key={row.id}
+              className={`hover:bg-secondary/30 transition-colors ${
+                index % 2 === 0 ? 'bg-background' : 'bg-muted/100'
+              }`}
+            >
               {row.getVisibleCells().map(cell => (
                 <td
                   key={cell.id}
