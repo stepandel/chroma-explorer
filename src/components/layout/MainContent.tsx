@@ -1,7 +1,19 @@
 import { useCollection } from '../../context/CollectionContext'
 import DocumentsView from '../DocumentsView'
 
-export function MainContent() {
+interface MainContentProps {
+  selectedDocumentId: string | null
+  onDocumentSelect: (id: string) => void
+  rightDrawerOpen: boolean
+  onCloseRightDrawer: () => void
+}
+
+export function MainContent({
+  selectedDocumentId,
+  onDocumentSelect,
+  rightDrawerOpen,
+  onCloseRightDrawer,
+}: MainContentProps) {
   const { activeCollection } = useCollection()
 
   if (!activeCollection) {
@@ -17,7 +29,13 @@ export function MainContent() {
 
   return (
     <main className="flex-1 overflow-auto bg-background">
-      <DocumentsView collectionName={activeCollection} />
+      <DocumentsView
+        collectionName={activeCollection}
+        selectedDocumentId={selectedDocumentId}
+        onDocumentSelect={onDocumentSelect}
+        rightDrawerOpen={rightDrawerOpen}
+        onCloseRightDrawer={onCloseRightDrawer}
+      />
     </main>
   )
 }

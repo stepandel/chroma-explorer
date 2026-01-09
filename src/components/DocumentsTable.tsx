@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
 import {
   useReactTable,
   getCoreRowModel,
@@ -7,6 +6,7 @@ import {
   flexRender,
   ColumnResizeMode,
 } from '@tanstack/react-table'
+import EmbeddingCell from './EmbeddingCell'
 
 interface DocumentRecord {
   id: string
@@ -20,54 +20,8 @@ interface DocumentsTableProps {
   loading: boolean
   error: string | null
   hasActiveFilters?: boolean
-}
-
-function EmbeddingCell({ embedding }: { embedding: number[] | null }) {
-  const [expanded, setExpanded] = useState(false)
-
-  if (!embedding) {
-    return <span className="text-muted-foreground italic">No embedding</span>
-  }
-
-  const previewCount = 5
-  const hasMore = embedding.length > previewCount
-
-  if (expanded) {
-    return (
-      <div className="space-y-2">
-        <div className="text-xs bg-secondary p-2 rounded-lg font-mono max-h-40 overflow-y-auto">
-          [{embedding.join(', ')}]
-        </div>
-        <Button
-          onClick={() => setExpanded(false)}
-          variant="link"
-          size="sm"
-          className="h-auto p-0 text-xs"
-        >
-          Show less
-        </Button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-mono">
-        [{embedding.slice(0, previewCount).join(', ')}
-        {hasMore && '...'}]
-      </span>
-      {hasMore && (
-        <Button
-          onClick={() => setExpanded(true)}
-          variant="link"
-          size="sm"
-          className="h-auto p-0 text-xs whitespace-nowrap"
-        >
-          +{embedding.length - previewCount} more
-        </Button>
-      )}
-    </div>
-  )
+  selectedDocumentId: string | null
+  onDocumentSelect: (id: string) => void
 }
 
 export default function DocumentsTable({
@@ -75,6 +29,8 @@ export default function DocumentsTable({
   loading,
   error,
   hasActiveFilters = false,
+  selectedDocumentId,
+  onDocumentSelect,
 }: DocumentsTableProps) {
   // Extract all unique metadata keys from documents
   const metadataKeys = useMemo(() =>
@@ -227,26 +183,32 @@ export default function DocumentsTable({
           ))}
         </thead>
         <tbody className="divide-y divide-border">
-          {table.getRowModel().rows.map((row, index) => (
-            <tr
-              key={row.id}
-              className={`hover:bg-secondary/30 transition-colors ${
-                index % 2 === 0 ? 'bg-background' : 'bg-muted/100'
-              }`}
-            >
-              {row.getVisibleCells().map(cell => (
-                <td
-                  key={cell.id}
-                  className="pl-3 py-0.5 align-top border-r border-border"
-                  style={{ width: cell.column.getSize() }}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-              {/* Filler cell to extend table structure */}
-              <td className="border-r border-border"></td>
-            </tr>
-          ))}
+          {table.getRowModel().rows.map((row, index) => {
+            const isSelected = selectedDocumentId === row.original.id
+            return (
+              <tr
+                key={row.id}
+                className={`transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-100'
+                    : index % 2 === 0 ? 'bg-background' : 'bg-muted/100'
+                }`}
+                onClick={() => onDocumentSelect(row.original.id)}
+              >
+                {row.getVisibleCells().map(cell => (
+                  <td
+                    key={cell.id}
+                    className="pl-3 py-0.5 align-top border-r border-border"
+                    style={{ width: cell.column.getSize() }}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+                {/* Filler cell to extend table structure */}
+                <td className="border-r border-border"></td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
