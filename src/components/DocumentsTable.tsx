@@ -196,7 +196,7 @@ export default function DocumentsTable({
 
   return (
     <div className="overflow-auto h-full">
-      <table className="min-w-full" style={{ width: table.getCenterTotalSize() }}>
+      <table style={{ minWidth: '100%', width: table.getCenterTotalSize() }}>
         <thead className="bg-secondary sticky top-0 z-10 border-b border-border">
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
@@ -221,6 +221,8 @@ export default function DocumentsTable({
                   />
                 </th>
               ))}
+              {/* Filler column to extend table structure */}
+              <th className="bg-secondary"></th>
             </tr>
           ))}
         </thead>
@@ -236,6 +238,8 @@ export default function DocumentsTable({
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}
+              {/* Filler cell to extend table structure */}
+              <td className="border-r border-border"></td>
             </tr>
           ))}
         </tbody>
