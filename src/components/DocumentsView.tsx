@@ -265,6 +265,12 @@ export default function DocumentsView({
               minSize="20"
               maxSize="50"
               collapsible={true}
+              onResize={(size) => {
+                // When panel is collapsed (size is 0), close the drawer
+                if (size.asPercentage === 0) {
+                  onCloseRightDrawer()
+                }
+              }}
             >
               <div className="h-full overflow-y-auto bg-background border-l border-border">
                 <DocumentDetailPanel document={selectedDocument} />
