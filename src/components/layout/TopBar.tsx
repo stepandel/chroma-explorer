@@ -1,6 +1,6 @@
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { Button } from '../ui/button'
-import { PanelRightOpen, PanelRightClose, PanelLeftOpen, PanelLeftClose } from 'lucide-react'
+import { PanelLeft, PanelRight, PanelLeftDashed, PanelRightDashed } from 'lucide-react'
 
 interface TopBarProps {
   leftPanelOpen: boolean
@@ -52,18 +52,12 @@ export function TopBar({
           onClick={onToggleLeftPanel}
           size="sm"
           variant="ghost"
-          className="h-7 text-xs flex items-center gap-1.5"
+          className="h-7 w-7 p-0"
         >
           {leftPanelOpen ? (
-            <>
-              <PanelLeftClose className="h-3.5 w-3.5" />
-              <span>Hide Sidebar</span>
-            </>
+            <PanelLeft className="h-5 w-5 text-primary" />
           ) : (
-            <>
-              <PanelLeftOpen className="h-3.5 w-3.5" />
-              <span>Show Sidebar</span>
-            </>
+            <PanelLeftDashed className="h-5 w-5" />
           )}
         </Button>
 
@@ -73,18 +67,12 @@ export function TopBar({
             onClick={onToggleRightDrawer}
             size="sm"
             variant="ghost"
-            className="h-7 text-xs flex items-center gap-1.5"
+            className="h-7 w-7 p-0"
           >
             {rightDrawerOpen ? (
-              <>
-                <PanelRightClose className="h-3.5 w-3.5" />
-                <span>Close Details</span>
-              </>
+              <PanelRight className="h-5 w-5 text-primary" />
             ) : (
-              <>
-                <PanelRightOpen className="h-3.5 w-3.5" />
-                <span>Open Details</span>
-              </>
+              <PanelRightDashed className="h-5 w-5" />
             )}
           </Button>
         )}
