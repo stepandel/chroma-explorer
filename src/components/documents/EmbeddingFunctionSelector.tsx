@@ -110,47 +110,47 @@ export function EmbeddingFunctionSelector({
           }
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-4" align="start">
+      <PopoverContent className="w-72 p-3" align="start">
         {/* Header */}
-        <div className="mb-4">
-          <h4 className="font-medium text-sm">Embedding Function</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Override the embedding function for "{collectionName}"
+        <div className="px-1 mb-3">
+          <h4 className="font-medium text-[13px] text-foreground">Embedding Function</h4>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Override for "{collectionName}"
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Server config info */}
-          <div className="text-sm">
-            <Label className="text-muted-foreground text-xs">Server configuration:</Label>
-            <p className="mt-1 font-mono text-xs bg-muted px-2 py-1 rounded">
+          <div className="px-1">
+            <Label className="text-muted-foreground text-[11px] font-normal">Server</Label>
+            <p className="font-mono text-[11px] text-foreground/80 mt-0.5">
               {serverConfig?.name || 'Not configured'}
             </p>
           </div>
 
           {/* Current override status */}
           {currentOverride && (
-            <div className="text-sm">
-              <Label className="text-muted-foreground text-xs">Current override:</Label>
-              <p className="mt-1 font-mono text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+            <div className="px-1">
+              <Label className="text-muted-foreground text-[11px] font-normal">Current override</Label>
+              <p className="font-mono text-[11px] text-primary mt-0.5">
                 {currentOverride.type}: {currentOverride.modelName}
               </p>
             </div>
           )}
 
           {/* Selector */}
-          <div className="space-y-2">
-            <Label htmlFor="ef-select" className="text-xs">Select embedding function:</Label>
+          <div className="px-1 space-y-1.5">
+            <Label htmlFor="ef-select" className="text-[11px] font-normal">Embedding function</Label>
             <select
               id="ef-select"
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="flex h-9 w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary"
+              className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-2.5 py-1.5 text-[13px] shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-primary/50"
             >
-              <option value="">Choose an embedding function...</option>
+              <option value="">Select...</option>
               {EMBEDDING_FUNCTIONS.map(ef => (
                 <option key={ef.id} value={ef.id}>
-                  {ef.label} ({ef.dimensions} dims)
+                  {ef.label} ({ef.dimensions}d)
                 </option>
               ))}
             </select>
@@ -158,32 +158,34 @@ export function EmbeddingFunctionSelector({
 
           {/* Selected info */}
           {selectedEF && (
-            <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-              <p><strong>Type:</strong> {selectedEF.type}</p>
-              <p><strong>Model:</strong> {selectedEF.modelName}</p>
-              <p><strong>Dimensions:</strong> {selectedEF.dimensions}</p>
+            <div className="mx-1 text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-2 rounded-md space-y-0.5">
+              <p><span className="text-foreground/70">Type:</span> {selectedEF.type}</p>
+              <p><span className="text-foreground/70">Model:</span> {selectedEF.modelName}</p>
+              <p><span className="text-foreground/70">Dimensions:</span> {selectedEF.dimensions}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-border/50">
           {currentOverride && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
+              className="h-7 text-[12px] px-2.5"
               onClick={handleClear}
               disabled={saving}
             >
-              Clear Override
+              Clear
             </Button>
           )}
           <Button
             size="sm"
+            className="h-7 text-[12px] px-3"
             onClick={handleSave}
             disabled={!selectedEF || saving}
           >
-            {saving ? 'Saving...' : 'Save Override'}
+            {saving ? 'Saving...' : 'Apply'}
           </Button>
         </div>
       </PopoverContent>
