@@ -149,6 +149,17 @@ export default function DocumentsView({
     (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim())
   )
 
+  // Extract unique metadata fields from documents
+  const metadataFields = useMemo(() => {
+    const fields = new Set<string>()
+    documents.forEach(doc => {
+      if (doc.metadata) {
+        Object.keys(doc.metadata).forEach(key => fields.add(key))
+      }
+    })
+    return Array.from(fields).sort()
+  }, [documents])
+
   // Find selected document for drawer
   const selectedDocument = selectedDocumentId
     ? documents.find(doc => doc.id === selectedDocumentId)
@@ -193,6 +204,7 @@ export default function DocumentsView({
                   onRemove={handleRemoveFilterRow}
                   nResults={nResults}
                   onNResultsChange={setNResults}
+                  metadataFields={metadataFields}
                 />
               ))}
             </div>

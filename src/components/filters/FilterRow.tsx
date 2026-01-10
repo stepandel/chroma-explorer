@@ -10,6 +10,7 @@ interface FilterRowProps {
   onRemove: (id: string) => void
   nResults?: number
   onNResultsChange?: (n: number) => void
+  metadataFields?: string[]
 }
 
 const operatorLabels: Record<MetadataOperator, string> = {
@@ -38,9 +39,10 @@ export function FilterRow({
   onRemove,
   nResults,
   onNResultsChange,
+  metadataFields = [],
 }: FilterRowProps) {
-  const handleTypeChange = (type: string) => {
-    if (type === 'search') {
+  const handleTypeChange = (value: string) => {
+    if (value === 'search') {
       onChange(row.id, {
         type: 'search',
         searchValue: '',
@@ -49,27 +51,39 @@ export function FilterRow({
         metadataValue: undefined,
       })
     } else {
+      // value is a metadata field name
       onChange(row.id, {
         type: 'metadata',
         searchValue: undefined,
-        metadataKey: '',
+        metadataKey: value,
         operator: '$eq',
         metadataValue: '',
       })
     }
   }
 
+  // Get current select value: 'search' or the metadata key
+  const selectValue = row.type === 'search' ? 'search' : (row.metadataKey || '')
+
   return (
     <div className="flex gap-2 items-center w-full">
       {/* Type selector */}
       <select
-        value={row.type}
+        value={selectValue}
         onChange={(e) => handleTypeChange(e.target.value)}
-        className={`w-24 ${selectClassName}`}
+        className={`w-28 ${selectClassName}`}
         style={inputStyle}
       >
-        <option value="search">Search</option>
-        <option value="metadata">Metadata</option>
+        <optgroup label="Search">
+          <option value="search">Query</option>
+        </optgroup>
+        {metadataFields.length > 0 && (
+          <optgroup label="Filter">
+            {metadataFields.map(field => (
+              <option key={field} value={field}>{field}</option>
+            ))}
+          </optgroup>
+        )}
       </select>
 
       {/* Conditional inputs based on type */}
@@ -84,15 +98,6 @@ export function FilterRow({
         />
       ) : (
         <>
-          {/* Metadata key input */}
-          <input
-            type="text"
-            value={row.metadataKey || ''}
-            onChange={(e) => onChange(row.id, { metadataKey: e.target.value })}
-            placeholder="Field name"
-            className={`w-24 ${inputClassName}`}
-            style={inputStyle}
-          />
           {/* Operator selector */}
           <select
             value={row.operator || '$eq'}
