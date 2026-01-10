@@ -13,7 +13,7 @@ interface DocumentDetailPanelProps {
 
 export default function DocumentDetailPanel({ document }: DocumentDetailPanelProps) {
   return (
-    <div className="space-y-3 p-3">
+    <div className="h-full overflow-auto space-y-3 p-3">
       {/* ID Section */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
