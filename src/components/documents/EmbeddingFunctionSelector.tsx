@@ -39,7 +39,7 @@ const EMBEDDING_FUNCTIONS = [
 interface EmbeddingFunctionSelectorProps {
   collectionName: string
   currentOverride: EmbeddingFunctionOverride | null
-  serverConfig: { name: string; type: string } | null
+  serverConfig: { name: string; type: string; config?: Record<string, unknown> } | null
   onSave: (override: EmbeddingFunctionOverride) => Promise<void>
   onClear: () => Promise<void>
 }
@@ -68,6 +68,8 @@ export function EmbeddingFunctionSelector({
   }, [currentOverride, open])
 
   const selectedEF = EMBEDDING_FUNCTIONS.find(ef => ef.id === selectedId)
+
+  const serverFunction = EMBEDDING_FUNCTIONS.find(ef => ef.modelName === serverConfig?.config?.model_name)
 
   const handleSave = async () => {
     if (!selectedEF) return
@@ -152,12 +154,22 @@ export function EmbeddingFunctionSelector({
 
           {/* Selected info */}
           {(() => {
-            const displayEF = selectedEF || EMBEDDING_FUNCTIONS.find(ef => ef.id === 'default')!
+            const displayEF = selectedEF || serverFunction || EMBEDDING_FUNCTIONS.find(ef => ef.id === 'default')!
             return (
-              <div className="mx-1 text-[11px] text-muted-foreground bg-muted/50 px-2.5 py-2 rounded-md space-y-0.5">
-                <p><span className="text-foreground/70">Type:</span> {displayEF.type}</p>
-                <p><span className="text-foreground/70">Model:</span> {displayEF.modelName}</p>
-                <p><span className="text-foreground/70">Dimensions:</span> {displayEF.dimensions}</p>
+              <div className={`mx-1 text-[11px] px-2.5 py-2 rounded-[5px] space-y-0.5 ${
+                selectedEF 
+                  ? 'bg-[#007AFF]/8 dark:bg-[#0A84FF]/10 ring-1 ring-[#007AFF]/20 dark:ring-[#0A84FF]/25 shadow-[inset_0_0.5px_0_rgba(255,255,255,0.1)]' 
+                  : 'bg-black/[0.03] dark:bg-white/[0.04] ring-1 ring-black/[0.04] dark:ring-white/[0.06] shadow-[inset_0_0.5px_0_rgba(255,255,255,0.05)]'
+              }`}>
+                {selectedEF && (
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#007AFF] dark:bg-[#0A84FF]" />
+                    <span className="text-[#007AFF] dark:text-[#0A84FF] font-medium text-[10px]">Client Override</span>
+                  </div>
+                )}
+                <p className="text-muted-foreground"><span className="text-foreground/60">Type:</span> {displayEF.type}</p>
+                <p className="text-muted-foreground"><span className="text-foreground/60">Model:</span> {displayEF.modelName}</p>
+                <p className="text-muted-foreground"><span className="text-foreground/60">Dimensions:</span> {displayEF.dimensions}</p>
               </div>
             )
           })()}
