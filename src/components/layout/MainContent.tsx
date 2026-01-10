@@ -42,9 +42,9 @@ export function MainContent() {
         {/* Left Panel: Sidebar - Collapsible */}
         <Panel
           key={`left-panel-${leftPanelOpen}`}
-          defaultSize={leftPanelOpen ? "15" : "0"}
-          minSize="12"
-          maxSize="25"
+          defaultSize={leftPanelOpen ? "18" : "0"}
+          minSize="15"
+          maxSize="30"
           collapsible={true}
           collapsedSize={0}
           id="sidebar"

@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useCollection } from '../../context/CollectionContext'
 import { Button } from '../ui/button'
-import { Input } from '../ui/input'
+
+const inputClassName = "w-full h-6 text-[11px] py-0 px-1.5 pr-5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 
 export function CollectionPanel() {
   const { collections, collectionsLoading, collectionsError, refreshCollections } = useChromaDB()
@@ -19,17 +21,17 @@ export function CollectionPanel() {
 
   return (
     <aside className="w-full h-full bg-sidebar/70 backdrop-blur-xl flex flex-col">
-      {/* Header - with spacing for traffic lights */}
-      <div className="pt-14 px-4 pb-2">
+      {/* Header */}
+      <div className="px-4 py-2">
         {/* Search input */}
         <div className="relative">
-          <Input
+          <input
             type="text"
             placeholder="Search collections..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-6 text-[11px] py-0 px-1.5 pr-5 placeholder:text-[11px]"
-            style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+            className={inputClassName}
+            style={inputStyle}
           />
           {searchTerm && (
             <button
