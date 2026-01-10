@@ -1,7 +1,4 @@
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface FilterRowProps {
   row: FilterRowType
@@ -11,6 +8,9 @@ interface FilterRowProps {
   onChange: (id: string, updates: Partial<FilterRowType>) => void
   onAdd: () => void
   onRemove: (id: string) => void
+  nResults?: number
+  onNResultsChange?: (n: number) => void
+  metadataFields?: string[]
 }
 
 const operatorLabels: Record<MetadataOperator, string> = {
@@ -24,6 +24,11 @@ const operatorLabels: Record<MetadataOperator, string> = {
   $nin: 'not in',
 }
 
+const inputClassName = "h-6 text-[11px] py-0 px-1.5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+const selectClassName = "h-6 text-[11px] px-1.5 rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+const buttonClassName = "h-6 w-6 p-0 text-[11px] rounded-md border border-input bg-background hover:bg-accent"
+const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
+
 export function FilterRow({
   row,
   isFirst,
@@ -32,9 +37,12 @@ export function FilterRow({
   onChange,
   onAdd,
   onRemove,
+  nResults,
+  onNResultsChange,
+  metadataFields = [],
 }: FilterRowProps) {
-  const handleTypeChange = (type: string) => {
-    if (type === 'search') {
+  const handleTypeChange = (value: string) => {
+    if (value === 'search') {
       onChange(row.id, {
         type: 'search',
         searchValue: '',
@@ -43,101 +51,121 @@ export function FilterRow({
         metadataValue: undefined,
       })
     } else {
+      // value is a metadata field name
       onChange(row.id, {
         type: 'metadata',
         searchValue: undefined,
-        metadataKey: '',
+        metadataKey: value,
         operator: '$eq',
         metadataValue: '',
       })
     }
   }
 
+  // Get current select value: 'search' or the metadata key
+  const selectValue = row.type === 'search' ? 'search' : (row.metadataKey || '')
+
+  // Ensure current metadataKey is always in the options (in case filtered docs don't have it)
+  const allFields = row.metadataKey && !metadataFields.includes(row.metadataKey)
+    ? [row.metadataKey, ...metadataFields]
+    : metadataFields
+
   return (
-    <div className="flex gap-2 items-center">
+    <div className="flex gap-2 items-center w-full">
       {/* Type selector */}
-      <Select
-        value={row.type}
-        onValueChange={handleTypeChange}
+      <select
+        value={selectValue}
+        onChange={(e) => handleTypeChange(e.target.value)}
+        className={`w-28 ${selectClassName}`}
+        style={inputStyle}
       >
-        <SelectTrigger className="w-28 h-8 text-xs">
-          <SelectValue placeholder="Filter type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="search">Search</SelectItem>
-          <SelectItem value="metadata">Metadata</SelectItem>
-        </SelectContent>
-      </Select>
+        <optgroup label="Search">
+          <option value="search">Query</option>
+        </optgroup>
+        {allFields.length > 0 && (
+          <optgroup label="Filter">
+            {allFields.map(field => (
+              <option key={field} value={field}>{field}</option>
+            ))}
+          </optgroup>
+        )}
+      </select>
 
       {/* Conditional inputs based on type */}
       {row.type === 'search' ? (
-        <Input
+        <input
           type="text"
           value={row.searchValue || ''}
           onChange={(e) => onChange(row.id, { searchValue: e.target.value })}
           placeholder="Search query..."
-          className="flex-1 h-8 text-xs"
+          className={`flex-1 ${inputClassName}`}
+          style={inputStyle}
         />
       ) : (
         <>
-          {/* Metadata key input */}
-          <Input
-            type="text"
-            value={row.metadataKey || ''}
-            onChange={(e) => onChange(row.id, { metadataKey: e.target.value })}
-            placeholder="Field name"
-            className="w-28 h-8 text-xs"
-          />
           {/* Operator selector */}
-          <Select
+          <select
             value={row.operator || '$eq'}
-            onValueChange={(value) => onChange(row.id, { operator: value as MetadataOperator })}
+            onChange={(e) => onChange(row.id, { operator: e.target.value as MetadataOperator })}
+            className={`w-18 ${selectClassName}`}
+            style={inputStyle}
           >
-            <SelectTrigger className="w-20 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(operatorLabels).map(([op, label]) => (
-                <SelectItem key={op} value={op}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {Object.entries(operatorLabels).map(([op, label]) => (
+              <option key={op} value={op}>
+                {label}
+              </option>
+            ))}
+          </select>
           {/* Value input */}
-          <Input
+          <input
             type="text"
             value={row.metadataValue || ''}
             onChange={(e) => onChange(row.id, { metadataValue: e.target.value })}
             placeholder="Value"
-            className="flex-1 h-8 text-xs"
+            className={`flex-1 ${inputClassName}`}
+            style={inputStyle}
           />
         </>
+      )}
+
+      {/* Limit selector - only show on first row */}
+      {isFirst && nResults !== undefined && onNResultsChange && (
+        <div className="flex items-center gap-1">
+          <span className="text-[11px] text-muted-foreground">Limit:</span>
+          <select
+            value={nResults.toString()}
+            onChange={(e) => onNResultsChange(parseInt(e.target.value, 10))}
+            className={selectClassName}
+            style={inputStyle}
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="500">500</option>
+          </select>
+        </div>
       )}
 
       {/* Add/Remove buttons */}
       <div className="flex gap-1">
         {isLast && (
-          <Button
+          <button
             onClick={onAdd}
-            variant="outline"
-            size="sm"
-            className="h-8 w-8 p-0 text-xs"
+            className={buttonClassName}
             title="Add filter"
           >
             +
-          </Button>
+          </button>
         )}
         {canRemove && (
-          <Button
+          <button
             onClick={() => onRemove(row.id)}
-            variant="outline"
-            size="sm"
-            className="h-8 w-8 p-0 text-xs text-muted-foreground hover:text-destructive"
+            className={`${buttonClassName} text-muted-foreground hover:text-destructive`}
             title="Remove filter"
           >
             -
-          </Button>
+          </button>
         )}
       </div>
     </div>

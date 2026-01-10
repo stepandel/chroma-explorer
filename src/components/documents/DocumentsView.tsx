@@ -3,7 +3,6 @@ import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useDocumentsQuery, useCollectionsQuery } from '../../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
 import { FilterRow } from '../filters/FilterRow'
 
@@ -94,6 +93,40 @@ export default function DocumentsView({
     const searchRow = filterRows.find(r => r.type === 'search' && r.searchValue?.trim())
     const queryText = searchRow?.searchValue?.trim() || undefined
 
+    // Helper to parse filter value based on operator
+    const parseFilterValue = (value: string, operator: string): string | number | string[] | number[] => {
+      const trimmed = value.trim()
+
+      // Handle array operators ($in, $nin)
+      if (operator === '$in' || operator === '$nin') {
+        const items = trimmed.split(',').map(s => s.trim()).filter(Boolean)
+        // Try to parse as numbers if all items are numeric
+        const asNumbers = items.map(Number)
+        if (asNumbers.every(n => !isNaN(n))) {
+          return asNumbers
+        }
+        return items
+      }
+
+      // For comparison operators, try to parse as number
+      if (['$gt', '$gte', '$lt', '$lte'].includes(operator)) {
+        const num = Number(trimmed)
+        if (!isNaN(num)) {
+          return num
+        }
+      }
+
+      // For equality operators, try number first, fall back to string
+      if (operator === '$eq' || operator === '$ne') {
+        const num = Number(trimmed)
+        if (!isNaN(num) && trimmed !== '') {
+          return num
+        }
+      }
+
+      return trimmed
+    }
+
     // Extract metadata filters from metadata-type rows
     const metadataRows = filterRows.filter(
       r => r.type === 'metadata' && r.metadataKey?.trim() && r.metadataValue?.trim()
@@ -101,7 +134,9 @@ export default function DocumentsView({
     const metadataFilter = metadataRows.length > 0
       ? metadataRows.reduce((acc, row) => ({
           ...acc,
-          [row.metadataKey!]: { [row.operator || '$eq']: row.metadataValue },
+          [row.metadataKey!]: {
+            [row.operator || '$eq']: parseFilterValue(row.metadataValue!, row.operator || '$eq')
+          },
         }), {})
       : undefined
 
@@ -150,6 +185,17 @@ export default function DocumentsView({
     (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim())
   )
 
+  // Extract unique metadata fields from documents
+  const metadataFields = useMemo(() => {
+    const fields = new Set<string>()
+    documents.forEach(doc => {
+      if (doc.metadata) {
+        Object.keys(doc.metadata).forEach(key => fields.add(key))
+      }
+    })
+    return Array.from(fields).sort()
+  }, [documents])
+
   // Find selected document for drawer
   const selectedDocument = selectedDocumentId
     ? documents.find(doc => doc.id === selectedDocumentId)
@@ -183,35 +229,19 @@ export default function DocumentsView({
             <div className="px-4 py-2 border-b border-border space-y-2">
               {/* Filter rows */}
               {filterRows.map((row, index) => (
-                <div key={row.id} className="flex gap-2 items-center">
-                  <FilterRow
-                    row={row}
-                    isFirst={index === 0}
-                    isLast={index === filterRows.length - 1}
-                    canRemove={filterRows.length > 1}
-                    onChange={handleFilterRowChange}
-                    onAdd={handleAddFilterRow}
-                    onRemove={handleRemoveFilterRow}
-                  />
-                  {/* Limit selector - only show on first row */}
-                  {index === 0 && (
-                    <Select
-                      value={nResults.toString()}
-                      onValueChange={(value) => setNResults(parseInt(value, 10))}
-                    >
-                      <SelectTrigger className="w-20 h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="25">25</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                        <SelectItem value="500">500</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                <FilterRow
+                  key={row.id}
+                  row={row}
+                  isFirst={index === 0}
+                  isLast={index === filterRows.length - 1}
+                  canRemove={filterRows.length > 1}
+                  onChange={handleFilterRowChange}
+                  onAdd={handleAddFilterRow}
+                  onRemove={handleRemoveFilterRow}
+                  nResults={nResults}
+                  onNResultsChange={setNResults}
+                  metadataFields={metadataFields}
+                />
               ))}
             </div>
 

@@ -15,9 +15,7 @@ export function FilterSection({ filterHook }: FilterSectionProps) {
       <div className="space-y-3">
         <SemanticSearchInput
           value={filterHook.filters.queryText}
-          nResults={filterHook.filters.nResults}
           onChange={filterHook.setQueryText}
-          onNResultsChange={filterHook.setNResults}
         />
 
         <MetadataFilterInput onAdd={filterHook.addMetadataFilter} />
