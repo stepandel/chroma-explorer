@@ -65,6 +65,11 @@ export function FilterRow({
   // Get current select value: 'search' or the metadata key
   const selectValue = row.type === 'search' ? 'search' : (row.metadataKey || '')
 
+  // Ensure current metadataKey is always in the options (in case filtered docs don't have it)
+  const allFields = row.metadataKey && !metadataFields.includes(row.metadataKey)
+    ? [row.metadataKey, ...metadataFields]
+    : metadataFields
+
   return (
     <div className="flex gap-2 items-center w-full">
       {/* Type selector */}
@@ -77,9 +82,9 @@ export function FilterRow({
         <optgroup label="Search">
           <option value="search">Query</option>
         </optgroup>
-        {metadataFields.length > 0 && (
+        {allFields.length > 0 && (
           <optgroup label="Filter">
-            {metadataFields.map(field => (
+            {allFields.map(field => (
               <option key={field} value={field}>{field}</option>
             ))}
           </optgroup>

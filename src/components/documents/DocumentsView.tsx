@@ -93,6 +93,40 @@ export default function DocumentsView({
     const searchRow = filterRows.find(r => r.type === 'search' && r.searchValue?.trim())
     const queryText = searchRow?.searchValue?.trim() || undefined
 
+    // Helper to parse filter value based on operator
+    const parseFilterValue = (value: string, operator: string): string | number | string[] | number[] => {
+      const trimmed = value.trim()
+
+      // Handle array operators ($in, $nin)
+      if (operator === '$in' || operator === '$nin') {
+        const items = trimmed.split(',').map(s => s.trim()).filter(Boolean)
+        // Try to parse as numbers if all items are numeric
+        const asNumbers = items.map(Number)
+        if (asNumbers.every(n => !isNaN(n))) {
+          return asNumbers
+        }
+        return items
+      }
+
+      // For comparison operators, try to parse as number
+      if (['$gt', '$gte', '$lt', '$lte'].includes(operator)) {
+        const num = Number(trimmed)
+        if (!isNaN(num)) {
+          return num
+        }
+      }
+
+      // For equality operators, try number first, fall back to string
+      if (operator === '$eq' || operator === '$ne') {
+        const num = Number(trimmed)
+        if (!isNaN(num) && trimmed !== '') {
+          return num
+        }
+      }
+
+      return trimmed
+    }
+
     // Extract metadata filters from metadata-type rows
     const metadataRows = filterRows.filter(
       r => r.type === 'metadata' && r.metadataKey?.trim() && r.metadataValue?.trim()
@@ -100,7 +134,9 @@ export default function DocumentsView({
     const metadataFilter = metadataRows.length > 0
       ? metadataRows.reduce((acc, row) => ({
           ...acc,
-          [row.metadataKey!]: { [row.operator || '$eq']: row.metadataValue },
+          [row.metadataKey!]: {
+            [row.operator || '$eq']: parseFilterValue(row.metadataValue!, row.operator || '$eq')
+          },
         }), {})
       : undefined
 
