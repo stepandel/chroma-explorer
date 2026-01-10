@@ -22,14 +22,14 @@ export function MainContent() {
     setRightPanelOpen,
     selectedDocumentId,
     selectDocument,
-    setSelectedDocumentId
+    clearSelectedDocument,
   } = usePanel()
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
 
   const handleDocumentSelect = (id: string | null) => {
     if (id === null) {
-      // Deselect
-      setSelectedDocumentId(null)
+      // Deselect and close panel
+      clearSelectedDocument()
     } else {
       // Select and open panel
       selectDocument(id)
@@ -49,9 +49,12 @@ export function MainContent() {
           collapsedSize={0}
           id="sidebar"
           onResize={(size) => {
-            // When panel is collapsed (size is 0), update state
-            if (size.asPercentage === 0 && leftPanelOpen) {
+            // Sync state with actual panel size
+            const isCollapsed = size.asPercentage === 0
+            if (isCollapsed && leftPanelOpen) {
               setLeftPanelOpen(false)
+            } else if (!isCollapsed && !leftPanelOpen) {
+              setLeftPanelOpen(true)
             }
           }}
         >
@@ -99,9 +102,12 @@ export function MainContent() {
           collapsedSize={0}
           id="document-detail"
           onResize={(size) => {
-            // When panel is collapsed (size is 0), close the drawer
-            if (size.asPercentage === 0 && rightPanelOpen) {
+            // Sync state with actual panel size
+            const isCollapsed = size.asPercentage === 0
+            if (isCollapsed && rightPanelOpen) {
               setRightPanelOpen(false)
+            } else if (!isCollapsed && !rightPanelOpen) {
+              setRightPanelOpen(true)
             }
           }}
         >
