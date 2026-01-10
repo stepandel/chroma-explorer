@@ -117,9 +117,6 @@ export function EmbeddingFunctionSelector({
         {/* Header */}
         <div className="px-1 mb-3">
           <h4 className="font-medium text-[13px] text-foreground">Embedding Function</h4>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Override for "{collectionName}"
-          </p>
         </div>
 
         <div className="space-y-3">
@@ -133,7 +130,7 @@ export function EmbeddingFunctionSelector({
 
           {/* Selector */}
           <div className="px-1 space-y-1.5">
-            <Label htmlFor="ef-select" className="text-[11px] font-normal">Embedding function</Label>
+            <Label htmlFor="ef-select" className="text-[11px] font-normal">Client Override</Label>
             <div className="relative">
               <select
                 id="ef-select"
