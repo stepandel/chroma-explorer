@@ -1,10 +1,10 @@
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-
 interface SemanticSearchInputProps {
   value: string
   onChange: (value: string) => void
 }
+
+const inputClassName = "w-full h-6 text-[11px] py-0 px-1.5 pr-5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 
 export function SemanticSearchInput({
   value,
@@ -12,15 +12,15 @@ export function SemanticSearchInput({
 }: SemanticSearchInputProps) {
   return (
     <div className="space-y-2">
-      <Label className="block">Semantic Search</Label>
+      <label className="block text-sm font-medium">Semantic Search</label>
       <div className="relative">
-        <Input
+        <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Find similar documents..."
-          className="w-full h-6 text-[11px] py-0 px-1.5 pr-5 placeholder:text-[11px]"
-          style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+          className={inputClassName}
+          style={inputStyle}
         />
         {value && (
           <button
