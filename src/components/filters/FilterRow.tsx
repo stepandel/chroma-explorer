@@ -8,6 +8,8 @@ interface FilterRowProps {
   onChange: (id: string, updates: Partial<FilterRowType>) => void
   onAdd: () => void
   onRemove: (id: string) => void
+  nResults?: number
+  onNResultsChange?: (n: number) => void
 }
 
 const operatorLabels: Record<MetadataOperator, string> = {
@@ -28,11 +30,14 @@ const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 
 export function FilterRow({
   row,
+  isFirst,
   isLast,
   canRemove,
   onChange,
   onAdd,
   onRemove,
+  nResults,
+  onNResultsChange,
 }: FilterRowProps) {
   const handleTypeChange = (type: string) => {
     if (type === 'search') {
@@ -55,7 +60,7 @@ export function FilterRow({
   }
 
   return (
-    <div className="flex gap-2 items-center">
+    <div className="flex gap-2 items-center w-full">
       {/* Type selector */}
       <select
         value={row.type}
@@ -111,6 +116,25 @@ export function FilterRow({
             style={inputStyle}
           />
         </>
+      )}
+
+      {/* Limit selector - only show on first row */}
+      {isFirst && nResults !== undefined && onNResultsChange && (
+        <div className="flex items-center gap-1">
+          <span className="text-[11px] text-muted-foreground">Limit:</span>
+          <select
+            value={nResults.toString()}
+            onChange={(e) => onNResultsChange(parseInt(e.target.value, 10))}
+            className={selectClassName}
+            style={inputStyle}
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="500">500</option>
+          </select>
+        </div>
       )}
 
       {/* Add/Remove buttons */}

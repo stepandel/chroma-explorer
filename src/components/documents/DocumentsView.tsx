@@ -182,32 +182,18 @@ export default function DocumentsView({
             <div className="px-4 py-2 border-b border-border space-y-2">
               {/* Filter rows */}
               {filterRows.map((row, index) => (
-                <div key={row.id} className="flex gap-2 items-center">
-                  <FilterRow
-                    row={row}
-                    isFirst={index === 0}
-                    isLast={index === filterRows.length - 1}
-                    canRemove={filterRows.length > 1}
-                    onChange={handleFilterRowChange}
-                    onAdd={handleAddFilterRow}
-                    onRemove={handleRemoveFilterRow}
-                  />
-                  {/* Limit selector - only show on first row */}
-                  {index === 0 && (
-                    <select
-                      value={nResults.toString()}
-                      onChange={(e) => setNResults(parseInt(e.target.value, 10))}
-                      className="h-6 text-[11px] px-1.5 rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                      style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
-                    >
-                      <option value="10">10</option>
-                      <option value="25">25</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                      <option value="500">500</option>
-                    </select>
-                  )}
-                </div>
+                <FilterRow
+                  key={row.id}
+                  row={row}
+                  isFirst={index === 0}
+                  isLast={index === filterRows.length - 1}
+                  canRemove={filterRows.length > 1}
+                  onChange={handleFilterRowChange}
+                  onAdd={handleAddFilterRow}
+                  onRemove={handleRemoveFilterRow}
+                  nResults={nResults}
+                  onNResultsChange={setNResults}
+                />
               ))}
             </div>
 
