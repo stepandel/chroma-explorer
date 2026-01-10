@@ -44,7 +44,6 @@ export default function DocumentsView({
   const currentCollection = collections.find(c => c.name === collectionName)
 
   // Embedding function override state
-  const [efSelectorOpen, setEfSelectorOpen] = useState(false)
   const [embeddingOverride, setEmbeddingOverride] = useState<EmbeddingFunctionOverride | null>(null)
 
   // Fetch embedding override when collection changes
@@ -167,37 +166,18 @@ export default function DocumentsView({
             <div className="px-4 py-2 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
-                <button
-                  onClick={() => setEfSelectorOpen(true)}
-                  className={`text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity ${
-                    embeddingOverride
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'text-muted-foreground bg-muted'
-                  }`}
-                  title={embeddingOverride ? 'Override active - Click to change' : 'Click to override embedding function'}
-                >
-                  {embeddingOverride
-                    ? `${embeddingOverride.type}: ${embeddingOverride.modelName}`
-                    : currentCollection?.embeddingFunction?.name || 'No EF configured'
-                  }
-                </button>
+                <EmbeddingFunctionSelector
+                  collectionName={collectionName}
+                  currentOverride={embeddingOverride}
+                  serverConfig={currentCollection?.embeddingFunction || null}
+                  onSave={handleSaveOverride}
+                  onClear={handleClearOverride}
+                />
               </div>
               <span className="text-xs text-muted-foreground">
                 {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
               </span>
             </div>
-
-            {/* Embedding Function Selector Dialog */}
-            <EmbeddingFunctionSelector
-              open={efSelectorOpen}
-              onOpenChange={setEfSelectorOpen}
-              collectionName={collectionName}
-              profileId={currentProfile?.id || ''}
-              currentOverride={embeddingOverride}
-              serverConfig={currentCollection?.embeddingFunction || null}
-              onSave={handleSaveOverride}
-              onClear={handleClearOverride}
-            />
 
             {/* Row 2: Filters */}
             <div className="px-4 py-2 border-b border-border space-y-2">
