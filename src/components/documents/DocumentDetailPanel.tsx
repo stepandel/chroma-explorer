@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import EmbeddingCell from './EmbeddingCell'
 import { RegenerateEmbeddingDialog } from './RegenerateEmbeddingDialog'
 import { useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
-import { Button } from '@/components/ui/button'
 import { Metadata } from 'chromadb'
 
 interface DocumentRecord {
@@ -34,10 +33,24 @@ export default function DocumentDetailPanel({
 
   // Regenerate embedding dialog state
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false)
-  const [pendingDocumentUpdate, setPendingDocumentUpdate] = useState<string | null>(null)
 
   // Update mutation
   const updateMutation = useUpdateDocumentMutation(profileId, collectionName)
+
+  // Check if there are unsaved changes
+  const hasDocumentChanges = draftDocument !== document.document
+  const hasMetadataChanges = JSON.stringify(draftMetadata) !== JSON.stringify(document.metadata)
+  const hasEmbeddingChanges = (() => {
+    if (!draftEmbedding && !document.embedding) return false
+    if (!draftEmbedding || !document.embedding) return true
+    try {
+      const parsed = JSON.parse(draftEmbedding)
+      return JSON.stringify(parsed) !== JSON.stringify(document.embedding)
+    } catch {
+      return true
+    }
+  })()
+  const hasDirtyChanges = hasDocumentChanges || hasMetadataChanges || hasEmbeddingChanges
 
   // Reset drafts when document changes
   useEffect(() => {
@@ -48,61 +61,104 @@ export default function DocumentDetailPanel({
     setEmbeddingError(null)
   }, [document.id, document.document, document.metadata, document.embedding])
 
-  // Handle cancel
-  const handleCancel = () => {
+  // Handle cancel/revert all changes
+  const handleCancel = useCallback(() => {
     setEditingField(null)
     setDraftDocument(document.document)
     setDraftMetadata(document.metadata)
     setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding) : '')
     setEmbeddingError(null)
-  }
+  }, [document.document, document.metadata, document.embedding])
 
-  // Handle document save - shows dialog if text changed
-  const handleSaveDocument = () => {
-    if (draftDocument !== document.document) {
-      setPendingDocumentUpdate(draftDocument)
+  // Handle save all changes
+  const handleSave = useCallback(async () => {
+    // If document changed, show regenerate dialog
+    if (hasDocumentChanges) {
       setShowRegenerateDialog(true)
-    } else {
-      setEditingField(null)
+      return
     }
-  }
+
+    // Otherwise save metadata and/or embedding changes
+    try {
+      const updates: {
+        documentId: string
+        metadata?: Metadata
+        embedding?: number[]
+      } = { documentId: document.id }
+
+      if (hasMetadataChanges && draftMetadata) {
+        updates.metadata = draftMetadata as Metadata
+      }
+
+      if (hasEmbeddingChanges && draftEmbedding) {
+        const parsed = JSON.parse(draftEmbedding)
+        if (!Array.isArray(parsed) || !parsed.every((n) => typeof n === 'number')) {
+          setEmbeddingError('Embedding must be an array of numbers')
+          return
+        }
+        updates.embedding = parsed
+      }
+
+      if (hasMetadataChanges || hasEmbeddingChanges) {
+        await updateMutation.mutateAsync(updates)
+      }
+      setEditingField(null)
+      setEmbeddingError(null)
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        setEmbeddingError('Invalid JSON format')
+      } else {
+        console.error('Failed to save changes:', e)
+      }
+    }
+  }, [
+    document.id,
+    hasDocumentChanges,
+    hasMetadataChanges,
+    hasEmbeddingChanges,
+    draftMetadata,
+    draftEmbedding,
+    updateMutation,
+  ])
 
   // Handle regenerate dialog response
   const handleRegenerateConfirm = async (regenerate: boolean) => {
     try {
-      await updateMutation.mutateAsync({
+      const updates: {
+        documentId: string
+        document?: string
+        metadata?: Metadata
+        embedding?: number[]
+        regenerateEmbedding?: boolean
+      } = {
         documentId: document.id,
-        document: pendingDocumentUpdate ?? undefined,
+        document: draftDocument ?? undefined,
         regenerateEmbedding: regenerate,
-      })
+      }
+
+      // Include metadata changes if any
+      if (hasMetadataChanges && draftMetadata) {
+        updates.metadata = draftMetadata as Metadata
+      }
+
+      // Include embedding changes if not regenerating and has changes
+      if (!regenerate && hasEmbeddingChanges && draftEmbedding) {
+        try {
+          const parsed = JSON.parse(draftEmbedding)
+          if (Array.isArray(parsed) && parsed.every((n) => typeof n === 'number')) {
+            updates.embedding = parsed
+          }
+        } catch {
+          // Ignore invalid embedding when saving with document
+        }
+      }
+
+      await updateMutation.mutateAsync(updates)
       setShowRegenerateDialog(false)
-      setPendingDocumentUpdate(null)
       setEditingField(null)
+      setEmbeddingError(null)
     } catch (error) {
       console.error('Failed to update document:', error)
-    }
-  }
-
-  // Handle metadata save
-  const handleSaveMetadata = async (key: string) => {
-    if (!draftMetadata) return
-
-    const newValue = draftMetadata[key]
-    const originalValue = document.metadata?.[key]
-
-    // Only update if value changed
-    if (newValue !== originalValue) {
-      try {
-        await updateMutation.mutateAsync({
-          documentId: document.id,
-          metadata: draftMetadata as Metadata,
-        })
-        setEditingField(null)
-      } catch (error) {
-        console.error('Failed to update metadata:', error)
-      }
-    } else {
-      setEditingField(null)
     }
   }
 
@@ -127,31 +183,6 @@ export default function DocumentDetailPanel({
     setDraftMetadata({ ...draftMetadata, [key]: parsedValue })
   }
 
-  // Handle embedding save
-  const handleSaveEmbedding = async () => {
-    // Validate embedding
-    try {
-      const parsed = JSON.parse(draftEmbedding)
-      if (!Array.isArray(parsed) || !parsed.every((n) => typeof n === 'number')) {
-        setEmbeddingError('Embedding must be an array of numbers')
-        return
-      }
-
-      await updateMutation.mutateAsync({
-        documentId: document.id,
-        embedding: parsed,
-      })
-      setEditingField(null)
-      setEmbeddingError(null)
-    } catch (e) {
-      if (e instanceof SyntaxError) {
-        setEmbeddingError('Invalid JSON format')
-      } else {
-        console.error('Failed to update embedding:', e)
-      }
-    }
-  }
-
   // Handle embedding click to edit
   const handleEmbeddingEditStart = () => {
     setDraftEmbedding(
@@ -160,8 +191,40 @@ export default function DocumentDetailPanel({
     setEditingField('embedding')
   }
 
-  const isEditing = editingField !== null
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command+S to save
+      if (e.metaKey && e.key === 's') {
+        e.preventDefault()
+        if (hasDirtyChanges) {
+          handleSave()
+        }
+      }
+      // Command+Z to cancel/revert (only when we have changes)
+      if (e.metaKey && e.key === 'z' && !e.shiftKey && hasDirtyChanges) {
+        e.preventDefault()
+        handleCancel()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [hasDirtyChanges, handleSave, handleCancel])
+
   const isPending = updateMutation.isPending
+
+  // Common field styling
+  const fieldBaseStyle = 'p-2 bg-secondary/50 rounded border transition-colors'
+  const getFieldStyle = (isEditing: boolean, isDirty: boolean) => {
+    if (isEditing) {
+      return `${fieldBaseStyle} border-blue-500/50 ring-1 ring-blue-500/30`
+    }
+    if (isDirty) {
+      return `${fieldBaseStyle} border-blue-500/30`
+    }
+    return `${fieldBaseStyle} border-border hover:border-primary/50 cursor-pointer`
+  }
 
   return (
     <div className="h-full overflow-auto space-y-3 p-3">
@@ -175,45 +238,22 @@ export default function DocumentDetailPanel({
 
       {/* Document Text Section */}
       <section>
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-xs font-semibold text-muted-foreground">document</h3>
-          {editingField === 'document' && (
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleCancel}
-                disabled={isPending}
-                className="h-6 px-2 text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSaveDocument}
-                disabled={isPending}
-                className="h-6 px-2 text-xs"
-              >
-                {isPending ? 'Saving...' : 'Save'}
-              </Button>
-            </div>
-          )}
-        </div>
-
+        <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
         {editingField === 'document' ? (
           <textarea
             value={draftDocument ?? ''}
             onChange={(e) => setDraftDocument(e.target.value)}
-            className="w-full min-h-[100px] p-2 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+            onBlur={() => setEditingField(null)}
+            className={`w-full min-h-[100px] text-xs whitespace-pre-wrap resize-y focus:outline-none ${getFieldStyle(true, hasDocumentChanges)}`}
             autoFocus
           />
         ) : (
           <div
             onClick={() => setEditingField('document')}
-            className="p-2 bg-secondary/50 rounded border border-border cursor-pointer hover:border-primary/50 transition-colors"
+            className={getFieldStyle(false, hasDocumentChanges)}
           >
-            {document.document ? (
-              <p className="text-xs whitespace-pre-wrap">{document.document}</p>
+            {draftDocument ? (
+              <p className="text-xs whitespace-pre-wrap">{draftDocument}</p>
             ) : (
               <span className="text-muted-foreground italic text-xs">
                 No document - click to add
@@ -224,56 +264,35 @@ export default function DocumentDetailPanel({
       </section>
 
       {/* Metadata Fields - Each as Individual Section */}
-      {document.metadata &&
-        Object.entries(document.metadata).map(([key, value]) => {
+      {draftMetadata &&
+        Object.entries(draftMetadata).map(([key, value]) => {
           const fieldId = `metadata:${key}` as const
           const isEditingThisField = editingField === fieldId
+          const originalValue = document.metadata?.[key]
+          const isDirty = value !== originalValue
 
           return (
             <section key={key}>
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xs font-semibold text-muted-foreground">{key}</h3>
-                {isEditingThisField && (
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleCancel}
-                      disabled={isPending}
-                      className="h-6 px-2 text-xs"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleSaveMetadata(key)}
-                      disabled={isPending}
-                      className="h-6 px-2 text-xs"
-                    >
-                      {isPending ? 'Saving...' : 'Save'}
-                    </Button>
-                  </div>
-                )}
-              </div>
-
+              <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
               {isEditingThisField ? (
                 <input
                   type="text"
                   value={
-                    draftMetadata?.[key] !== undefined
-                      ? typeof draftMetadata[key] === 'object'
-                        ? JSON.stringify(draftMetadata[key])
-                        : String(draftMetadata[key])
+                    value !== undefined
+                      ? typeof value === 'object'
+                        ? JSON.stringify(value)
+                        : String(value)
                       : ''
                   }
                   onChange={(e) => handleMetadataChange(key, e.target.value)}
-                  className="w-full p-2 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  onBlur={() => setEditingField(null)}
+                  className={`w-full text-xs focus:outline-none ${getFieldStyle(true, isDirty)}`}
                   autoFocus
                 />
               ) : (
                 <div
                   onClick={() => setEditingField(fieldId)}
-                  className="p-2 bg-secondary/50 rounded border border-border cursor-pointer hover:border-primary/50 transition-colors"
+                  className={getFieldStyle(false, isDirty)}
                 >
                   {typeof value === 'object' && value !== null ? (
                     <pre className="text-xs font-mono overflow-x-auto">
@@ -290,31 +309,7 @@ export default function DocumentDetailPanel({
 
       {/* Embedding Section */}
       <section>
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-xs font-semibold text-muted-foreground">embedding</h3>
-          {editingField === 'embedding' && (
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleCancel}
-                disabled={isPending}
-                className="h-6 px-2 text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSaveEmbedding}
-                disabled={isPending}
-                className="h-6 px-2 text-xs"
-              >
-                {isPending ? 'Saving...' : 'Save'}
-              </Button>
-            </div>
-          )}
-        </div>
-
+        <h3 className="text-xs font-semibold text-muted-foreground mb-1">embedding</h3>
         {editingField === 'embedding' ? (
           <div className="space-y-2">
             <textarea
@@ -323,7 +318,8 @@ export default function DocumentDetailPanel({
                 setDraftEmbedding(e.target.value)
                 setEmbeddingError(null)
               }}
-              className="w-full min-h-[200px] p-2 text-xs font-mono rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+              onBlur={() => setEditingField(null)}
+              className={`w-full min-h-[200px] text-xs font-mono resize-y focus:outline-none ${getFieldStyle(true, hasEmbeddingChanges)}`}
               autoFocus
             />
             {embeddingError && (
@@ -333,12 +329,19 @@ export default function DocumentDetailPanel({
         ) : (
           <div
             onClick={handleEmbeddingEditStart}
-            className="p-2 bg-secondary/50 rounded border border-border cursor-pointer hover:border-primary/50 transition-colors"
+            className={getFieldStyle(false, hasEmbeddingChanges)}
           >
             <EmbeddingCell embedding={document.embedding} />
           </div>
         )}
       </section>
+
+      {/* Dirty indicator */}
+      {hasDirtyChanges && (
+        <div className="text-xs text-muted-foreground text-center py-2">
+          {isPending ? 'Saving...' : 'Unsaved changes — ⌘S to save, ⌘Z to revert'}
+        </div>
+      )}
 
       {/* Regenerate Embedding Dialog */}
       <RegenerateEmbeddingDialog
@@ -346,7 +349,6 @@ export default function DocumentDetailPanel({
         onOpenChange={(open) => {
           if (!open) {
             setShowRegenerateDialog(false)
-            setPendingDocumentUpdate(null)
           }
         }}
         onConfirm={handleRegenerateConfirm}
