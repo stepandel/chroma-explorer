@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useCollection } from '../../context/CollectionContext'
 import { usePanel } from '../../context/PanelContext'
+import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { CollectionPanel } from '../collections/CollectionPanel'
 import DocumentsView from '../documents/DocumentsView'
 import DocumentDetailPanel from '../documents/DocumentDetailPanel'
@@ -15,6 +16,7 @@ interface DocumentRecord {
 
 export function MainContent() {
   const { activeCollection } = useCollection()
+  const { currentProfile } = useChromaDB()
   const {
     leftPanelOpen,
     setLeftPanelOpen,
@@ -111,8 +113,12 @@ export function MainContent() {
             }
           }}
         >
-          {selectedDocument ? (
-            <DocumentDetailPanel document={selectedDocument} />
+          {selectedDocument && activeCollection && currentProfile ? (
+            <DocumentDetailPanel
+              document={selectedDocument}
+              collectionName={activeCollection}
+              profileId={currentProfile.id}
+            />
           ) : (
             <div className="flex items-center justify-center h-full bg-background">
               <div className="text-center text-muted-foreground">

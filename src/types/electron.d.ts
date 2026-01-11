@@ -45,12 +45,22 @@ declare global {
     offset?: number
   }
 
+  interface UpdateDocumentParams {
+    collectionName: string
+    documentId: string
+    document?: string | null
+    metadata?: Record<string, unknown> | null
+    embedding?: number[] | null
+    regenerateEmbedding?: boolean
+  }
+
   interface ElectronAPI {
     chromadb: {
       connect: (profileId: string, profile: ConnectionProfile) => Promise<void>
       listCollections: (profileId: string) => Promise<CollectionInfo[]>
       getDocuments: (profileId: string, collectionName: string) => Promise<DocumentRecord[]>
       searchDocuments: (profileId: string, params: SearchDocumentsParams) => Promise<DocumentRecord[]>
+      updateDocument: (profileId: string, params: UpdateDocumentParams) => Promise<void>
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>

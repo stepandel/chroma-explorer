@@ -1,9 +1,10 @@
-import { ChromaClient, Collection, CloudClient, ChromaClientArgs } from 'chromadb'
+import { ChromaClient, Collection, CloudClient, ChromaClientArgs, Metadata } from 'chromadb'
 import {
   ConnectionProfile,
   CollectionInfo,
   DocumentRecord,
   SearchDocumentsParams,
+  UpdateDocumentParams,
   EmbeddingFunctionOverride,
 } from './types'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
@@ -227,6 +228,72 @@ class ChromaDBService {
 
       return documents
     }
+  }
+
+  async updateDocument(
+    params: UpdateDocumentParams,
+    embeddingOverride?: EmbeddingFunctionOverride | null
+  ): Promise<void> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    // Find the collection's embedding function config from cache
+    const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
+
+    // Build embedding function if regeneration is requested
+    let efConfig: CollectionInfo['embeddingFunction'] = null
+    if (params.regenerateEmbedding && params.document !== undefined) {
+      if (embeddingOverride) {
+        efConfig = {
+          name: embeddingOverride.type === 'default' ? 'default' : 'openai',
+          type: 'known',
+          config: embeddingOverride.type === 'openai'
+            ? { model_name: embeddingOverride.modelName }
+            : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
+        }
+      } else {
+        efConfig = collectionInfo?.embeddingFunction
+      }
+    }
+
+    // Get embedding function only if regenerating
+    const embeddingFunction = params.regenerateEmbedding
+      ? await this.efFactory?.getEmbeddingFunction(params.collectionName, efConfig)
+      : undefined
+
+    const collection = await this.client.getCollection({
+      name: params.collectionName,
+      embeddingFunction,
+    })
+
+    // Build update payload
+    const updatePayload: {
+      ids: string[]
+      documents?: string[]
+      metadatas?: Metadata[]
+      embeddings?: number[][]
+      uris?: string[]
+    } = {
+      ids: [params.documentId],
+    }
+
+    // Include document if provided
+    if (params.document !== undefined) {
+      updatePayload.documents = [params.document]
+    }
+
+    // Include metadata if provided
+    if (params.metadata !== undefined) {
+      updatePayload.metadatas = [params.metadata]
+    }
+
+    // Include embedding if provided (only when not regenerating - ChromaDB handles it)
+    if (params.embedding !== undefined && !params.regenerateEmbedding) {
+      updatePayload.embeddings = [params.embedding]
+    }
+
+    await collection.update(updatePayload)
   }
 
   isConnected(): boolean {

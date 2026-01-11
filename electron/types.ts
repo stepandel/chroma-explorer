@@ -1,3 +1,5 @@
+import { Metadata } from "chromadb"
+
 export interface EmbeddingFunctionOverride {
   type: 'default' | 'openai'
   modelName?: string // e.g., 'text-embedding-3-large', 'Xenova/all-MiniLM-L6-v2'
@@ -49,4 +51,13 @@ export interface SearchDocumentsParams {
   metadataFilter?: Record<string, any> // Where clause
   limit?: number // For get() pagination
   offset?: number // For get() pagination
+}
+
+export interface UpdateDocumentParams {
+  collectionName: string
+  documentId: string
+  document?: string
+  metadata?: Metadata
+  embedding?: number[]
+  regenerateEmbedding?: boolean // If true, regenerate embedding from document text
 }

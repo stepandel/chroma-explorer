@@ -4,6 +4,7 @@ import {
   CollectionInfo,
   DocumentRecord,
   SearchDocumentsParams,
+  UpdateDocumentParams,
   EmbeddingFunctionOverride,
 } from './types'
 
@@ -37,6 +38,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error)
       }
       return result.data
+    },
+    updateDocument: async (profileId: string, params: UpdateDocumentParams): Promise<void> => {
+      const result = await ipcRenderer.invoke('chromadb:updateDocument', profileId, params)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
     },
   },
   profiles: {

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ConnectionProfile, SearchDocumentsParams } from '../../electron/types'
+import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams } from '../../electron/types'
 
 // Query Keys
 export const chromaQueryKeys = {
@@ -88,6 +88,36 @@ export function useRefreshCollectionsMutation(profileId: string) {
     onSuccess: (collections) => {
       // Update the cache directly
       queryClient.setQueryData(chromaQueryKeys.collections(profileId), collections)
+    },
+  })
+}
+
+// Update Document Mutation
+export function useUpdateDocumentMutation(profileId: string, collectionName: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: Omit<UpdateDocumentParams, 'collectionName'>) => {
+      await window.electronAPI.chromadb.updateDocument(profileId, {
+        collectionName,
+        ...params,
+      })
+    },
+    onSuccess: () => {
+      // Invalidate all document queries for this collection to refetch updated data
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey
+          return (
+            key[0] === 'chroma' &&
+            key[1] === 'documents' &&
+            key[2] === profileId &&
+            typeof key[3] === 'object' &&
+            key[3] !== null &&
+            (key[3] as SearchDocumentsParams).collectionName === collectionName
+          )
+        },
+      })
     },
   })
 }
