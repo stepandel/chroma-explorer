@@ -17,49 +17,51 @@ interface DocumentDetailPanelProps {
   profileId: string
 }
 
-type EditingField = 'document' | 'embedding' | `metadata:${string}` | null
-
 export default function DocumentDetailPanel({
   document,
   collectionName,
   profileId,
 }: DocumentDetailPanelProps) {
-  // Editing state
-  const [editingField, setEditingField] = useState<EditingField>(null)
+  // Draft state
   const [draftDocument, setDraftDocument] = useState(document.document)
   const [draftMetadata, setDraftMetadata] = useState(document.metadata)
   const [draftEmbedding, setDraftEmbedding] = useState<string>('')
   const [embeddingError, setEmbeddingError] = useState<string | null>(null)
-
-  // Refs for textareas to auto-resize
-  const documentTextareaRef = useRef<HTMLTextAreaElement>(null)
-  const embeddingTextareaRef = useRef<HTMLTextAreaElement>(null)
-
-  // Auto-resize textarea to fit content
-  const autoResize = (textarea: HTMLTextAreaElement | null) => {
-    if (!textarea) return
-    textarea.style.height = 'auto'
-    textarea.style.height = `${textarea.scrollHeight}px`
-  }
-
-  // Auto-resize on content change
-  useEffect(() => {
-    if (editingField === 'document') {
-      autoResize(documentTextareaRef.current)
-    }
-  }, [draftDocument, editingField])
-
-  useEffect(() => {
-    if (editingField === 'embedding') {
-      autoResize(embeddingTextareaRef.current)
-    }
-  }, [draftEmbedding, editingField])
+  const [isEditingEmbedding, setIsEditingEmbedding] = useState(false)
 
   // Regenerate embedding dialog state
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false)
 
   // Update mutation
   const updateMutation = useUpdateDocumentMutation(profileId, collectionName)
+
+  // Refs for textareas to auto-resize
+  const documentTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const embeddingTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-resize textarea to fit content
+  const autoResize = (textarea: HTMLTextAreaElement | null, minHeight = 36) => {
+    if (!textarea) return
+    textarea.style.height = 'auto'
+    const newHeight = Math.max(textarea.scrollHeight, minHeight)
+    textarea.style.height = `${newHeight}px`
+  }
+
+  // Auto-resize on content change
+  useEffect(() => {
+    // Small delay to ensure DOM is ready
+    requestAnimationFrame(() => {
+      autoResize(documentTextareaRef.current, 36)
+    })
+  }, [draftDocument])
+
+  useEffect(() => {
+    if (isEditingEmbedding) {
+      requestAnimationFrame(() => {
+        autoResize(embeddingTextareaRef.current, 100)
+      })
+    }
+  }, [draftEmbedding, isEditingEmbedding])
 
   // Check if there are unsaved changes
   const hasDocumentChanges = draftDocument !== document.document
@@ -80,18 +82,18 @@ export default function DocumentDetailPanel({
   useEffect(() => {
     setDraftDocument(document.document)
     setDraftMetadata(document.metadata)
-    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding) : '')
-    setEditingField(null)
+    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding, null, 2) : '')
     setEmbeddingError(null)
+    setIsEditingEmbedding(false)
   }, [document.id, document.document, document.metadata, document.embedding])
 
   // Handle cancel/revert all changes
   const handleCancel = useCallback(() => {
-    setEditingField(null)
     setDraftDocument(document.document)
     setDraftMetadata(document.metadata)
-    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding) : '')
+    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding, null, 2) : '')
     setEmbeddingError(null)
+    setIsEditingEmbedding(false)
   }, [document.document, document.metadata, document.embedding])
 
   // Handle save all changes
@@ -126,7 +128,6 @@ export default function DocumentDetailPanel({
       if (hasMetadataChanges || hasEmbeddingChanges) {
         await updateMutation.mutateAsync(updates)
       }
-      setEditingField(null)
       setEmbeddingError(null)
     } catch (e) {
       if (e instanceof SyntaxError) {
@@ -179,7 +180,6 @@ export default function DocumentDetailPanel({
 
       await updateMutation.mutateAsync(updates)
       setShowRegenerateDialog(false)
-      setEditingField(null)
       setEmbeddingError(null)
     } catch (error) {
       console.error('Failed to update document:', error)
@@ -207,14 +207,6 @@ export default function DocumentDetailPanel({
     setDraftMetadata({ ...draftMetadata, [key]: parsedValue })
   }
 
-  // Handle embedding click to edit
-  const handleEmbeddingEditStart = () => {
-    setDraftEmbedding(
-      document.embedding ? JSON.stringify(document.embedding, null, 2) : '[]'
-    )
-    setEditingField('embedding')
-  }
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -240,14 +232,14 @@ export default function DocumentDetailPanel({
 
   // Common field styling
   const fieldBaseStyle = 'p-2 bg-secondary/50 rounded border transition-colors'
-  const getFieldStyle = (isEditing: boolean, isDirty: boolean) => {
-    if (isEditing) {
+  const getFieldStyle = (isDirty: boolean, isFocused?: boolean) => {
+    if (isFocused) {
       return `${fieldBaseStyle} border-blue-500/50 ring-1 ring-blue-500/30`
     }
     if (isDirty) {
       return `${fieldBaseStyle} border-blue-500/30`
     }
-    return `${fieldBaseStyle} border-border hover:border-primary/50 cursor-pointer`
+    return `${fieldBaseStyle} border-border focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/30`
   }
 
   return (
@@ -263,80 +255,46 @@ export default function DocumentDetailPanel({
       {/* Document Text Section */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
-        {editingField === 'document' ? (
-          <textarea
-            ref={documentTextareaRef}
-            value={draftDocument ?? ''}
-            onChange={(e) => setDraftDocument(e.target.value)}
-            onBlur={() => setEditingField(null)}
-            className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none ${getFieldStyle(true, hasDocumentChanges)}`}
-            autoFocus
-          />
-        ) : (
-          <div
-            onClick={() => setEditingField('document')}
-            className={getFieldStyle(false, hasDocumentChanges)}
-          >
-            {draftDocument ? (
-              <p className="text-xs whitespace-pre-wrap">{draftDocument}</p>
-            ) : (
-              <span className="text-muted-foreground italic text-xs">
-                No document - click to add
-              </span>
-            )}
-          </div>
-        )}
+        <textarea
+          ref={documentTextareaRef}
+          rows={1}
+          value={draftDocument ?? ''}
+          onChange={(e) => setDraftDocument(e.target.value)}
+          placeholder="No document - type to add"
+          className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasDocumentChanges)}`}
+        />
       </section>
 
       {/* Metadata Fields - Each as Individual Section */}
       {draftMetadata &&
         Object.entries(draftMetadata).map(([key, value]) => {
-          const fieldId = `metadata:${key}` as const
-          const isEditingThisField = editingField === fieldId
           const originalValue = document.metadata?.[key]
           const isDirty = value !== originalValue
 
           return (
             <section key={key}>
               <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
-              {isEditingThisField ? (
-                <input
-                  type="text"
-                  value={
-                    value !== undefined
-                      ? typeof value === 'object'
-                        ? JSON.stringify(value)
-                        : String(value)
-                      : ''
-                  }
-                  onChange={(e) => handleMetadataChange(key, e.target.value)}
-                  onBlur={() => setEditingField(null)}
-                  className={`w-full text-xs focus:outline-none ${getFieldStyle(true, isDirty)}`}
-                  autoFocus
-                />
-              ) : (
-                <div
-                  onClick={() => setEditingField(fieldId)}
-                  className={getFieldStyle(false, isDirty)}
-                >
-                  {typeof value === 'object' && value !== null ? (
-                    <pre className="text-xs font-mono overflow-x-auto">
-                      {JSON.stringify(value, null, 2)}
-                    </pre>
-                  ) : (
-                    <span className="text-xs">{String(value)}</span>
-                  )}
-                </div>
-              )}
+              <input
+                type="text"
+                value={
+                  value !== undefined
+                    ? typeof value === 'object'
+                      ? JSON.stringify(value)
+                      : String(value)
+                    : ''
+                }
+                onChange={(e) => handleMetadataChange(key, e.target.value)}
+                className={`w-full text-xs focus:outline-none ${getFieldStyle(isDirty)}`}
+              />
             </section>
           )
         })}
 
-      {/* Embedding Section */}
+      {/* Embedding Section - Click to edit */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">embedding</h3>
-        {editingField === 'embedding' ? (
-          <div className="space-y-2">
+        {isEditingEmbedding ? (
+          <div>
             <textarea
               ref={embeddingTextareaRef}
               value={draftEmbedding}
@@ -344,18 +302,19 @@ export default function DocumentDetailPanel({
                 setDraftEmbedding(e.target.value)
                 setEmbeddingError(null)
               }}
-              onBlur={() => setEditingField(null)}
-              className={`w-full text-xs font-mono overflow-hidden focus:outline-none ${getFieldStyle(true, hasEmbeddingChanges)}`}
+              onBlur={() => setIsEditingEmbedding(false)}
+              placeholder="No embedding"
+              className={`w-full text-xs font-mono overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasEmbeddingChanges)}`}
               autoFocus
             />
             {embeddingError && (
-              <p className="text-xs text-destructive">{embeddingError}</p>
+              <p className="text-xs text-destructive mt-1">{embeddingError}</p>
             )}
           </div>
         ) : (
           <div
-            onClick={handleEmbeddingEditStart}
-            className={getFieldStyle(false, hasEmbeddingChanges)}
+            onClick={() => setIsEditingEmbedding(true)}
+            className={`cursor-pointer ${getFieldStyle(hasEmbeddingChanges)}`}
           >
             <EmbeddingCell embedding={document.embedding} />
           </div>
