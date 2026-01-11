@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import EmbeddingCell from './EmbeddingCell'
 import { RegenerateEmbeddingDialog } from './RegenerateEmbeddingDialog'
 import { useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
@@ -30,6 +30,30 @@ export default function DocumentDetailPanel({
   const [draftMetadata, setDraftMetadata] = useState(document.metadata)
   const [draftEmbedding, setDraftEmbedding] = useState<string>('')
   const [embeddingError, setEmbeddingError] = useState<string | null>(null)
+
+  // Refs for textareas to auto-resize
+  const documentTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const embeddingTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-resize textarea to fit content
+  const autoResize = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return
+    textarea.style.height = 'auto'
+    textarea.style.height = `${textarea.scrollHeight}px`
+  }
+
+  // Auto-resize on content change
+  useEffect(() => {
+    if (editingField === 'document') {
+      autoResize(documentTextareaRef.current)
+    }
+  }, [draftDocument, editingField])
+
+  useEffect(() => {
+    if (editingField === 'embedding') {
+      autoResize(embeddingTextareaRef.current)
+    }
+  }, [draftEmbedding, editingField])
 
   // Regenerate embedding dialog state
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false)
@@ -241,10 +265,11 @@ export default function DocumentDetailPanel({
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
         {editingField === 'document' ? (
           <textarea
+            ref={documentTextareaRef}
             value={draftDocument ?? ''}
             onChange={(e) => setDraftDocument(e.target.value)}
             onBlur={() => setEditingField(null)}
-            className={`w-full min-h-[100px] text-xs whitespace-pre-wrap resize-y focus:outline-none ${getFieldStyle(true, hasDocumentChanges)}`}
+            className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none ${getFieldStyle(true, hasDocumentChanges)}`}
             autoFocus
           />
         ) : (
@@ -313,13 +338,14 @@ export default function DocumentDetailPanel({
         {editingField === 'embedding' ? (
           <div className="space-y-2">
             <textarea
+              ref={embeddingTextareaRef}
               value={draftEmbedding}
               onChange={(e) => {
                 setDraftEmbedding(e.target.value)
                 setEmbeddingError(null)
               }}
               onBlur={() => setEditingField(null)}
-              className={`w-full min-h-[200px] text-xs font-mono resize-y focus:outline-none ${getFieldStyle(true, hasEmbeddingChanges)}`}
+              className={`w-full text-xs font-mono overflow-hidden focus:outline-none ${getFieldStyle(true, hasEmbeddingChanges)}`}
               autoFocus
             />
             {embeddingError && (
