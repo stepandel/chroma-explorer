@@ -258,8 +258,8 @@ export default function DocumentDetailPanel({
           return (
             <section key={key}>
               <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
-              <input
-                type="text"
+              <textarea
+                rows={1}
                 value={
                   value !== undefined
                     ? typeof value === 'object'
@@ -268,7 +268,8 @@ export default function DocumentDetailPanel({
                     : ''
                 }
                 onChange={(e) => handleMetadataChange(key, e.target.value)}
-                className={`w-full text-xs focus:outline-none ${getFieldStyle(isDirty)}`}
+                style={{ fieldSizing: 'content' } as React.CSSProperties}
+                className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)}`}
               />
             </section>
           )
