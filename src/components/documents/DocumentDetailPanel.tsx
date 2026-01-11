@@ -249,31 +249,33 @@ export default function DocumentDetailPanel({
         />
       </section>
 
-      {/* Metadata Fields - Each as Individual Section */}
+      {/* Metadata Fields - Each as Individual Section (sorted alphabetically) */}
       {draftMetadata &&
-        Object.entries(draftMetadata).map(([key, value]) => {
-          const originalValue = document.metadata?.[key]
-          const isDirty = value !== originalValue
+        Object.entries(draftMetadata)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, value]) => {
+            const originalValue = document.metadata?.[key]
+            const isDirty = value !== originalValue
 
-          return (
-            <section key={key}>
-              <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
-              <textarea
-                rows={1}
-                value={
-                  value !== undefined
-                    ? typeof value === 'object'
-                      ? JSON.stringify(value)
-                      : String(value)
-                    : ''
-                }
-                onChange={(e) => handleMetadataChange(key, e.target.value)}
-                style={{ fieldSizing: 'content' } as React.CSSProperties}
-                className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)}`}
-              />
-            </section>
-          )
-        })}
+            return (
+              <section key={key}>
+                <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
+                <textarea
+                  rows={1}
+                  value={
+                    value !== undefined
+                      ? typeof value === 'object'
+                        ? JSON.stringify(value)
+                        : String(value)
+                      : ''
+                  }
+                  onChange={(e) => handleMetadataChange(key, e.target.value)}
+                  style={{ fieldSizing: 'content' } as React.CSSProperties}
+                  className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)}`}
+                />
+              </section>
+            )
+          })}
 
       {/* Embedding Section - Click to edit */}
       <section>
