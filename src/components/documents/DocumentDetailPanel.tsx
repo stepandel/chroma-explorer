@@ -35,31 +35,15 @@ export default function DocumentDetailPanel({
   // Update mutation
   const updateMutation = useUpdateDocumentMutation(profileId, collectionName)
 
-  // Refs for textareas to auto-resize
-  const documentTextareaRef = useRef<HTMLTextAreaElement>(null)
+  // Ref for embedding textarea
   const embeddingTextareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-resize textarea to fit content
-  const autoResize = (textarea: HTMLTextAreaElement | null, minHeight = 36) => {
-    if (!textarea) return
-    textarea.style.height = 'auto'
-    const newHeight = Math.max(textarea.scrollHeight, minHeight)
-    textarea.style.height = `${newHeight}px`
-  }
-
-  // Auto-resize on content change
+  // Auto-resize embedding textarea only
   useEffect(() => {
-    // Small delay to ensure DOM is ready
-    requestAnimationFrame(() => {
-      autoResize(documentTextareaRef.current, 36)
-    })
-  }, [draftDocument])
-
-  useEffect(() => {
-    if (isEditingEmbedding) {
-      requestAnimationFrame(() => {
-        autoResize(embeddingTextareaRef.current, 100)
-      })
+    if (isEditingEmbedding && embeddingTextareaRef.current) {
+      const textarea = embeddingTextareaRef.current
+      textarea.style.height = 'auto'
+      textarea.style.height = `${Math.max(textarea.scrollHeight, 100)}px`
     }
   }, [draftEmbedding, isEditingEmbedding])
 
@@ -256,11 +240,11 @@ export default function DocumentDetailPanel({
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
         <textarea
-          ref={documentTextareaRef}
           rows={1}
           value={draftDocument ?? ''}
           onChange={(e) => setDraftDocument(e.target.value)}
           placeholder="No document - type to add"
+          style={{ fieldSizing: 'content' } as React.CSSProperties}
           className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasDocumentChanges)}`}
         />
       </section>
