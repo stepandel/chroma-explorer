@@ -7,6 +7,7 @@ import {
   UpdateDocumentParams,
   CreateDocumentParams,
   DeleteDocumentsParams,
+  CreateCollectionParams,
   EmbeddingFunctionOverride,
 } from './types'
 
@@ -58,6 +59,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) {
         throw new Error(result.error)
       }
+    },
+    createCollection: async (profileId: string, params: CreateCollectionParams): Promise<CollectionInfo> => {
+      const result = await ipcRenderer.invoke('chromadb:createCollection', profileId, params)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
     },
   },
   profiles: {

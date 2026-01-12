@@ -75,3 +75,30 @@ export interface DeleteDocumentsParams {
   collectionName: string
   ids: string[]
 }
+
+export interface HNSWConfig {
+  space?: 'l2' | 'cosine' | 'ip'
+  efConstruction?: number
+  efSearch?: number
+  maxNeighbors?: number
+  numThreads?: number
+  batchSize?: number
+  syncThreshold?: number
+  resizeFactor?: number
+}
+
+export interface CreateCollectionParams {
+  name: string
+  embeddingFunction?: {
+    type: 'default' | 'openai'
+    modelName?: string
+  }
+  metadata?: Record<string, unknown>
+  hnsw?: HNSWConfig
+  // Optional: create first document in same call
+  firstDocument?: {
+    id: string
+    document?: string
+    metadata?: Record<string, unknown>
+  }
+}

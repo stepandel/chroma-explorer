@@ -3,13 +3,14 @@ import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation } from '../../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
+import { TypedMetadataRecord, TypedMetadataField, typedMetadataToChromaFormat, validateMetadataValue } from '../../types/metadata'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
 import { FilterRow } from '../filters/FilterRow'
 
 interface DraftDocument {
   id: string
   document: string
-  metadata: Record<string, string>
+  metadata: TypedMetadataRecord
 }
 
 interface DocumentRecord {
@@ -32,6 +33,10 @@ interface DocumentsViewProps {
   onClearSelection: () => void
   onSetSelectionAnchor: (id: string | null) => void
   onSelectedDocumentChange: (document: DocumentRecord | null, isDraft: boolean) => void
+  // Expose draft change handler for external updates (e.g., from detail panel)
+  onExposeDraftHandler?: (handler: ((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null) => void
+  // Callback to notify parent if current draft is for the first document (empty collection)
+  onIsFirstDocumentChange?: (isFirst: boolean) => void
 }
 
 function createDefaultFilterRow(): FilterRowType {
@@ -54,6 +59,8 @@ export default function DocumentsView({
   onClearSelection,
   onSetSelectionAnchor,
   onSelectedDocumentChange,
+  onExposeDraftHandler,
+  onIsFirstDocumentChange,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
   const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
@@ -61,6 +68,9 @@ export default function DocumentsView({
 
   // Draft document state for creating new documents
   const [draftDocument, setDraftDocument] = useState<DraftDocument | null>(null)
+
+  // Validation error for draft document
+  const [draftError, setDraftError] = useState<string | null>(null)
 
   // Marked for deletion state (set of document IDs)
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set())
@@ -126,6 +136,7 @@ export default function DocumentsView({
     setNResults(10)
     setMarkedForDeletion(new Set())
     setDraftDocument(null)
+    setDraftError(null)
   }, [collectionName])
 
   // Build search params from filter rows
@@ -240,11 +251,23 @@ export default function DocumentsView({
   // Draft document handlers
   const handleStartCreate = useCallback(() => {
     const newId = crypto.randomUUID()
+    // Check if this is the first document (collection is empty)
+    const isFirstDocument = documents.length === 0
     // Initialize metadata with same keys as existing documents (empty values)
-    const initialMetadata: Record<string, string> = {}
-    metadataFields.forEach(key => {
-      initialMetadata[key] = ''
-    })
+    // If first document, start with empty metadata (user will add fields)
+    const initialMetadata: TypedMetadataRecord = {}
+    if (!isFirstDocument) {
+      // Infer types from existing documents
+      metadataFields.forEach(key => {
+        // Find the first document with this metadata key to infer type
+        const existingDoc = documents.find(d => d.metadata && key in d.metadata)
+        const existingValue = existingDoc?.metadata?.[key]
+        let inferredType: 'string' | 'number' | 'boolean' = 'string'
+        if (typeof existingValue === 'number') inferredType = 'number'
+        else if (typeof existingValue === 'boolean') inferredType = 'boolean'
+        initialMetadata[key] = { value: '', type: inferredType }
+      })
+    }
     setDraftDocument({
       id: newId,
       document: '',
@@ -252,54 +275,89 @@ export default function DocumentsView({
     })
     // Select the draft so it shows in the detail panel
     onSingleSelect(newId)
-  }, [onSingleSelect, metadataFields])
+    // Notify parent about first document status
+    onIsFirstDocumentChange?.(isFirstDocument)
+  }, [onSingleSelect, metadataFields, documents.length, onIsFirstDocumentChange])
 
   const handleDraftChange = useCallback((draft: DraftDocument) => {
     setDraftDocument(draft)
+    setDraftError(null) // Clear error when user makes changes
   }, [])
+
+  // Handler for external draft updates (from detail panel)
+  const handleExternalDraftUpdate = useCallback((updates: { document?: string; metadata?: Record<string, unknown> }) => {
+    setDraftDocument((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        document: updates.document !== undefined ? updates.document : prev.document,
+        metadata: updates.metadata !== undefined ? (updates.metadata as TypedMetadataRecord) : prev.metadata,
+      }
+    })
+    setDraftError(null) // Clear error when user makes changes
+  }, [])
+
+  // Expose the draft update handler to parent
+  useEffect(() => {
+    if (onExposeDraftHandler) {
+      onExposeDraftHandler(draftDocument ? handleExternalDraftUpdate : null)
+    }
+  }, [onExposeDraftHandler, draftDocument, handleExternalDraftUpdate])
 
   const handleCancelDraft = useCallback(() => {
     setDraftDocument(null)
+    setDraftError(null)
     onClearSelection() // Deselect when cancelling
-  }, [onClearSelection])
+    onIsFirstDocumentChange?.(false) // Reset first document flag
+  }, [onClearSelection, onIsFirstDocumentChange])
 
   const handleSaveDraft = useCallback(async () => {
     if (!draftDocument) return
+    setDraftError(null)
+
     if (!draftDocument.id.trim()) {
-      // ID is required
+      setDraftError('Document ID is required')
       return
     }
 
+    // Document text is required (ChromaDB needs either document or embeddings)
+    const documentText = draftDocument.document?.trim()
+    if (!documentText) {
+      setDraftError('Document text is required')
+      return
+    }
+
+    // Validate metadata types before saving
+    for (const [key, field] of Object.entries(draftDocument.metadata)) {
+      if (field && typeof field === 'object' && 'value' in field && 'type' in field) {
+        const typedField = field as TypedMetadataField
+        const error = validateMetadataValue(typedField.value, typedField.type)
+        if (error) {
+          setDraftError(`Metadata "${key}": ${error}`)
+          return
+        }
+      }
+    }
+
     try {
-      // Convert string metadata values to appropriate types
-      const metadata = Object.keys(draftDocument.metadata).length > 0
-        ? Object.fromEntries(
-            Object.entries(draftDocument.metadata)
-              .filter(([_, v]) => v.trim() !== '')
-              .map(([k, v]) => {
-                // Try to parse as number
-                const num = Number(v)
-                if (!isNaN(num) && v.trim() !== '') return [k, num]
-                // Try to parse as boolean
-                if (v.toLowerCase() === 'true') return [k, true]
-                if (v.toLowerCase() === 'false') return [k, false]
-                return [k, v]
-              })
-          )
-        : undefined
+      // Convert typed metadata to ChromaDB format
+      const metadata = typedMetadataToChromaFormat(draftDocument.metadata)
 
       await createMutation.mutateAsync({
         id: draftDocument.id,
-        document: draftDocument.document || undefined,
+        document: documentText,
         metadata,
-        generateEmbedding: !!draftDocument.document,
+        generateEmbedding: true,
       })
       setDraftDocument(null)
+      setDraftError(null)
       onClearSelection() // Deselect after saving
+      onIsFirstDocumentChange?.(false) // Reset first document flag
     } catch (error) {
-      console.error('Failed to create document:', error)
+      const message = error instanceof Error ? error.message : 'Failed to create document'
+      setDraftError(message)
     }
-  }, [draftDocument, createMutation, onClearSelection])
+  }, [draftDocument, createMutation, onClearSelection, onIsFirstDocumentChange])
 
   // Toggle deletion mark for all selected documents
   const handleToggleDeletion = useCallback(() => {
@@ -345,8 +403,8 @@ export default function DocumentsView({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command+S to save draft or commit deletions
-      if (e.metaKey && e.key === 's') {
+      // Command+S or Command+Enter to save draft or commit deletions
+      if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
         e.preventDefault()
         if (draftDocument) {
           handleSaveDraft()
@@ -474,22 +532,27 @@ export default function DocumentsView({
           +
         </button>
         {draftDocument && (
-          <div className="flex gap-2">
-            <button
-              onClick={handleCancelDraft}
-              disabled={createMutation.isPending}
-              className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveDraft}
-              disabled={createMutation.isPending || !draftDocument.id.trim()}
-              className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {createMutation.isPending ? 'Saving...' : 'Save'}
-            </button>
+          <div className="flex items-center gap-3">
+            {draftError && (
+              <span className="text-[11px] text-destructive">{draftError}</span>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancelDraft}
+                disabled={createMutation.isPending}
+                className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDraft}
+                disabled={createMutation.isPending || !draftDocument.id.trim()}
+                className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         )}
         {!draftDocument && markedForDeletion.size > 0 && (

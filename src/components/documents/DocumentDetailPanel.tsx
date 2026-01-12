@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Plus, X, ChevronDown } from 'lucide-react'
 import EmbeddingCell from './EmbeddingCell'
 import { RegenerateEmbeddingDialog } from './RegenerateEmbeddingDialog'
 import { useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
 import { Metadata } from 'chromadb'
+import { TypedMetadataRecord, TypedMetadataField, MetadataValueType, validateMetadataValue } from '../../types/metadata'
 
 interface DocumentRecord {
   id: string
@@ -16,6 +18,8 @@ interface DocumentDetailPanelProps {
   collectionName: string
   profileId: string
   isDraft?: boolean
+  isFirstDocument?: boolean
+  onDraftChange?: (updates: { document?: string; metadata?: Record<string, unknown> }) => void
 }
 
 export default function DocumentDetailPanel({
@@ -23,6 +27,8 @@ export default function DocumentDetailPanel({
   collectionName,
   profileId,
   isDraft = false,
+  isFirstDocument = false,
+  onDraftChange,
 }: DocumentDetailPanelProps) {
   // Draft state
   const [draftDocument, setDraftDocument] = useState(document.document)
@@ -64,6 +70,7 @@ export default function DocumentDetailPanel({
   }, [draftEmbedding, isEditingEmbedding])
 
   // Check if there are unsaved changes
+  // For drafts (new documents), always consider dirty since they need to be saved
   const hasDocumentChanges = draftDocument !== document.document
   const hasMetadataChanges = JSON.stringify(draftMetadata) !== JSON.stringify(document.metadata)
   const hasEmbeddingChanges = (() => {
@@ -76,7 +83,7 @@ export default function DocumentDetailPanel({
       return true
     }
   })()
-  const hasDirtyChanges = hasDocumentChanges || hasMetadataChanges || hasEmbeddingChanges
+  const hasDirtyChanges = isDraft || hasDocumentChanges || hasMetadataChanges || hasEmbeddingChanges
 
   // Reset drafts when document changes
   useEffect(() => {
@@ -190,28 +197,122 @@ export default function DocumentDetailPanel({
   const handleMetadataChange = (key: string, value: string) => {
     if (!draftMetadata) return
 
-    // Try to preserve original type
-    const originalValue = document.metadata?.[key]
-    let parsedValue: unknown = value
+    // Check if this is a typed metadata field (for drafts)
+    const existingField = draftMetadata[key]
+    const isTypedField = existingField && typeof existingField === 'object' && 'type' in existingField
 
-    if (typeof originalValue === 'number') {
-      const num = Number(value)
-      if (!isNaN(num)) {
-        parsedValue = num
+    let newMetadata: Record<string, unknown>
+
+    if (isDraft && isTypedField) {
+      // For drafts with typed fields, update the value property
+      const typedField = existingField as TypedMetadataField
+      newMetadata = {
+        ...draftMetadata,
+        [key]: { ...typedField, value }
       }
-    } else if (typeof originalValue === 'boolean') {
-      if (value.toLowerCase() === 'true') parsedValue = true
-      else if (value.toLowerCase() === 'false') parsedValue = false
+    } else {
+      // For existing documents, try to preserve original type
+      const originalValue = document.metadata?.[key]
+      let parsedValue: unknown = value
+
+      if (typeof originalValue === 'number') {
+        const num = Number(value)
+        if (!isNaN(num)) {
+          parsedValue = num
+        }
+      } else if (typeof originalValue === 'boolean') {
+        if (value.toLowerCase() === 'true') parsedValue = true
+        else if (value.toLowerCase() === 'false') parsedValue = false
+      }
+
+      newMetadata = { ...draftMetadata, [key]: parsedValue }
     }
 
-    setDraftMetadata({ ...draftMetadata, [key]: parsedValue })
+    setDraftMetadata(newMetadata)
+
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
   }
+
+  // Add a new metadata field (only for first document drafts)
+  const handleAddMetadataField = useCallback(() => {
+    const currentMetadata = (draftMetadata || {}) as TypedMetadataRecord
+    let keyNum = 1
+    let newKey = `key${keyNum}`
+    while (newKey in currentMetadata) {
+      keyNum++
+      newKey = `key${keyNum}`
+    }
+    const newMetadata: TypedMetadataRecord = {
+      ...currentMetadata,
+      [newKey]: { value: '', type: 'string' }
+    }
+    setDraftMetadata(newMetadata)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
+  // Remove a metadata field (only for first document drafts)
+  const handleRemoveMetadataField = useCallback((keyToRemove: string) => {
+    if (!draftMetadata) return
+    const { [keyToRemove]: _, ...rest } = draftMetadata as TypedMetadataRecord
+    setDraftMetadata(rest)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: rest })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
+  // Handle metadata key rename (only for first document drafts)
+  const handleMetadataKeyRename = useCallback((oldKey: string, newKey: string) => {
+    if (!draftMetadata || oldKey === newKey) return
+    const typedMetadata = draftMetadata as TypedMetadataRecord
+    const { [oldKey]: field, ...rest } = typedMetadata
+    const newMetadata: TypedMetadataRecord = { ...rest, [newKey]: field }
+    setDraftMetadata(newMetadata)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
+  // Handle metadata type change (only for first document drafts)
+  const handleMetadataTypeChange = useCallback((key: string, newType: MetadataValueType) => {
+    if (!draftMetadata) return
+    const typedMetadata = draftMetadata as TypedMetadataRecord
+    const field = typedMetadata[key]
+    if (!field) return
+    const newMetadata: TypedMetadataRecord = {
+      ...typedMetadata,
+      [key]: { ...field, type: newType }
+    }
+    setDraftMetadata(newMetadata)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
+  // Handle metadata value change for typed fields (first document drafts)
+  const handleTypedMetadataValueChange = useCallback((key: string, newValue: string) => {
+    if (!draftMetadata) return
+    const typedMetadata = draftMetadata as TypedMetadataRecord
+    const field = typedMetadata[key]
+    if (!field) return
+    const newMetadata: TypedMetadataRecord = {
+      ...typedMetadata,
+      [key]: { ...field, value: newValue }
+    }
+    setDraftMetadata(newMetadata)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command+S to save
-      if (e.metaKey && e.key === 's') {
+      // Command+S or Command+Enter to save
+      if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
         e.preventDefault()
         if (hasDirtyChanges) {
           handleSave()
@@ -258,40 +359,116 @@ export default function DocumentDetailPanel({
         <textarea
           rows={1}
           value={draftDocument ?? ''}
-          onChange={(e) => setDraftDocument(e.target.value)}
+          onChange={(e) => {
+            setDraftDocument(e.target.value)
+            if (isDraft && onDraftChange) {
+              onDraftChange({ document: e.target.value })
+            }
+          }}
           placeholder="No document - type to add"
           style={{ fieldSizing: 'content' } as React.CSSProperties}
           className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasDocumentChanges)}`}
         />
       </section>
 
-      {/* Metadata Fields - Each as Individual Section (sorted alphabetically) */}
-      {draftMetadata &&
-        Object.entries(draftMetadata)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([key, value]) => {
-            const originalValue = document.metadata?.[key]
-            const isDirty = value !== originalValue
+      {/* Metadata Fields - Each as Individual Section */}
+      {(() => {
+        if (!draftMetadata) return null
+        const canEditSchema = isDraft && isFirstDocument
+        const entries = Object.entries(draftMetadata)
+        // Only sort when not editing schema (sorting while editing causes focus issues)
+        if (!canEditSchema) {
+          entries.sort(([a], [b]) => a.localeCompare(b))
+        }
+        return entries.map(([key, value], index) => {
+          // Check if value is a TypedMetadataField (has value and type properties)
+          const isTypedField = value && typeof value === 'object' && 'value' in value && 'type' in value
+          const typedField = isTypedField ? (value as TypedMetadataField) : null
+          const displayValue = typedField ? typedField.value : (
+            value !== undefined
+              ? typeof value === 'object'
+                ? JSON.stringify(value)
+                : String(value)
+              : ''
+          )
+          const originalValue = document.metadata?.[key]
+          const isDirty = isDraft ? true : value !== originalValue
+          // Validate typed fields for all drafts (not just first document)
+          const validationError = isDraft && typedField ? validateMetadataValue(typedField.value, typedField.type) : null
 
-            return (
-              <section key={key}>
+          // Use index as key when editing schema to prevent focus loss when key name changes
+          return (
+            <section key={canEditSchema ? `field-${index}` : key}>
+              {canEditSchema ? (
+                // First document draft - editable key with type selector and remove button
+                <div className="flex items-center gap-1 mb-1">
+                  <input
+                    type="text"
+                    value={key}
+                    onChange={(e) => handleMetadataKeyRename(key, e.target.value)}
+                    className="flex-1 text-xs font-semibold text-muted-foreground bg-transparent border-none outline-none focus:text-foreground"
+                  />
+                  {typedField && (
+                    <div className="relative">
+                      <select
+                        value={typedField.type}
+                        onChange={(e) => handleMetadataTypeChange(key, e.target.value as MetadataValueType)}
+                        className="h-5 pl-1.5 pr-5 appearance-none rounded border border-input bg-background text-[10px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                      >
+                        <option value="string">str</option>
+                        <option value="number">num</option>
+                        <option value="boolean">bool</option>
+                      </select>
+                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-2.5 w-2.5 text-muted-foreground pointer-events-none" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveMetadataField(key)}
+                    className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                // Regular mode - just the label
                 <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
-                <textarea
-                  rows={1}
-                  value={
-                    value !== undefined
-                      ? typeof value === 'object'
-                        ? JSON.stringify(value)
-                        : String(value)
-                      : ''
+              )}
+              <textarea
+                rows={1}
+                value={displayValue}
+                onChange={(e) => {
+                  if (canEditSchema && typedField) {
+                    handleTypedMetadataValueChange(key, e.target.value)
+                  } else {
+                    handleMetadataChange(key, e.target.value)
                   }
-                  onChange={(e) => handleMetadataChange(key, e.target.value)}
-                  style={{ fieldSizing: 'content' } as React.CSSProperties}
-                  className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)}`}
-                />
-              </section>
-            )
-          })}
+                }}
+                placeholder={typedField?.type === 'boolean' ? 'true / false' : typedField?.type === 'number' ? '0' : undefined}
+                style={{ fieldSizing: 'content' } as React.CSSProperties}
+                className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)} ${validationError ? 'border-destructive' : ''}`}
+              />
+              {validationError && (
+                <p className="text-xs text-destructive mt-0.5">{validationError}</p>
+              )}
+            </section>
+          )
+        })
+      })()}
+
+      {/* Add metadata field button - only for first document drafts */}
+      {isDraft && isFirstDocument && (
+        <section>
+          <button
+            type="button"
+            onClick={handleAddMetadataField}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add metadata field
+          </button>
+        </section>
+      )}
 
       {/* Embedding Section - Click to edit (hidden for drafts) */}
       {!isDraft && (
@@ -328,7 +505,7 @@ export default function DocumentDetailPanel({
       {/* Dirty indicator */}
       {hasDirtyChanges && (
         <div className="text-xs text-muted-foreground text-center py-2">
-          {isPending ? 'Saving...' : 'Unsaved changes — ⌘S to save, ⌘Z to revert'}
+          {isPending ? 'Saving...' : 'Unsaved changes — ⌘↵ to save, ⌘Z to revert'}
         </div>
       )}
 

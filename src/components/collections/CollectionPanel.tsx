@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useCollection } from '../../context/CollectionContext'
+import { useDraftCollection } from '../../context/DraftCollectionContext'
 import { Button } from '../ui/button'
 
 const inputClassName = "w-full h-6 text-[11px] py-0 px-1.5 pr-5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
@@ -9,10 +11,19 @@ const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 export function CollectionPanel() {
   const { collections, collectionsLoading, collectionsError, refreshCollections } = useChromaDB()
   const { activeCollection, setActiveCollection } = useCollection()
+  const { draftCollection, startCreation, updateDraft, cancelCreation } = useDraftCollection()
   const [searchTerm, setSearchTerm] = useState('')
 
   const handleCollectionClick = (collectionName: string) => {
+    // Cancel creation mode if selecting existing collection
+    if (draftCollection) {
+      cancelCreation()
+    }
     setActiveCollection(collectionName)
+  }
+
+  const handleCreateClick = () => {
+    startCreation()
   }
 
   const filteredCollections = collections.filter(collection =>
@@ -71,10 +82,26 @@ export function CollectionPanel() {
           </div>
         )}
 
+        {/* Draft collection row */}
+        {draftCollection && (
+          <div className="py-2">
+            <div className="w-full px-4 py-1 bg-primary/10 border-l-2 border-primary">
+              <input
+                type="text"
+                value={draftCollection.name}
+                onChange={(e) => updateDraft({ name: e.target.value })}
+                placeholder="Collection name..."
+                className="w-full text-xs font-medium bg-transparent border-none outline-none text-primary placeholder:text-primary/50"
+                autoFocus
+              />
+            </div>
+          </div>
+        )}
+
         {!collectionsLoading && !collectionsError && filteredCollections.length > 0 && (
           <div className="py-2">
             {filteredCollections.map(collection => {
-              const isActive = collection.name === activeCollection
+              const isActive = collection.name === activeCollection && !draftCollection
               return (
                 <button
                   key={collection.id}
@@ -95,6 +122,19 @@ export function CollectionPanel() {
             })}
           </div>
         )}
+      </div>
+
+      {/* Footer with add button */}
+      <div className="px-4 py-2 border-t border-sidebar-border">
+        <button
+          onClick={handleCreateClick}
+          disabled={!!draftCollection}
+          className="h-6 w-6 flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+          title="Create new collection"
+        >
+          <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
       </div>
     </aside>
   )

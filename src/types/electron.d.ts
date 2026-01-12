@@ -68,6 +68,32 @@ declare global {
     ids: string[]
   }
 
+  interface HNSWConfig {
+    space?: 'l2' | 'cosine' | 'ip'
+    efConstruction?: number
+    efSearch?: number
+    maxNeighbors?: number
+    numThreads?: number
+    batchSize?: number
+    syncThreshold?: number
+    resizeFactor?: number
+  }
+
+  interface CreateCollectionParams {
+    name: string
+    embeddingFunction?: {
+      type: 'default' | 'openai'
+      modelName?: string
+    }
+    metadata?: Record<string, unknown>
+    hnsw?: HNSWConfig
+    firstDocument?: {
+      id: string
+      document?: string
+      metadata?: Record<string, unknown>
+    }
+  }
+
   interface ElectronAPI {
     chromadb: {
       connect: (profileId: string, profile: ConnectionProfile) => Promise<void>
@@ -77,6 +103,7 @@ declare global {
       updateDocument: (profileId: string, params: UpdateDocumentParams) => Promise<void>
       createDocument: (profileId: string, params: CreateDocumentParams) => Promise<void>
       deleteDocuments: (profileId: string, params: DeleteDocumentsParams) => Promise<void>
+      createCollection: (profileId: string, params: CreateCollectionParams) => Promise<CollectionInfo>
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>

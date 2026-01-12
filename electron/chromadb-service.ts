@@ -7,6 +7,7 @@ import {
   UpdateDocumentParams,
   CreateDocumentParams,
   DeleteDocumentsParams,
+  CreateCollectionParams,
   EmbeddingFunctionOverride,
 } from './types'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
@@ -375,6 +376,97 @@ class ChromaDBService {
     await collection.delete({
       ids: params.ids,
     })
+  }
+
+  async createCollection(params: CreateCollectionParams): Promise<CollectionInfo> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    // Build embedding function config for the factory
+    let efConfig: CollectionInfo['embeddingFunction'] = null
+    if (params.embeddingFunction) {
+      efConfig = {
+        name: params.embeddingFunction.type === 'default' ? 'default' : 'openai',
+        type: 'known',
+        config: params.embeddingFunction.type === 'openai'
+          ? { model_name: params.embeddingFunction.modelName }
+          : { model_name: params.embeddingFunction.modelName || 'Xenova/all-MiniLM-L6-v2' }
+      }
+    }
+
+    // Get the appropriate embedding function
+    let embeddingFunction = await this.efFactory?.getEmbeddingFunction(
+      params.name,
+      efConfig
+    )
+
+    // Log warning if embedding function couldn't be created
+    if (efConfig && !embeddingFunction) {
+      console.warn(
+        `[ChromaDB Service] Could not create embedding function for "${params.name}". ` +
+        `Collection will be created without an embedding function.`
+      )
+    }
+
+    // Build collection metadata including HNSW config
+    const collectionMetadata: Record<string, unknown> = { ...params.metadata }
+
+    // Add HNSW configuration to metadata if provided
+    if (params.hnsw) {
+      if (params.hnsw.space) collectionMetadata['hnsw:space'] = params.hnsw.space
+      if (params.hnsw.efConstruction !== undefined) collectionMetadata['hnsw:construction_ef'] = params.hnsw.efConstruction
+      if (params.hnsw.efSearch !== undefined) collectionMetadata['hnsw:search_ef'] = params.hnsw.efSearch
+      if (params.hnsw.maxNeighbors !== undefined) collectionMetadata['hnsw:M'] = params.hnsw.maxNeighbors
+      if (params.hnsw.numThreads !== undefined) collectionMetadata['hnsw:num_threads'] = params.hnsw.numThreads
+      if (params.hnsw.batchSize !== undefined) collectionMetadata['hnsw:batch_size'] = params.hnsw.batchSize
+      if (params.hnsw.syncThreshold !== undefined) collectionMetadata['hnsw:sync_threshold'] = params.hnsw.syncThreshold
+      if (params.hnsw.resizeFactor !== undefined) collectionMetadata['hnsw:resize_factor'] = params.hnsw.resizeFactor
+    }
+
+    // Create the collection - only pass embeddingFunction if it was successfully created
+    const collection = await this.client.createCollection({
+      name: params.name,
+      embeddingFunction: embeddingFunction,
+      metadata: Object.keys(collectionMetadata).length > 0 ? collectionMetadata as Metadata : undefined,
+    })
+
+    // Optionally add first document
+    if (params.firstDocument) {
+      const addPayload: {
+        ids: string[]
+        documents?: string[]
+        metadatas?: Metadata[]
+      } = {
+        ids: [params.firstDocument.id],
+      }
+
+      // Check for document text (allow empty string but not undefined/null)
+      if (params.firstDocument.document !== undefined && params.firstDocument.document !== null) {
+        addPayload.documents = [params.firstDocument.document]
+      }
+
+      if (params.firstDocument.metadata && Object.keys(params.firstDocument.metadata).length > 0) {
+        addPayload.metadatas = [params.firstDocument.metadata as Metadata]
+      }
+
+      // Only add if we have documents (required by ChromaDB unless providing embeddings)
+      if (addPayload.documents && addPayload.documents.length > 0 && addPayload.documents[0]) {
+        await collection.add(addPayload as any)
+      } else {
+        console.warn('[ChromaDB Service] Skipping first document - no document text provided')
+      }
+    }
+
+    // Return collection info
+    const count = await collection.count()
+    return {
+      name: collection.name,
+      id: collection.id,
+      metadata: collection.metadata ?? null,
+      count,
+      embeddingFunction: efConfig,
+    }
   }
 
   isConnected(): boolean {

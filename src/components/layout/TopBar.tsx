@@ -10,7 +10,6 @@ export function TopBar() {
     setLeftPanelOpen,
     rightPanelOpen,
     setRightPanelOpen,
-    selectedDocumentId
   } = usePanel()
 
   const handleDisconnect = async () => {

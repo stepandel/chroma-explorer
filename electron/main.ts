@@ -6,7 +6,7 @@ import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
 import { windowManager } from './window-manager'
 import { createApplicationMenu } from './menu'
-import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams } from './types'
+import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateCollectionParams } from './types'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -112,6 +112,20 @@ ipcMain.handle('chromadb:deleteDocuments', async (_event, profileId: string, par
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete documents'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, params: CreateCollectionParams) => {
+  try {
+    const service = chromaDBConnectionPool.getConnection(profileId)
+    if (!service) {
+      return { success: false, error: 'Not connected to ChromaDB' }
+    }
+    const collection = await service.createCollection(params)
+    return { success: true, data: collection }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create collection'
     return { success: false, error: message }
   }
 })

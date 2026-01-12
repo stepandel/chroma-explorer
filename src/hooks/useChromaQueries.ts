@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams } from '../../electron/types'
+import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateCollectionParams } from '../../electron/types'
 
 // Query Keys
 export const chromaQueryKeys = {
@@ -183,6 +183,23 @@ export function useDeleteDocumentsMutation(profileId: string, collectionName: st
         },
       })
       // Also invalidate collections to update document count
+      queryClient.invalidateQueries({
+        queryKey: chromaQueryKeys.collections(profileId),
+      })
+    },
+  })
+}
+
+// Create Collection Mutation
+export function useCreateCollectionMutation(profileId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: CreateCollectionParams) => {
+      return await window.electronAPI.chromadb.createCollection(profileId, params)
+    },
+    onSuccess: () => {
+      // Invalidate collections to refetch with new collection
       queryClient.invalidateQueries({
         queryKey: chromaQueryKeys.collections(profileId),
       })

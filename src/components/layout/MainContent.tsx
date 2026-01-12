@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useCollection } from '../../context/CollectionContext'
+import { useDraftCollection } from '../../context/DraftCollectionContext'
 import { usePanel } from '../../context/PanelContext'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { CollectionPanel } from '../collections/CollectionPanel'
+import { CollectionConfigView } from '../collections/CollectionConfigView'
 import DocumentsView from '../documents/DocumentsView'
 import DocumentDetailPanel from '../documents/DocumentDetailPanel'
 import { Panel, Group, Separator } from 'react-resizable-panels'
@@ -16,6 +18,7 @@ interface DocumentRecord {
 
 export function MainContent() {
   const { activeCollection } = useCollection()
+  const { draftCollection } = useDraftCollection()
   const { currentProfile } = useChromaDB()
   const {
     leftPanelOpen,
@@ -34,10 +37,20 @@ export function MainContent() {
   } = usePanel()
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
   const [isSelectedDraft, setIsSelectedDraft] = useState(false)
+  const [isFirstDocument, setIsFirstDocument] = useState(false)
+  const [draftUpdateHandler, setDraftUpdateHandler] = useState<((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null>(null)
 
   const handleSelectedDocumentChange = (document: DocumentRecord | null, isDraft: boolean) => {
     setSelectedDocument(document)
     setIsSelectedDraft(isDraft)
+  }
+
+  const handleExposeDraftHandler = (handler: ((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null) => {
+    setDraftUpdateHandler(() => handler)
+  }
+
+  const handleIsFirstDocumentChange = (isFirst: boolean) => {
+    setIsFirstDocument(isFirst)
   }
 
   return (
@@ -71,9 +84,11 @@ export function MainContent() {
             : 'bg-transparent pointer-events-none'
         }`} />
 
-        {/* Middle Panel: DocumentsView or Empty State - Flexible */}
+        {/* Middle Panel: DocumentsView, CollectionConfigView, or Empty State - Flexible */}
         <Panel minSize="40" id="main-content">
-          {activeCollection ? (
+          {draftCollection ? (
+            <CollectionConfigView />
+          ) : activeCollection ? (
             <DocumentsView
               collectionName={activeCollection}
               selectedDocumentIds={selectedDocumentIds}
@@ -86,6 +101,8 @@ export function MainContent() {
               onClearSelection={clearSelection}
               onSetSelectionAnchor={setSelectionAnchor}
               onSelectedDocumentChange={handleSelectedDocumentChange}
+              onExposeDraftHandler={handleExposeDraftHandler}
+              onIsFirstDocumentChange={handleIsFirstDocumentChange}
             />
           ) : (
             <div className="flex items-center justify-center h-full bg-background">
@@ -128,6 +145,8 @@ export function MainContent() {
               collectionName={activeCollection}
               profileId={currentProfile.id}
               isDraft={isSelectedDraft}
+              isFirstDocument={isFirstDocument}
+              onDraftChange={isSelectedDraft ? draftUpdateHandler ?? undefined : undefined}
             />
           ) : (
             <div className="flex items-center justify-center h-full bg-background">
