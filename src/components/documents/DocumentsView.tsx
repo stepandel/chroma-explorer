@@ -5,8 +5,6 @@ import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
 import { FilterRow } from '../filters/FilterRow'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
 
 interface DraftDocument {
   id: string
@@ -380,24 +378,33 @@ export default function DocumentsView({
 
       {/* Bottom Toolbar */}
       <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+        <button
           onClick={handleStartCreate}
           disabled={!!draftDocument}
+          className="h-6 w-6 p-0 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+          title="Add document"
         >
-          <Plus className="h-4 w-4" />
-        </Button>
+          +
+        </button>
         {draftDocument && (
-          <Button
-            size="sm"
-            className="h-7 px-3 text-xs"
-            onClick={handleSaveDraft}
-            disabled={createMutation.isPending || !draftDocument.id.trim()}
-          >
-            {createMutation.isPending ? 'Saving...' : 'Save'}
-          </Button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCancelDraft}
+              disabled={createMutation.isPending}
+              className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveDraft}
+              disabled={createMutation.isPending || !draftDocument.id.trim()}
+              className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {createMutation.isPending ? 'Saving...' : 'Save'}
+            </button>
+          </div>
         )}
       </div>
     </div>
