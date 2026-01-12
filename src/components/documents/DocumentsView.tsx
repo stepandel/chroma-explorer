@@ -403,8 +403,8 @@ export default function DocumentsView({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command+S to save draft or commit deletions
-      if (e.metaKey && e.key === 's') {
+      // Command+S or Command+Enter to save draft or commit deletions
+      if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
         e.preventDefault()
         if (draftDocument) {
           handleSaveDraft()

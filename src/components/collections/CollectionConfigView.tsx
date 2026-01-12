@@ -52,8 +52,8 @@ export function CollectionConfigView() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+S to save
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      // Cmd+S or Cmd+Enter to save
+      if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'Enter')) {
         e.preventDefault()
         saveDraft()
       }
@@ -327,7 +327,7 @@ export function CollectionConfigView() {
       {/* Footer Actions */}
       <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
         <div className="text-[10px] text-muted-foreground">
-          <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] font-mono">⌘S</kbd> save
+          <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] font-mono">⌘↵</kbd> save
           {' · '}
           <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] font-mono">Esc</kbd> cancel
         </div>

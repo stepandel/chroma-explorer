@@ -311,8 +311,8 @@ export default function DocumentDetailPanel({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command+S to save
-      if (e.metaKey && e.key === 's') {
+      // Command+S or Command+Enter to save
+      if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
         e.preventDefault()
         if (hasDirtyChanges) {
           handleSave()
@@ -505,7 +505,7 @@ export default function DocumentDetailPanel({
       {/* Dirty indicator */}
       {hasDirtyChanges && (
         <div className="text-xs text-muted-foreground text-center py-2">
-          {isPending ? 'Saving...' : 'Unsaved changes — ⌘S to save, ⌘Z to revert'}
+          {isPending ? 'Saving...' : 'Unsaved changes — ⌘↵ to save, ⌘Z to revert'}
         </div>
       )}
 
