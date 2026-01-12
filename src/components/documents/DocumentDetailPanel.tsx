@@ -69,6 +69,7 @@ export default function DocumentDetailPanel({
   }, [draftEmbedding, isEditingEmbedding])
 
   // Check if there are unsaved changes
+  // For drafts (new documents), always consider dirty since they need to be saved
   const hasDocumentChanges = draftDocument !== document.document
   const hasMetadataChanges = JSON.stringify(draftMetadata) !== JSON.stringify(document.metadata)
   const hasEmbeddingChanges = (() => {
@@ -81,7 +82,7 @@ export default function DocumentDetailPanel({
       return true
     }
   })()
-  const hasDirtyChanges = hasDocumentChanges || hasMetadataChanges || hasEmbeddingChanges
+  const hasDirtyChanges = isDraft || hasDocumentChanges || hasMetadataChanges || hasEmbeddingChanges
 
   // Reset drafts when document changes
   useEffect(() => {
