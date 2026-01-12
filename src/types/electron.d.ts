@@ -68,6 +68,17 @@ declare global {
     ids: string[]
   }
 
+  interface HNSWConfig {
+    space?: 'l2' | 'cosine' | 'ip'
+    efConstruction?: number
+    efSearch?: number
+    maxNeighbors?: number
+    numThreads?: number
+    batchSize?: number
+    syncThreshold?: number
+    resizeFactor?: number
+  }
+
   interface CreateCollectionParams {
     name: string
     embeddingFunction?: {
@@ -75,6 +86,7 @@ declare global {
       modelName?: string
     }
     metadata?: Record<string, unknown>
+    hnsw?: HNSWConfig
     firstDocument?: {
       id: string
       document?: string

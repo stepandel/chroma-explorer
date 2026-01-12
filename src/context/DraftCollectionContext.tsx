@@ -5,10 +5,17 @@ import { useCollection } from './CollectionContext'
 import { EMBEDDING_FUNCTIONS } from '../constants/embedding-functions'
 import { TypedMetadataRecord, typedMetadataToChromaFormat, validateMetadataValue } from '../types/metadata'
 
+export interface DraftHNSWConfig {
+  space: 'l2' | 'cosine' | 'ip'
+  efConstruction: string // String to allow empty input
+  maxNeighbors: string // String to allow empty input
+}
+
 export interface DraftCollection {
   name: string
   embeddingFunctionId: string
   dimensionOverride: string // String to allow empty input for auto
+  hnsw: DraftHNSWConfig
   // Optional first document (metadata here defines the collection's schema)
   firstDocument: {
     id: string
@@ -42,6 +49,11 @@ function createInitialDraft(): DraftCollection {
     name: '',
     embeddingFunctionId: DEFAULT_EF.id,
     dimensionOverride: '',
+    hnsw: {
+      space: 'l2',
+      efConstruction: '',
+      maxNeighbors: '',
+    },
     firstDocument: null,
   }
 }
@@ -125,6 +137,27 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
           type: selectedEf.type,
           modelName: selectedEf.modelName,
         },
+      }
+
+      // Add HNSW config if any non-default values are set
+      const hnswConfig: HNSWConfig = {}
+      if (draftCollection.hnsw.space !== 'l2') {
+        hnswConfig.space = draftCollection.hnsw.space
+      }
+      if (draftCollection.hnsw.efConstruction.trim()) {
+        const parsed = parseInt(draftCollection.hnsw.efConstruction, 10)
+        if (!isNaN(parsed) && parsed > 0) {
+          hnswConfig.efConstruction = parsed
+        }
+      }
+      if (draftCollection.hnsw.maxNeighbors.trim()) {
+        const parsed = parseInt(draftCollection.hnsw.maxNeighbors, 10)
+        if (!isNaN(parsed) && parsed > 0) {
+          hnswConfig.maxNeighbors = parsed
+        }
+      }
+      if (Object.keys(hnswConfig).length > 0) {
+        params.hnsw = hnswConfig
       }
 
       // Add first document if provided

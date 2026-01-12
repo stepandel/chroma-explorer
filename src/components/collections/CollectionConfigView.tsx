@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronDown, Plus, X } from 'lucide-react'
-import { useDraftCollection } from '../../context/DraftCollectionContext'
+import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
+import { useDraftCollection, DraftHNSWConfig } from '../../context/DraftCollectionContext'
 import { EMBEDDING_FUNCTIONS, getEmbeddingFunctionById } from '../../constants/embedding-functions'
 import { MetadataValueType, validateMetadataValue } from '../../types/metadata'
 
@@ -11,6 +11,7 @@ export function CollectionConfigView() {
   const { draftCollection, updateDraft, cancelCreation, saveDraft, isCreating, validationErrors } = useDraftCollection()
 
   const [showFirstDocument, setShowFirstDocument] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const selectedEf = draftCollection ? getEmbeddingFunctionById(draftCollection.embeddingFunctionId) : EMBEDDING_FUNCTIONS[0]
 
@@ -141,6 +142,78 @@ export function CollectionConfigView() {
           <p className="text-[10px] text-muted-foreground">
             Default: {selectedEf?.dimensions || 384}
           </p>
+        </div>
+
+        {/* Advanced HNSW Settings */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            HNSW Index Settings
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-3 pl-4">
+              {/* Distance Function */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
+                  Distance Function
+                </label>
+                <div className="flex gap-3">
+                  {(['l2', 'cosine', 'ip'] as const).map((space) => (
+                    <label key={space} className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="hnsw-space"
+                        value={space}
+                        checked={draftCollection.hnsw.space === space}
+                        onChange={() => updateDraft({ hnsw: { ...draftCollection.hnsw, space } })}
+                        className="h-3 w-3"
+                      />
+                      <span className="text-[10px] text-foreground">
+                        {space === 'l2' ? 'L2 (Euclidean)' : space === 'cosine' ? 'Cosine' : 'Inner Product'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* EF Construction & Max Neighbors */}
+              <div className="flex gap-3">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[11px] font-medium text-muted-foreground">
+                    EF Construction
+                  </label>
+                  <input
+                    type="number"
+                    value={draftCollection.hnsw.efConstruction}
+                    onChange={(e) => updateDraft({ hnsw: { ...draftCollection.hnsw, efConstruction: e.target.value } })}
+                    placeholder="100"
+                    className={inputClassName}
+                    style={inputStyle}
+                  />
+                  <p className="text-[10px] text-muted-foreground">Default: 100</p>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="text-[11px] font-medium text-muted-foreground">
+                    Max Neighbors (M)
+                  </label>
+                  <input
+                    type="number"
+                    value={draftCollection.hnsw.maxNeighbors}
+                    onChange={(e) => updateDraft({ hnsw: { ...draftCollection.hnsw, maxNeighbors: e.target.value } })}
+                    placeholder="16"
+                    className={inputClassName}
+                    style={inputStyle}
+                  />
+                  <p className="text-[10px] text-muted-foreground">Default: 16</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Optional First Document Section */}

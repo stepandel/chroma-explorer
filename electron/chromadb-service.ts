@@ -409,11 +409,26 @@ class ChromaDBService {
       )
     }
 
+    // Build collection metadata including HNSW config
+    const collectionMetadata: Record<string, unknown> = { ...params.metadata }
+
+    // Add HNSW configuration to metadata if provided
+    if (params.hnsw) {
+      if (params.hnsw.space) collectionMetadata['hnsw:space'] = params.hnsw.space
+      if (params.hnsw.efConstruction !== undefined) collectionMetadata['hnsw:construction_ef'] = params.hnsw.efConstruction
+      if (params.hnsw.efSearch !== undefined) collectionMetadata['hnsw:search_ef'] = params.hnsw.efSearch
+      if (params.hnsw.maxNeighbors !== undefined) collectionMetadata['hnsw:M'] = params.hnsw.maxNeighbors
+      if (params.hnsw.numThreads !== undefined) collectionMetadata['hnsw:num_threads'] = params.hnsw.numThreads
+      if (params.hnsw.batchSize !== undefined) collectionMetadata['hnsw:batch_size'] = params.hnsw.batchSize
+      if (params.hnsw.syncThreshold !== undefined) collectionMetadata['hnsw:sync_threshold'] = params.hnsw.syncThreshold
+      if (params.hnsw.resizeFactor !== undefined) collectionMetadata['hnsw:resize_factor'] = params.hnsw.resizeFactor
+    }
+
     // Create the collection - only pass embeddingFunction if it was successfully created
     const collection = await this.client.createCollection({
       name: params.name,
       embeddingFunction: embeddingFunction,
-      metadata: params.metadata as Metadata,
+      metadata: Object.keys(collectionMetadata).length > 0 ? collectionMetadata as Metadata : undefined,
     })
 
     // Optionally add first document
