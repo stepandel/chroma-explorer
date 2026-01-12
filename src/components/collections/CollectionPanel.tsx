@@ -99,8 +99,8 @@ export function CollectionPanel() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command+Delete/Backspace to toggle deletion mark
-      if (e.metaKey && (e.key === 'Delete' || e.key === 'Backspace') && !draftCollection) {
+      // Delete/Backspace (with or without Command) to toggle deletion mark
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !draftCollection) {
         // Don't trigger if user is typing in an input
         const target = e.target as HTMLElement
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
