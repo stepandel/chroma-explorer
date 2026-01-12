@@ -6,6 +6,7 @@ import {
   SearchDocumentsParams,
   UpdateDocumentParams,
   CreateDocumentParams,
+  DeleteDocumentsParams,
   EmbeddingFunctionOverride,
 } from './types'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
@@ -360,6 +361,20 @@ class ChromaDBService {
     }
 
     await collection.add(addPayload as any)
+  }
+
+  async deleteDocuments(params: DeleteDocumentsParams): Promise<void> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    const collection = await this.client.getCollection({
+      name: params.collectionName,
+    })
+
+    await collection.delete({
+      ids: params.ids,
+    })
   }
 
   isConnected(): boolean {

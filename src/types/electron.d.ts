@@ -63,6 +63,11 @@ declare global {
     generateEmbedding?: boolean
   }
 
+  interface DeleteDocumentsParams {
+    collectionName: string
+    ids: string[]
+  }
+
   interface ElectronAPI {
     chromadb: {
       connect: (profileId: string, profile: ConnectionProfile) => Promise<void>
@@ -71,6 +76,7 @@ declare global {
       searchDocuments: (profileId: string, params: SearchDocumentsParams) => Promise<DocumentRecord[]>
       updateDocument: (profileId: string, params: UpdateDocumentParams) => Promise<void>
       createDocument: (profileId: string, params: CreateDocumentParams) => Promise<void>
+      deleteDocuments: (profileId: string, params: DeleteDocumentsParams) => Promise<void>
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>

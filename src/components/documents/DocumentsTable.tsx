@@ -31,6 +31,7 @@ interface DocumentsTableProps {
   draftDocument?: DraftDocument | null
   onDraftChange?: (draft: DraftDocument) => void
   onDraftCancel?: () => void
+  markedForDeletion?: Set<string>
 }
 
 export default function DocumentsTable({
@@ -43,6 +44,7 @@ export default function DocumentsTable({
   draftDocument,
   onDraftChange,
   onDraftCancel,
+  markedForDeletion = new Set(),
 }: DocumentsTableProps) {
   // Ref for auto-focusing the id input when draft starts
   const draftIdInputRef = useRef<HTMLInputElement>(null)
@@ -268,16 +270,24 @@ export default function DocumentsTable({
           )}
           {table.getRowModel().rows.map((row, index) => {
             const isSelected = selectedDocumentId === row.original.id
+            const isMarkedForDeletion = markedForDeletion.has(row.original.id)
             // Adjust index for alternating colors when draft exists
             const adjustedIndex = draftDocument ? index + 1 : index
+
+            // Determine row background
+            let rowBgClass: string
+            if (isMarkedForDeletion) {
+              rowBgClass = isSelected ? 'bg-red-200' : 'bg-red-100'
+            } else if (isSelected) {
+              rowBgClass = 'bg-blue-100'
+            } else {
+              rowBgClass = adjustedIndex % 2 === 0 ? 'bg-background' : 'bg-muted/100'
+            }
+
             return (
               <tr
                 key={row.id}
-                className={`transition-colors cursor-pointer ${
-                  isSelected
-                    ? 'bg-blue-100'
-                    : adjustedIndex % 2 === 0 ? 'bg-background' : 'bg-muted/100'
-                }`}
+                className={`transition-colors cursor-pointer ${rowBgClass}`}
                 onClick={() => onDocumentSelect(isSelected ? null : row.original.id)}
               >
                 {row.getVisibleCells().map(cell => (

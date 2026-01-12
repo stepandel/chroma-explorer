@@ -70,3 +70,8 @@ export interface CreateDocumentParams {
   embedding?: number[]
   generateEmbedding?: boolean // If true, generate embedding from document text
 }
+
+export interface DeleteDocumentsParams {
+  collectionName: string
+  ids: string[]
+}
