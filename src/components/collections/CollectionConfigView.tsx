@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, Plus, X } from 'lucide-react'
 import { useDraftCollection } from '../../context/DraftCollectionContext'
-import { Button } from '../ui/button'
-import { Label } from '../ui/label'
 import { EMBEDDING_FUNCTIONS, getEmbeddingFunctionById } from '../../constants/embedding-functions'
 import { MetadataValueType, validateMetadataValue } from '../../types/metadata'
+
+const inputClassName = "w-full h-6 text-[11px] px-1.5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 
 export function CollectionConfigView() {
   const { draftCollection, updateDraft, cancelCreation, saveDraft, isCreating, validationErrors } = useDraftCollection()
@@ -71,45 +72,46 @@ export function CollectionConfigView() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-        <h1 className="text-base font-semibold text-foreground">New Collection</h1>
-        <span className="text-xs text-muted-foreground">Configure settings below</span>
-      </div>
 
       {/* Configuration Form */}
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="flex-1 overflow-auto p-4 space-y-4">
         {/* Form error */}
         {validationErrors._form && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <p className="text-sm text-destructive">{validationErrors._form}</p>
+          <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+            <p className="text-[11px] text-destructive">{validationErrors._form}</p>
           </div>
         )}
 
         {/* Collection Name */}
-        <div className="space-y-2">
-          <Label htmlFor="collection-name">Collection Name</Label>
+        <div className="space-y-1">
+          <label htmlFor="collection-name" className="text-[11px] font-medium text-muted-foreground">
+            Name
+          </label>
           <input
             id="collection-name"
             type="text"
             value={draftCollection.name}
             onChange={(e) => updateDraft({ name: e.target.value })}
             placeholder="my-collection"
-            className="w-full h-9 px-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className={inputClassName}
+            style={inputStyle}
             autoFocus
           />
-          {validationErrors.name && <p className="text-xs text-destructive">{validationErrors.name}</p>}
+          {validationErrors.name && <p className="text-[10px] text-destructive">{validationErrors.name}</p>}
         </div>
 
         {/* Embedding Function Selector */}
-        <div className="space-y-2">
-          <Label htmlFor="ef-select">Embedding Function</Label>
+        <div className="space-y-1">
+          <label htmlFor="ef-select" className="text-[11px] font-medium text-muted-foreground">
+            Embedding Function
+          </label>
           <div className="relative">
             <select
               id="ef-select"
               value={draftCollection.embeddingFunctionId}
               onChange={(e) => handleEfChange(e.target.value)}
-              className="w-full h-9 appearance-none rounded-lg border border-input bg-background pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+              className="w-full h-6 appearance-none rounded-md border border-input bg-background pl-1.5 pr-6 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+              style={inputStyle}
             >
               {EMBEDDING_FUNCTIONS.map((ef) => (
                 <option key={ef.id} value={ef.id}>
@@ -117,50 +119,50 @@ export function CollectionConfigView() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
           </div>
-          {selectedEf && <p className="text-xs text-muted-foreground">Model: {selectedEf.modelName}</p>}
+          {selectedEf && <p className="text-[10px] text-muted-foreground">{selectedEf.modelName}</p>}
         </div>
 
         {/* Dimension Input */}
-        <div className="space-y-2">
-          <Label htmlFor="dimension">Dimension</Label>
+        <div className="space-y-1">
+          <label htmlFor="dimension" className="text-[11px] font-medium text-muted-foreground">
+            Dimension
+          </label>
           <input
             id="dimension"
             type="number"
             value={draftCollection.dimensionOverride || ''}
             onChange={(e) => handleDimensionChange(e.target.value)}
             placeholder={selectedEf?.dimensions.toString() || '384'}
-            className="w-full h-9 px-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className={inputClassName}
+            style={inputStyle}
           />
-          <p className="text-xs text-muted-foreground">
-            Auto-populated from embedding function ({selectedEf?.dimensions || 384}). Override if needed.
+          <p className="text-[10px] text-muted-foreground">
+            Default: {selectedEf?.dimensions || 384}
           </p>
         </div>
 
         {/* Optional First Document Section */}
-        <div className="space-y-3 pt-4 border-t border-border">
-          <div className="flex items-center gap-2">
+        <div className="space-y-2 pt-3 border-t border-border">
+          <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
-              id="add-first-doc"
               checked={showFirstDocument}
               onChange={(e) => handleFirstDocumentToggle(e.target.checked)}
-              className="rounded border-input"
+              className="rounded border-input h-3.5 w-3.5"
             />
-            <Label htmlFor="add-first-doc" className="cursor-pointer">
-              Add first document
-            </Label>
-          </div>
+            <span className="text-[11px] font-medium text-foreground">Add first document</span>
+          </label>
 
           {showFirstDocument && draftCollection.firstDocument && (
-            <div className="ml-6 space-y-3 p-4 bg-muted/50 rounded-lg border border-border">
-              <div className="space-y-1.5">
-                <Label htmlFor="first-doc-id" className="text-xs">
+            <div className="space-y-3 pl-5">
+              {/* Document ID */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
                   Document ID
-                </Label>
+                </label>
                 <input
-                  id="first-doc-id"
                   type="text"
                   value={draftCollection.firstDocument.id}
                   onChange={(e) =>
@@ -168,31 +170,34 @@ export function CollectionConfigView() {
                       firstDocument: { ...draftCollection.firstDocument!, id: e.target.value },
                     })
                   }
-                  className="w-full h-8 px-2 rounded-md border border-input bg-background text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                  className={`${inputClassName} font-mono`}
+                  style={inputStyle}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="first-doc-text" className="text-xs">
+
+              {/* Document Text */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-muted-foreground">
                   Document Text
-                </Label>
+                </label>
                 <textarea
-                  id="first-doc-text"
                   value={draftCollection.firstDocument.document}
                   onChange={(e) =>
                     updateDraft({
                       firstDocument: { ...draftCollection.firstDocument!, document: e.target.value },
                     })
                   }
-                  rows={4}
+                  rows={3}
                   placeholder="Enter document text..."
-                  className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-xs resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-1.5 py-1 rounded-md border border-input bg-background text-[11px] resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                  style={inputStyle}
                 />
               </div>
 
               {/* Metadata Fields */}
-              <div className="space-y-2 pt-2 border-t border-border/50">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs">Metadata</Label>
+                  <label className="text-[11px] font-medium text-muted-foreground">Metadata</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -210,10 +215,10 @@ export function CollectionConfigView() {
                         },
                       })
                     }}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Plus className="h-3 w-3" />
-                    Add field
+                    Add
                   </button>
                 </div>
 
@@ -224,8 +229,8 @@ export function CollectionConfigView() {
                       const contextError = validationErrors[`metadata.${key}`]
                       const displayError = localError || contextError
                       return (
-                        <div key={index} className="space-y-1">
-                          <div className="flex items-center gap-1.5">
+                        <div key={index} className="space-y-0.5">
+                          <div className="flex items-center gap-1">
                             <input
                               type="text"
                               value={key}
@@ -241,9 +246,10 @@ export function CollectionConfigView() {
                                 })
                               }}
                               placeholder="key"
-                              className="w-24 h-7 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                              className="w-20 h-5 px-1 rounded border border-input bg-background text-[10px] focus:outline-none focus:ring-1 focus:ring-ring"
+                              style={inputStyle}
                             />
-                            <div className="relative">
+                            <div className="relative flex items-center">
                               <select
                                 value={field.type}
                                 onChange={(e) => {
@@ -257,13 +263,14 @@ export function CollectionConfigView() {
                                     },
                                   })
                                 }}
-                                className="h-7 pl-2 pr-6 appearance-none rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+                                className="h-5 pl-1 pr-4 appearance-none rounded border border-input bg-background text-[10px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                                style={inputStyle}
                               >
                                 <option value="string">str</option>
                                 <option value="number">num</option>
                                 <option value="boolean">bool</option>
                               </select>
-                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                              <ChevronDown className="absolute right-0.5 h-2.5 w-2.5 text-muted-foreground pointer-events-none" />
                             </div>
                             <input
                               type="text"
@@ -280,9 +287,10 @@ export function CollectionConfigView() {
                                 })
                               }}
                               placeholder={field.type === 'boolean' ? 'true / false' : field.type === 'number' ? '0' : 'value'}
-                              className={`flex-1 h-7 px-2 rounded-md border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring ${
+                              className={`flex-1 h-5 px-1 rounded border bg-background text-[10px] focus:outline-none focus:ring-1 focus:ring-ring ${
                                 displayError ? 'border-destructive' : 'border-input'
                               }`}
+                              style={inputStyle}
                             />
                             <button
                               type="button"
@@ -295,20 +303,20 @@ export function CollectionConfigView() {
                                   },
                                 })
                               }}
-                              className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              className="flex items-center justify-center p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                             >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
                           {displayError && (
-                            <p className="text-xs text-destructive pl-1">{displayError}</p>
+                            <p className="text-[10px] text-destructive pl-0.5">{displayError}</p>
                           )}
                         </div>
                       )
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic">No metadata. Click "Add field" to define schema.</p>
+                  <p className="text-[10px] text-muted-foreground italic">No metadata fields defined.</p>
                 )}
               </div>
             </div>
@@ -317,18 +325,28 @@ export function CollectionConfigView() {
       </div>
 
       {/* Footer Actions */}
-      <div className="px-4 py-3 border-t border-border flex items-center justify-between bg-background">
-        <div className="text-xs text-muted-foreground">
-          <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Cmd+S</kbd> to save,{' '}
-          <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Esc</kbd> to cancel
+      <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
+        <div className="text-[10px] text-muted-foreground">
+          <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] font-mono">⌘S</kbd> save
+          {' · '}
+          <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] font-mono">Esc</kbd> cancel
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={cancelCreation} disabled={isCreating}>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={cancelCreation}
+            disabled={isCreating}
+            className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+            style={inputStyle}
+          >
             Cancel
-          </Button>
-          <Button onClick={saveDraft} disabled={isCreating || !draftCollection.name.trim()}>
-            {isCreating ? 'Creating...' : 'Create Collection'}
-          </Button>
+          </button>
+          <button
+            onClick={saveDraft}
+            disabled={isCreating || !draftCollection.name.trim()}
+            className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCreating ? 'Creating...' : 'Create'}
+          </button>
         </div>
       </div>
     </div>
