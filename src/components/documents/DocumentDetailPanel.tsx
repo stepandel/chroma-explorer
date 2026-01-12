@@ -38,12 +38,26 @@ export default function DocumentDetailPanel({
   // Ref for embedding textarea
   const embeddingTextareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-resize embedding textarea only
+  // Auto-resize embedding textarea and focus without scrolling
   useEffect(() => {
     if (isEditingEmbedding && embeddingTextareaRef.current) {
       const textarea = embeddingTextareaRef.current
+
+      // Find scroll container (the panel's scrollable div)
+      const scrollContainer = textarea.closest('.overflow-auto')
+      const savedScrollTop = scrollContainer?.scrollTop ?? 0
+
+      // Resize
       textarea.style.height = 'auto'
       textarea.style.height = `${Math.max(textarea.scrollHeight, 100)}px`
+
+      // Restore scroll position
+      if (scrollContainer) {
+        scrollContainer.scrollTop = savedScrollTop
+      }
+
+      // Focus without scrolling
+      textarea.focus({ preventScroll: true })
     }
   }, [draftEmbedding, isEditingEmbedding])
 
@@ -66,7 +80,7 @@ export default function DocumentDetailPanel({
   useEffect(() => {
     setDraftDocument(document.document)
     setDraftMetadata(document.metadata)
-    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding, null, 2) : '')
+    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding) : '')
     setEmbeddingError(null)
     setIsEditingEmbedding(false)
   }, [document.id, document.document, document.metadata, document.embedding])
@@ -75,7 +89,7 @@ export default function DocumentDetailPanel({
   const handleCancel = useCallback(() => {
     setDraftDocument(document.document)
     setDraftMetadata(document.metadata)
-    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding, null, 2) : '')
+    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding) : '')
     setEmbeddingError(null)
     setIsEditingEmbedding(false)
   }, [document.document, document.metadata, document.embedding])
@@ -292,7 +306,6 @@ export default function DocumentDetailPanel({
               onBlur={() => setIsEditingEmbedding(false)}
               placeholder="No embedding"
               className={`w-full text-xs font-mono overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasEmbeddingChanges)}`}
-              autoFocus
             />
             {embeddingError && (
               <p className="text-xs text-destructive mt-1">{embeddingError}</p>
