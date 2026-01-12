@@ -22,9 +22,15 @@ export function MainContent() {
     setLeftPanelOpen,
     rightPanelOpen,
     setRightPanelOpen,
-    selectedDocumentId,
+    selectedDocumentIds,
+    primarySelectedDocumentId,
+    selectionAnchor,
     selectDocument,
-    clearSelectedDocument,
+    toggleDocumentSelection,
+    selectDocumentRange,
+    addToSelection,
+    clearSelection,
+    setSelectionAnchor,
   } = usePanel()
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
   const [isSelectedDraft, setIsSelectedDraft] = useState(false)
@@ -32,16 +38,6 @@ export function MainContent() {
   const handleSelectedDocumentChange = (document: DocumentRecord | null, isDraft: boolean) => {
     setSelectedDocument(document)
     setIsSelectedDraft(isDraft)
-  }
-
-  const handleDocumentSelect = (id: string | null) => {
-    if (id === null) {
-      // Deselect and close panel
-      clearSelectedDocument()
-    } else {
-      // Select and open panel
-      selectDocument(id)
-    }
   }
 
   return (
@@ -80,8 +76,15 @@ export function MainContent() {
           {activeCollection ? (
             <DocumentsView
               collectionName={activeCollection}
-              selectedDocumentId={selectedDocumentId}
-              onDocumentSelect={handleDocumentSelect}
+              selectedDocumentIds={selectedDocumentIds}
+              primarySelectedDocumentId={primarySelectedDocumentId}
+              selectionAnchor={selectionAnchor}
+              onSingleSelect={selectDocument}
+              onToggleSelect={toggleDocumentSelection}
+              onRangeSelect={selectDocumentRange}
+              onAddToSelection={addToSelection}
+              onClearSelection={clearSelection}
+              onSetSelectionAnchor={setSelectionAnchor}
               onSelectedDocumentChange={handleSelectedDocumentChange}
             />
           ) : (

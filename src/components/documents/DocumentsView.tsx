@@ -21,8 +21,16 @@ interface DocumentRecord {
 
 interface DocumentsViewProps {
   collectionName: string
-  selectedDocumentId: string | null
-  onDocumentSelect: (id: string | null) => void
+  // Multi-select props
+  selectedDocumentIds: Set<string>
+  primarySelectedDocumentId: string | null
+  selectionAnchor: string | null
+  onSingleSelect: (id: string) => void
+  onToggleSelect: (id: string) => void
+  onRangeSelect: (ids: string[], newAnchor?: string) => void
+  onAddToSelection: (ids: string[]) => void
+  onClearSelection: () => void
+  onSetSelectionAnchor: (id: string | null) => void
   onSelectedDocumentChange: (document: DocumentRecord | null, isDraft: boolean) => void
 }
 
@@ -36,8 +44,15 @@ function createDefaultFilterRow(): FilterRowType {
 
 export default function DocumentsView({
   collectionName,
-  selectedDocumentId,
-  onDocumentSelect,
+  selectedDocumentIds,
+  primarySelectedDocumentId,
+  selectionAnchor,
+  onSingleSelect,
+  onToggleSelect,
+  onRangeSelect,
+  onAddToSelection,
+  onClearSelection,
+  onSetSelectionAnchor,
   onSelectedDocumentChange,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
@@ -236,8 +251,8 @@ export default function DocumentsView({
       metadata: initialMetadata,
     })
     // Select the draft so it shows in the detail panel
-    onDocumentSelect(newId)
-  }, [onDocumentSelect, metadataFields])
+    onSingleSelect(newId)
+  }, [onSingleSelect, metadataFields])
 
   const handleDraftChange = useCallback((draft: DraftDocument) => {
     setDraftDocument(draft)
@@ -245,8 +260,8 @@ export default function DocumentsView({
 
   const handleCancelDraft = useCallback(() => {
     setDraftDocument(null)
-    onDocumentSelect(null) // Deselect when cancelling
-  }, [onDocumentSelect])
+    onClearSelection() // Deselect when cancelling
+  }, [onClearSelection])
 
   const handleSaveDraft = useCallback(async () => {
     if (!draftDocument) return
@@ -280,28 +295,35 @@ export default function DocumentsView({
         generateEmbedding: !!draftDocument.document,
       })
       setDraftDocument(null)
-      onDocumentSelect(null) // Deselect after saving
+      onClearSelection() // Deselect after saving
     } catch (error) {
       console.error('Failed to create document:', error)
     }
-  }, [draftDocument, createMutation, onDocumentSelect])
+  }, [draftDocument, createMutation, onClearSelection])
 
-  // Toggle deletion mark for selected document
+  // Toggle deletion mark for all selected documents
   const handleToggleDeletion = useCallback(() => {
-    if (!selectedDocumentId) return
-    // Don't allow marking draft for deletion
-    if (draftDocument && selectedDocumentId === draftDocument.id) return
+    if (selectedDocumentIds.size === 0) return
+    // Filter out draft from selection
+    const idsToMark = Array.from(selectedDocumentIds).filter(
+      id => !(draftDocument && id === draftDocument.id)
+    )
+    if (idsToMark.length === 0) return
 
     setMarkedForDeletion(prev => {
       const next = new Set(prev)
-      if (next.has(selectedDocumentId)) {
-        next.delete(selectedDocumentId)
+      // Check if all selected are already marked
+      const allMarked = idsToMark.every(id => prev.has(id))
+      if (allMarked) {
+        // Unmark all
+        idsToMark.forEach(id => next.delete(id))
       } else {
-        next.add(selectedDocumentId)
+        // Mark all
+        idsToMark.forEach(id => next.add(id))
       }
       return next
     })
-  }, [selectedDocumentId, draftDocument])
+  }, [selectedDocumentIds, draftDocument])
 
   // Commit deletions
   const handleCommitDeletions = useCallback(async () => {
@@ -309,15 +331,16 @@ export default function DocumentsView({
 
     try {
       await deleteMutation.mutateAsync(Array.from(markedForDeletion))
-      // Clear marked items and deselect if current selection was deleted
-      if (selectedDocumentId && markedForDeletion.has(selectedDocumentId)) {
-        onDocumentSelect(null)
+      // Clear marked items and clear selection if any selected docs were deleted
+      const deletedSelected = Array.from(selectedDocumentIds).some(id => markedForDeletion.has(id))
+      if (deletedSelected) {
+        onClearSelection()
       }
       setMarkedForDeletion(new Set())
     } catch (error) {
       console.error('Failed to delete documents:', error)
     }
-  }, [markedForDeletion, deleteMutation, selectedDocumentId, onDocumentSelect])
+  }, [markedForDeletion, deleteMutation, selectedDocumentIds, onClearSelection])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -352,12 +375,12 @@ export default function DocumentsView({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [draftDocument, handleSaveDraft, handleCancelDraft, handleToggleDeletion, handleCommitDeletions, markedForDeletion])
 
-  // Find selected document for drawer (check draft first, then existing documents)
+  // Find primary selected document for drawer (check draft first, then existing documents)
   const selectedDocument: DocumentRecord | null = useMemo(() => {
-    if (!selectedDocumentId) return null
+    if (!primarySelectedDocumentId) return null
 
     // Check if draft is selected
-    if (draftDocument && draftDocument.id === selectedDocumentId) {
+    if (draftDocument && draftDocument.id === primarySelectedDocumentId) {
       // Include metadata if there are any keys, even with empty values
       const hasMetadataKeys = Object.keys(draftDocument.metadata).length > 0
       return {
@@ -369,11 +392,11 @@ export default function DocumentsView({
     }
 
     // Check existing documents
-    return documents.find(doc => doc.id === selectedDocumentId) || null
-  }, [selectedDocumentId, draftDocument, documents])
+    return documents.find(doc => doc.id === primarySelectedDocumentId) || null
+  }, [primarySelectedDocumentId, draftDocument, documents])
 
   // Check if selected document is a draft
-  const isDraft = !!(draftDocument && selectedDocumentId === draftDocument.id)
+  const isDraft = !!(draftDocument && primarySelectedDocumentId === draftDocument.id)
 
   // Notify parent when selected document changes
   useEffect(() => {
@@ -426,8 +449,12 @@ export default function DocumentsView({
           loading={loading}
           error={error ? (error as Error).message : null}
           hasActiveFilters={hasActiveFilters}
-          selectedDocumentId={selectedDocumentId}
-          onDocumentSelect={onDocumentSelect}
+          selectedDocumentIds={selectedDocumentIds}
+          selectionAnchor={selectionAnchor}
+          onSingleSelect={onSingleSelect}
+          onToggleSelect={onToggleSelect}
+          onRangeSelect={onRangeSelect}
+          onAddToSelection={onAddToSelection}
           draftDocument={draftDocument}
           onDraftChange={handleDraftChange}
           onDraftCancel={handleCancelDraft}
