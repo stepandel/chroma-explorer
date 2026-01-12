@@ -172,6 +172,17 @@ export default function DocumentsView({
     error,
   } = useDocumentsQuery(currentProfile?.id || null, searchParams)
 
+  // Extract unique metadata fields from documents (needed for draft creation)
+  const metadataFields = useMemo(() => {
+    const fields = new Set<string>()
+    documents.forEach(doc => {
+      if (doc.metadata) {
+        Object.keys(doc.metadata).forEach(key => fields.add(key))
+      }
+    })
+    return Array.from(fields).sort()
+  }, [documents])
+
   // Filter row handlers
   const handleFilterRowChange = useCallback((id: string, updates: Partial<FilterRowType>) => {
     setFilterRows(prev => prev.map(row =>
@@ -205,14 +216,19 @@ export default function DocumentsView({
   // Draft document handlers
   const handleStartCreate = useCallback(() => {
     const newId = crypto.randomUUID()
+    // Initialize metadata with same keys as existing documents (empty values)
+    const initialMetadata: Record<string, string> = {}
+    metadataFields.forEach(key => {
+      initialMetadata[key] = ''
+    })
     setDraftDocument({
       id: newId,
       document: '',
-      metadata: {},
+      metadata: initialMetadata,
     })
     // Select the draft so it shows in the detail panel
     onDocumentSelect(newId)
-  }, [onDocumentSelect])
+  }, [onDocumentSelect, metadataFields])
 
   const handleDraftChange = useCallback((draft: DraftDocument) => {
     setDraftDocument(draft)
@@ -280,27 +296,18 @@ export default function DocumentsView({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [draftDocument, handleSaveDraft, handleCancelDraft])
 
-  // Extract unique metadata fields from documents
-  const metadataFields = useMemo(() => {
-    const fields = new Set<string>()
-    documents.forEach(doc => {
-      if (doc.metadata) {
-        Object.keys(doc.metadata).forEach(key => fields.add(key))
-      }
-    })
-    return Array.from(fields).sort()
-  }, [documents])
-
   // Find selected document for drawer (check draft first, then existing documents)
   const selectedDocument: DocumentRecord | null = useMemo(() => {
     if (!selectedDocumentId) return null
 
     // Check if draft is selected
     if (draftDocument && draftDocument.id === selectedDocumentId) {
+      // Include metadata if there are any keys, even with empty values
+      const hasMetadataKeys = Object.keys(draftDocument.metadata).length > 0
       return {
         id: draftDocument.id,
         document: draftDocument.document || null,
-        metadata: Object.keys(draftDocument.metadata).length > 0 ? draftDocument.metadata : null,
+        metadata: hasMetadataKeys ? draftDocument.metadata : null,
         embedding: null,
       }
     }
