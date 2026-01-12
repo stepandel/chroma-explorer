@@ -18,6 +18,7 @@ interface DocumentRecord {
 interface DraftDocument {
   id: string
   document: string
+  metadata: Record<string, string>
 }
 
 interface DocumentsTableProps {
@@ -45,13 +46,20 @@ export default function DocumentsTable({
 }: DocumentsTableProps) {
   // Ref for auto-focusing the id input when draft starts
   const draftIdInputRef = useRef<HTMLInputElement>(null)
+  const prevDraftIdRef = useRef<string | null>(null)
 
-  // Auto-focus when draft is created
+  // Auto-focus only when draft is first created (not on every change)
   useEffect(() => {
-    if (draftDocument && draftIdInputRef.current) {
+    const currentDraftId = draftDocument?.id ?? null
+    const prevDraftId = prevDraftIdRef.current
+
+    // Only focus if we just created a new draft (went from null to having a draft)
+    if (currentDraftId && !prevDraftId && draftIdInputRef.current) {
       draftIdInputRef.current.focus()
     }
-  }, [draftDocument])
+
+    prevDraftIdRef.current = currentDraftId
+  }, [draftDocument?.id])
   // Extract all unique metadata keys from documents
   const metadataKeys = useMemo(() =>
     Array.from(
@@ -205,7 +213,7 @@ export default function DocumentsTable({
         <tbody className="divide-y divide-border">
           {/* Draft row for creating new document */}
           {draftDocument && onDraftChange && (
-            <tr className="bg-blue-50/50">
+            <tr className={`${selectedDocumentId === draftDocument.id ? 'bg-blue-100' : 'bg-blue-50/50'}`}>
               {/* ID cell - editable */}
               <td
                 className="pl-3 py-0.5 align-top border-r border-border"
@@ -233,13 +241,22 @@ export default function DocumentsTable({
                   className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
                 />
               </td>
-              {/* Empty cells for metadata columns */}
+              {/* Editable metadata cells */}
               {metadataKeys.map(key => (
                 <td
                   key={`draft-${key}`}
                   className="pl-3 py-0.5 align-top border-r border-border"
                 >
-                  <span className="text-xs text-muted-foreground/50 italic">-</span>
+                  <input
+                    type="text"
+                    value={draftDocument.metadata[key] || ''}
+                    onChange={(e) => onDraftChange({
+                      ...draftDocument,
+                      metadata: { ...draftDocument.metadata, [key]: e.target.value }
+                    })}
+                    placeholder="-"
+                    className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
+                  />
                 </td>
               ))}
               {/* Filler cell */}

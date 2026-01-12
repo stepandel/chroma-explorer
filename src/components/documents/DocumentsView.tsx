@@ -11,6 +11,7 @@ import { Plus } from 'lucide-react'
 interface DraftDocument {
   id: string
   document: string
+  metadata: Record<string, string>
 }
 
 interface DocumentRecord {
@@ -203,11 +204,15 @@ export default function DocumentsView({
 
   // Draft document handlers
   const handleStartCreate = useCallback(() => {
+    const newId = crypto.randomUUID()
     setDraftDocument({
-      id: crypto.randomUUID(),
+      id: newId,
       document: '',
+      metadata: {},
     })
-  }, [])
+    // Select the draft so it shows in the detail panel
+    onDocumentSelect(newId)
+  }, [onDocumentSelect])
 
   const handleDraftChange = useCallback((draft: DraftDocument) => {
     setDraftDocument(draft)
@@ -215,7 +220,8 @@ export default function DocumentsView({
 
   const handleCancelDraft = useCallback(() => {
     setDraftDocument(null)
-  }, [])
+    onDocumentSelect(null) // Deselect when cancelling
+  }, [onDocumentSelect])
 
   const handleSaveDraft = useCallback(async () => {
     if (!draftDocument) return
@@ -225,16 +231,35 @@ export default function DocumentsView({
     }
 
     try {
+      // Convert string metadata values to appropriate types
+      const metadata = Object.keys(draftDocument.metadata).length > 0
+        ? Object.fromEntries(
+            Object.entries(draftDocument.metadata)
+              .filter(([_, v]) => v.trim() !== '')
+              .map(([k, v]) => {
+                // Try to parse as number
+                const num = Number(v)
+                if (!isNaN(num) && v.trim() !== '') return [k, num]
+                // Try to parse as boolean
+                if (v.toLowerCase() === 'true') return [k, true]
+                if (v.toLowerCase() === 'false') return [k, false]
+                return [k, v]
+              })
+          )
+        : undefined
+
       await createMutation.mutateAsync({
         id: draftDocument.id,
         document: draftDocument.document || undefined,
+        metadata,
         generateEmbedding: !!draftDocument.document,
       })
       setDraftDocument(null)
+      onDocumentSelect(null) // Deselect after saving
     } catch (error) {
       console.error('Failed to create document:', error)
     }
-  }, [draftDocument, createMutation])
+  }, [draftDocument, createMutation, onDocumentSelect])
 
   // Keyboard shortcuts for draft
   useEffect(() => {
@@ -266,14 +291,27 @@ export default function DocumentsView({
     return Array.from(fields).sort()
   }, [documents])
 
-  // Find selected document for drawer
-  const selectedDocument = selectedDocumentId
-    ? documents.find(doc => doc.id === selectedDocumentId)
-    : null
+  // Find selected document for drawer (check draft first, then existing documents)
+  const selectedDocument: DocumentRecord | null = useMemo(() => {
+    if (!selectedDocumentId) return null
+
+    // Check if draft is selected
+    if (draftDocument && draftDocument.id === selectedDocumentId) {
+      return {
+        id: draftDocument.id,
+        document: draftDocument.document || null,
+        metadata: Object.keys(draftDocument.metadata).length > 0 ? draftDocument.metadata : null,
+        embedding: null,
+      }
+    }
+
+    // Check existing documents
+    return documents.find(doc => doc.id === selectedDocumentId) || null
+  }, [selectedDocumentId, draftDocument, documents])
 
   // Notify parent when selected document changes
   useEffect(() => {
-    onSelectedDocumentChange(selectedDocument || null)
+    onSelectedDocumentChange(selectedDocument)
   }, [selectedDocument, onSelectedDocumentChange])
 
   return (
