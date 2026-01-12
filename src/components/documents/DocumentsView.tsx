@@ -25,7 +25,7 @@ interface DocumentsViewProps {
   collectionName: string
   selectedDocumentId: string | null
   onDocumentSelect: (id: string | null) => void
-  onSelectedDocumentChange: (document: DocumentRecord | null) => void
+  onSelectedDocumentChange: (document: DocumentRecord | null, isDraft: boolean) => void
 }
 
 function createDefaultFilterRow(): FilterRowType {
@@ -316,10 +316,13 @@ export default function DocumentsView({
     return documents.find(doc => doc.id === selectedDocumentId) || null
   }, [selectedDocumentId, draftDocument, documents])
 
+  // Check if selected document is a draft
+  const isDraft = !!(draftDocument && selectedDocumentId === draftDocument.id)
+
   // Notify parent when selected document changes
   useEffect(() => {
-    onSelectedDocumentChange(selectedDocument)
-  }, [selectedDocument, onSelectedDocumentChange])
+    onSelectedDocumentChange(selectedDocument, isDraft)
+  }, [selectedDocument, isDraft, onSelectedDocumentChange])
 
   return (
     <div className="flex flex-col h-full">
