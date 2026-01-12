@@ -26,11 +26,18 @@ interface DocumentsTableProps {
   loading: boolean
   error: string | null
   hasActiveFilters?: boolean
-  selectedDocumentId: string | null
-  onDocumentSelect: (id: string | null) => void
+  // Multi-select props
+  selectedDocumentIds: Set<string>
+  selectionAnchor: string | null
+  onSingleSelect: (id: string) => void
+  onToggleSelect: (id: string) => void
+  onRangeSelect: (ids: string[], newAnchor?: string) => void
+  onAddToSelection: (ids: string[]) => void
+  // Draft props
   draftDocument?: DraftDocument | null
   onDraftChange?: (draft: DraftDocument) => void
   onDraftCancel?: () => void
+  markedForDeletion?: Set<string>
 }
 
 export default function DocumentsTable({
@@ -38,11 +45,16 @@ export default function DocumentsTable({
   loading,
   error,
   hasActiveFilters = false,
-  selectedDocumentId,
-  onDocumentSelect,
+  selectedDocumentIds,
+  selectionAnchor,
+  onSingleSelect,
+  onToggleSelect,
+  onRangeSelect,
+  onAddToSelection,
   draftDocument,
   onDraftChange,
   onDraftCancel,
+  markedForDeletion = new Set(),
 }: DocumentsTableProps) {
   // Ref for auto-focusing the id input when draft starts
   const draftIdInputRef = useRef<HTMLInputElement>(null)
@@ -60,6 +72,91 @@ export default function DocumentsTable({
 
     prevDraftIdRef.current = currentDraftId
   }, [draftDocument?.id])
+
+  // Drag selection state
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
+
+  // Get all document IDs including draft at the top
+  const allDocIds = useMemo(() => {
+    const ids: string[] = []
+    if (draftDocument) {
+      ids.push(draftDocument.id)
+    }
+    ids.push(...documents.map(d => d.id))
+    return ids
+  }, [documents, draftDocument])
+
+  // Handle row click with modifier keys (macOS-style)
+  const handleRowClick = (e: React.MouseEvent, docId: string, rowIndex: number) => {
+    // Prevent text selection during click
+    e.preventDefault()
+
+    if (e.metaKey && e.shiftKey) {
+      // ⌘+Shift+Click: Add range to existing selection
+      if (selectionAnchor) {
+        const anchorIndex = allDocIds.indexOf(selectionAnchor)
+        if (anchorIndex !== -1) {
+          const start = Math.min(anchorIndex, rowIndex)
+          const end = Math.max(anchorIndex, rowIndex)
+          const rangeIds = allDocIds.slice(start, end + 1)
+          onAddToSelection(rangeIds)
+          return
+        }
+      }
+      // No anchor, just add this one
+      onToggleSelect(docId)
+    } else if (e.shiftKey) {
+      // Shift+Click: Range select (replace selection)
+      if (selectionAnchor) {
+        const anchorIndex = allDocIds.indexOf(selectionAnchor)
+        if (anchorIndex !== -1) {
+          const start = Math.min(anchorIndex, rowIndex)
+          const end = Math.max(anchorIndex, rowIndex)
+          const rangeIds = allDocIds.slice(start, end + 1)
+          onRangeSelect(rangeIds)
+          return
+        }
+      }
+      // No anchor, just select this one
+      onSingleSelect(docId)
+    } else if (e.metaKey) {
+      // ⌘+Click: Toggle this row in selection
+      onToggleSelect(docId)
+    } else {
+      // Plain click: Select only this row
+      onSingleSelect(docId)
+    }
+  }
+
+  // Drag selection handlers
+  const handleMouseDown = (e: React.MouseEvent, rowIndex: number) => {
+    // Only start drag on plain click (no modifiers)
+    if (!e.metaKey && !e.shiftKey && e.button === 0) {
+      setIsDragging(true)
+      setDragStartIndex(rowIndex)
+    }
+  }
+
+  const handleMouseEnter = (rowIndex: number) => {
+    if (isDragging && dragStartIndex !== null) {
+      const start = Math.min(dragStartIndex, rowIndex)
+      const end = Math.max(dragStartIndex, rowIndex)
+      const rangeIds = allDocIds.slice(start, end + 1)
+      onRangeSelect(rangeIds, allDocIds[dragStartIndex])
+    }
+  }
+
+  // Global mouse up to end drag
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setIsDragging(false)
+      setDragStartIndex(null)
+    }
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => window.removeEventListener('mouseup', handleMouseUp)
+  }, [])
+
   // Extract all unique metadata keys from documents
   const metadataKeys = useMemo(() =>
     Array.from(
@@ -210,12 +307,14 @@ export default function DocumentsTable({
             </tr>
           ))}
         </thead>
-        <tbody className="divide-y divide-border">
+        <tbody className="divide-y divide-border select-none">
           {/* Draft row for creating new document */}
           {draftDocument && onDraftChange && (
             <tr
-              className={`cursor-pointer ${selectedDocumentId === draftDocument.id ? 'bg-blue-50' : 'bg-blue-50/50'}`}
-              onClick={() => onDocumentSelect(draftDocument.id)}
+              className={`cursor-pointer ${selectedDocumentIds.has(draftDocument.id) ? 'bg-blue-50' : 'bg-blue-50/50'}`}
+              onClick={(e) => handleRowClick(e, draftDocument.id, 0)}
+              onMouseDown={(e) => handleMouseDown(e, 0)}
+              onMouseEnter={() => handleMouseEnter(0)}
             >
               {/* ID cell - editable */}
               <td
@@ -267,18 +366,30 @@ export default function DocumentsTable({
             </tr>
           )}
           {table.getRowModel().rows.map((row, index) => {
-            const isSelected = selectedDocumentId === row.original.id
+            const isSelected = selectedDocumentIds.has(row.original.id)
+            const isMarkedForDeletion = markedForDeletion.has(row.original.id)
             // Adjust index for alternating colors when draft exists
             const adjustedIndex = draftDocument ? index + 1 : index
+            // Row index in allDocIds (draft takes index 0 if exists)
+            const rowIndex = draftDocument ? index + 1 : index
+
+            // Determine row background
+            let rowBgClass: string
+            if (isMarkedForDeletion) {
+              rowBgClass = isSelected ? 'bg-red-200' : 'bg-red-100'
+            } else if (isSelected) {
+              rowBgClass = 'bg-blue-100'
+            } else {
+              rowBgClass = adjustedIndex % 2 === 0 ? 'bg-background' : 'bg-muted/100'
+            }
+
             return (
               <tr
                 key={row.id}
-                className={`transition-colors cursor-pointer ${
-                  isSelected
-                    ? 'bg-blue-100'
-                    : adjustedIndex % 2 === 0 ? 'bg-background' : 'bg-muted/100'
-                }`}
-                onClick={() => onDocumentSelect(isSelected ? null : row.original.id)}
+                className={`transition-colors cursor-pointer ${rowBgClass}`}
+                onClick={(e) => handleRowClick(e, row.original.id, rowIndex)}
+                onMouseDown={(e) => handleMouseDown(e, rowIndex)}
+                onMouseEnter={() => handleMouseEnter(rowIndex)}
               >
                 {row.getVisibleCells().map(cell => (
                   <td

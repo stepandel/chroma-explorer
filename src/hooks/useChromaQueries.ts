@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams } from '../../electron/types'
+import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams } from '../../electron/types'
 
 // Query Keys
 export const chromaQueryKeys = {
@@ -135,6 +135,40 @@ export function useCreateDocumentMutation(profileId: string, collectionName: str
     },
     onSuccess: () => {
       // Invalidate all document queries for this collection to refetch with new document
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey
+          return (
+            key[0] === 'chroma' &&
+            key[1] === 'documents' &&
+            key[2] === profileId &&
+            typeof key[3] === 'object' &&
+            key[3] !== null &&
+            (key[3] as SearchDocumentsParams).collectionName === collectionName
+          )
+        },
+      })
+      // Also invalidate collections to update document count
+      queryClient.invalidateQueries({
+        queryKey: chromaQueryKeys.collections(profileId),
+      })
+    },
+  })
+}
+
+// Delete Documents Mutation
+export function useDeleteDocumentsMutation(profileId: string, collectionName: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      await window.electronAPI.chromadb.deleteDocuments(profileId, {
+        collectionName,
+        ids,
+      })
+    },
+    onSuccess: () => {
+      // Invalidate all document queries for this collection to refetch after deletion
       queryClient.invalidateQueries({
         predicate: (query) => {
           const key = query.queryKey

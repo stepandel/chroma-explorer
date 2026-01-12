@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
-import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation } from '../../hooks/useChromaQueries'
+import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation } from '../../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
@@ -21,8 +21,16 @@ interface DocumentRecord {
 
 interface DocumentsViewProps {
   collectionName: string
-  selectedDocumentId: string | null
-  onDocumentSelect: (id: string | null) => void
+  // Multi-select props
+  selectedDocumentIds: Set<string>
+  primarySelectedDocumentId: string | null
+  selectionAnchor: string | null
+  onSingleSelect: (id: string) => void
+  onToggleSelect: (id: string) => void
+  onRangeSelect: (ids: string[], newAnchor?: string) => void
+  onAddToSelection: (ids: string[]) => void
+  onClearSelection: () => void
+  onSetSelectionAnchor: (id: string | null) => void
   onSelectedDocumentChange: (document: DocumentRecord | null, isDraft: boolean) => void
 }
 
@@ -36,8 +44,15 @@ function createDefaultFilterRow(): FilterRowType {
 
 export default function DocumentsView({
   collectionName,
-  selectedDocumentId,
-  onDocumentSelect,
+  selectedDocumentIds,
+  primarySelectedDocumentId,
+  selectionAnchor,
+  onSingleSelect,
+  onToggleSelect,
+  onRangeSelect,
+  onAddToSelection,
+  onClearSelection,
+  onSetSelectionAnchor,
   onSelectedDocumentChange,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
@@ -47,8 +62,17 @@ export default function DocumentsView({
   // Draft document state for creating new documents
   const [draftDocument, setDraftDocument] = useState<DraftDocument | null>(null)
 
+  // Marked for deletion state (set of document IDs)
+  const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set())
+
   // Create document mutation
   const createMutation = useCreateDocumentMutation(
+    currentProfile?.id || '',
+    collectionName
+  )
+
+  // Delete documents mutation
+  const deleteMutation = useDeleteDocumentsMutation(
     currentProfile?.id || '',
     collectionName
   )
@@ -96,10 +120,12 @@ export default function DocumentsView({
     setEmbeddingOverride(null)
   }, [currentProfile?.id, collectionName])
 
-  // Reset filters when collection changes
+  // Reset filters and deletion marks when collection changes
   useEffect(() => {
     setFilterRows([createDefaultFilterRow()])
     setNResults(10)
+    setMarkedForDeletion(new Set())
+    setDraftDocument(null)
   }, [collectionName])
 
   // Build search params from filter rows
@@ -225,8 +251,8 @@ export default function DocumentsView({
       metadata: initialMetadata,
     })
     // Select the draft so it shows in the detail panel
-    onDocumentSelect(newId)
-  }, [onDocumentSelect, metadataFields])
+    onSingleSelect(newId)
+  }, [onSingleSelect, metadataFields])
 
   const handleDraftChange = useCallback((draft: DraftDocument) => {
     setDraftDocument(draft)
@@ -234,8 +260,8 @@ export default function DocumentsView({
 
   const handleCancelDraft = useCallback(() => {
     setDraftDocument(null)
-    onDocumentSelect(null) // Deselect when cancelling
-  }, [onDocumentSelect])
+    onClearSelection() // Deselect when cancelling
+  }, [onClearSelection])
 
   const handleSaveDraft = useCallback(async () => {
     if (!draftDocument) return
@@ -269,37 +295,92 @@ export default function DocumentsView({
         generateEmbedding: !!draftDocument.document,
       })
       setDraftDocument(null)
-      onDocumentSelect(null) // Deselect after saving
+      onClearSelection() // Deselect after saving
     } catch (error) {
       console.error('Failed to create document:', error)
     }
-  }, [draftDocument, createMutation, onDocumentSelect])
+  }, [draftDocument, createMutation, onClearSelection])
 
-  // Keyboard shortcuts for draft
+  // Toggle deletion mark for all selected documents
+  const handleToggleDeletion = useCallback(() => {
+    if (selectedDocumentIds.size === 0) return
+    // Filter out draft from selection
+    const idsToMark = Array.from(selectedDocumentIds).filter(
+      id => !(draftDocument && id === draftDocument.id)
+    )
+    if (idsToMark.length === 0) return
+
+    setMarkedForDeletion(prev => {
+      const next = new Set(prev)
+      // Check if all selected are already marked
+      const allMarked = idsToMark.every(id => prev.has(id))
+      if (allMarked) {
+        // Unmark all
+        idsToMark.forEach(id => next.delete(id))
+      } else {
+        // Mark all
+        idsToMark.forEach(id => next.add(id))
+      }
+      return next
+    })
+  }, [selectedDocumentIds, draftDocument])
+
+  // Commit deletions
+  const handleCommitDeletions = useCallback(async () => {
+    if (markedForDeletion.size === 0) return
+
+    try {
+      await deleteMutation.mutateAsync(Array.from(markedForDeletion))
+      // Clear marked items and clear selection if any selected docs were deleted
+      const deletedSelected = Array.from(selectedDocumentIds).some(id => markedForDeletion.has(id))
+      if (deletedSelected) {
+        onClearSelection()
+      }
+      setMarkedForDeletion(new Set())
+    } catch (error) {
+      console.error('Failed to delete documents:', error)
+    }
+  }, [markedForDeletion, deleteMutation, selectedDocumentIds, onClearSelection])
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command+S to save draft
-      if (e.metaKey && e.key === 's' && draftDocument) {
+      // Command+S to save draft or commit deletions
+      if (e.metaKey && e.key === 's') {
         e.preventDefault()
-        handleSaveDraft()
+        if (draftDocument) {
+          handleSaveDraft()
+        } else if (markedForDeletion.size > 0) {
+          handleCommitDeletions()
+        }
       }
       // Escape or Command+Z to cancel draft
       if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && draftDocument) {
         e.preventDefault()
         handleCancelDraft()
       }
+      // Command+Delete/Backspace to toggle deletion mark
+      if (e.metaKey && (e.key === 'Delete' || e.key === 'Backspace') && !draftDocument) {
+        // Don't trigger if user is typing in an input
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return
+        }
+        e.preventDefault()
+        handleToggleDeletion()
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [draftDocument, handleSaveDraft, handleCancelDraft])
+  }, [draftDocument, handleSaveDraft, handleCancelDraft, handleToggleDeletion, handleCommitDeletions, markedForDeletion])
 
-  // Find selected document for drawer (check draft first, then existing documents)
+  // Find primary selected document for drawer (check draft first, then existing documents)
   const selectedDocument: DocumentRecord | null = useMemo(() => {
-    if (!selectedDocumentId) return null
+    if (!primarySelectedDocumentId) return null
 
     // Check if draft is selected
-    if (draftDocument && draftDocument.id === selectedDocumentId) {
+    if (draftDocument && draftDocument.id === primarySelectedDocumentId) {
       // Include metadata if there are any keys, even with empty values
       const hasMetadataKeys = Object.keys(draftDocument.metadata).length > 0
       return {
@@ -311,11 +392,11 @@ export default function DocumentsView({
     }
 
     // Check existing documents
-    return documents.find(doc => doc.id === selectedDocumentId) || null
-  }, [selectedDocumentId, draftDocument, documents])
+    return documents.find(doc => doc.id === primarySelectedDocumentId) || null
+  }, [primarySelectedDocumentId, draftDocument, documents])
 
   // Check if selected document is a draft
-  const isDraft = !!(draftDocument && selectedDocumentId === draftDocument.id)
+  const isDraft = !!(draftDocument && primarySelectedDocumentId === draftDocument.id)
 
   // Notify parent when selected document changes
   useEffect(() => {
@@ -368,11 +449,16 @@ export default function DocumentsView({
           loading={loading}
           error={error ? (error as Error).message : null}
           hasActiveFilters={hasActiveFilters}
-          selectedDocumentId={selectedDocumentId}
-          onDocumentSelect={onDocumentSelect}
+          selectedDocumentIds={selectedDocumentIds}
+          selectionAnchor={selectionAnchor}
+          onSingleSelect={onSingleSelect}
+          onToggleSelect={onToggleSelect}
+          onRangeSelect={onRangeSelect}
+          onAddToSelection={onAddToSelection}
           draftDocument={draftDocument}
           onDraftChange={handleDraftChange}
           onDraftCancel={handleCancelDraft}
+          markedForDeletion={markedForDeletion}
         />
       </div>
 
@@ -380,7 +466,7 @@ export default function DocumentsView({
       <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
         <button
           onClick={handleStartCreate}
-          disabled={!!draftDocument}
+          disabled={!!draftDocument || markedForDeletion.size > 0}
           className="h-6 w-6 p-0 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
           title="Add document"
@@ -403,6 +489,28 @@ export default function DocumentsView({
               className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMutation.isPending ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        )}
+        {!draftDocument && markedForDeletion.size > 0 && (
+          <div className="flex gap-2 items-center">
+            <span className="text-[11px] text-muted-foreground">
+              {markedForDeletion.size} marked for deletion
+            </span>
+            <button
+              onClick={() => setMarkedForDeletion(new Set())}
+              disabled={deleteMutation.isPending}
+              className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCommitDeletions}
+              disabled={deleteMutation.isPending}
+              className="h-6 px-2 text-[11px] rounded-md bg-red-500 hover:bg-red-600 active:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         )}
