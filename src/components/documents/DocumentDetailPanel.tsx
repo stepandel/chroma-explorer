@@ -15,12 +15,14 @@ interface DocumentDetailPanelProps {
   document: DocumentRecord
   collectionName: string
   profileId: string
+  isDraft?: boolean
 }
 
 export default function DocumentDetailPanel({
   document,
   collectionName,
   profileId,
+  isDraft = false,
 }: DocumentDetailPanelProps) {
   // Draft state
   const [draftDocument, setDraftDocument] = useState(document.document)
@@ -291,35 +293,37 @@ export default function DocumentDetailPanel({
             )
           })}
 
-      {/* Embedding Section - Click to edit */}
-      <section>
-        <h3 className="text-xs font-semibold text-muted-foreground mb-1">embedding</h3>
-        {isEditingEmbedding ? (
-          <div>
-            <textarea
-              ref={embeddingTextareaRef}
-              value={draftEmbedding}
-              onChange={(e) => {
-                setDraftEmbedding(e.target.value)
-                setEmbeddingError(null)
-              }}
-              onBlur={() => setIsEditingEmbedding(false)}
-              placeholder="No embedding"
-              className={`w-full text-xs font-mono overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasEmbeddingChanges)}`}
-            />
-            {embeddingError && (
-              <p className="text-xs text-destructive mt-1">{embeddingError}</p>
-            )}
-          </div>
-        ) : (
-          <div
-            onClick={() => setIsEditingEmbedding(true)}
-            className={`cursor-pointer ${getFieldStyle(hasEmbeddingChanges)}`}
-          >
-            <EmbeddingCell embedding={document.embedding} />
-          </div>
-        )}
-      </section>
+      {/* Embedding Section - Click to edit (hidden for drafts) */}
+      {!isDraft && (
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground mb-1">embedding</h3>
+          {isEditingEmbedding ? (
+            <div>
+              <textarea
+                ref={embeddingTextareaRef}
+                value={draftEmbedding}
+                onChange={(e) => {
+                  setDraftEmbedding(e.target.value)
+                  setEmbeddingError(null)
+                }}
+                onBlur={() => setIsEditingEmbedding(false)}
+                placeholder="No embedding"
+                className={`w-full text-xs font-mono overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasEmbeddingChanges)}`}
+              />
+              {embeddingError && (
+                <p className="text-xs text-destructive mt-1">{embeddingError}</p>
+              )}
+            </div>
+          ) : (
+            <div
+              onClick={() => setIsEditingEmbedding(true)}
+              className={`cursor-pointer ${getFieldStyle(hasEmbeddingChanges)}`}
+            >
+              <EmbeddingCell embedding={document.embedding} />
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Dirty indicator */}
       {hasDirtyChanges && (

@@ -27,6 +27,12 @@ export function MainContent() {
     clearSelectedDocument,
   } = usePanel()
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
+  const [isSelectedDraft, setIsSelectedDraft] = useState(false)
+
+  const handleSelectedDocumentChange = (document: DocumentRecord | null, isDraft: boolean) => {
+    setSelectedDocument(document)
+    setIsSelectedDraft(isDraft)
+  }
 
   const handleDocumentSelect = (id: string | null) => {
     if (id === null) {
@@ -76,7 +82,7 @@ export function MainContent() {
               collectionName={activeCollection}
               selectedDocumentId={selectedDocumentId}
               onDocumentSelect={handleDocumentSelect}
-              onSelectedDocumentChange={setSelectedDocument}
+              onSelectedDocumentChange={handleSelectedDocumentChange}
             />
           ) : (
             <div className="flex items-center justify-center h-full bg-background">
@@ -118,6 +124,7 @@ export function MainContent() {
               document={selectedDocument}
               collectionName={activeCollection}
               profileId={currentProfile.id}
+              isDraft={isSelectedDraft}
             />
           ) : (
             <div className="flex items-center justify-center h-full bg-background">

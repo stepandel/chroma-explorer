@@ -6,7 +6,7 @@ import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
 import { windowManager } from './window-manager'
 import { createApplicationMenu } from './menu'
-import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams } from './types'
+import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams } from './types'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -82,6 +82,22 @@ ipcMain.handle('chromadb:updateDocument', async (_event, profileId: string, para
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update document'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('chromadb:createDocument', async (_event, profileId: string, params: CreateDocumentParams) => {
+  try {
+    const service = chromaDBConnectionPool.getConnection(profileId)
+    if (!service) {
+      return { success: false, error: 'Not connected to ChromaDB' }
+    }
+    // Check for user embedding override (needed for embedding generation)
+    const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
+    await service.createDocument(params, embeddingOverride)
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create document'
     return { success: false, error: message }
   }
 })

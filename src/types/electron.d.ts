@@ -54,6 +54,15 @@ declare global {
     regenerateEmbedding?: boolean
   }
 
+  interface CreateDocumentParams {
+    collectionName: string
+    id: string
+    document?: string
+    metadata?: Record<string, unknown>
+    embedding?: number[]
+    generateEmbedding?: boolean
+  }
+
   interface ElectronAPI {
     chromadb: {
       connect: (profileId: string, profile: ConnectionProfile) => Promise<void>
@@ -61,6 +70,7 @@ declare global {
       getDocuments: (profileId: string, collectionName: string) => Promise<DocumentRecord[]>
       searchDocuments: (profileId: string, params: SearchDocumentsParams) => Promise<DocumentRecord[]>
       updateDocument: (profileId: string, params: UpdateDocumentParams) => Promise<void>
+      createDocument: (profileId: string, params: CreateDocumentParams) => Promise<void>
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>
