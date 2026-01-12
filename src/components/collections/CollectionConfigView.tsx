@@ -4,6 +4,7 @@ import { useDraftCollection } from '../../context/DraftCollectionContext'
 import { Button } from '../ui/button'
 import { Label } from '../ui/label'
 import { EMBEDDING_FUNCTIONS, getEmbeddingFunctionById } from '../../constants/embedding-functions'
+import { MetadataValueType, validateMetadataValue } from '../../types/metadata'
 
 export function CollectionConfigView() {
   const { draftCollection, updateDraft, cancelCreation, saveDraft, isCreating, validationErrors } = useDraftCollection()
@@ -205,7 +206,7 @@ export function CollectionConfigView() {
                       updateDraft({
                         firstDocument: {
                           ...draftCollection.firstDocument!,
-                          metadata: { ...currentMetadata, [newKey]: '' },
+                          metadata: { ...currentMetadata, [newKey]: { value: '', type: 'string' } },
                         },
                       })
                     }}
@@ -218,56 +219,91 @@ export function CollectionConfigView() {
 
                 {Object.keys(draftCollection.firstDocument.metadata || {}).length > 0 ? (
                   <div className="space-y-1.5">
-                    {Object.entries(draftCollection.firstDocument.metadata).map(([key, value], index) => (
-                      <div key={index} className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={key}
-                          onChange={(e) => {
-                            const newKey = e.target.value
-                            if (newKey === key) return
-                            const { [key]: oldValue, ...rest } = draftCollection.firstDocument!.metadata
-                            updateDraft({
-                              firstDocument: {
-                                ...draftCollection.firstDocument!,
-                                metadata: { ...rest, [newKey]: oldValue },
-                              },
-                            })
-                          }}
-                          placeholder="key"
-                          className="w-1/3 h-7 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                        <input
-                          type="text"
-                          value={value}
-                          onChange={(e) => {
-                            updateDraft({
-                              firstDocument: {
-                                ...draftCollection.firstDocument!,
-                                metadata: { ...draftCollection.firstDocument!.metadata, [key]: e.target.value },
-                              },
-                            })
-                          }}
-                          placeholder="value"
-                          className="flex-1 h-7 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const { [key]: _, ...rest } = draftCollection.firstDocument!.metadata
-                            updateDraft({
-                              firstDocument: {
-                                ...draftCollection.firstDocument!,
-                                metadata: rest,
-                              },
-                            })
-                          }}
-                          className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
+                    {Object.entries(draftCollection.firstDocument.metadata).map(([key, field], index) => {
+                      const validationError = validateMetadataValue(field.value, field.type)
+                      return (
+                        <div key={index} className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={key}
+                              onChange={(e) => {
+                                const newKey = e.target.value
+                                if (newKey === key) return
+                                const { [key]: oldField, ...rest } = draftCollection.firstDocument!.metadata
+                                updateDraft({
+                                  firstDocument: {
+                                    ...draftCollection.firstDocument!,
+                                    metadata: { ...rest, [newKey]: oldField },
+                                  },
+                                })
+                              }}
+                              placeholder="key"
+                              className="w-24 h-7 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                            />
+                            <div className="relative">
+                              <select
+                                value={field.type}
+                                onChange={(e) => {
+                                  updateDraft({
+                                    firstDocument: {
+                                      ...draftCollection.firstDocument!,
+                                      metadata: {
+                                        ...draftCollection.firstDocument!.metadata,
+                                        [key]: { ...field, type: e.target.value as MetadataValueType },
+                                      },
+                                    },
+                                  })
+                                }}
+                                className="h-7 pl-2 pr-6 appearance-none rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+                              >
+                                <option value="string">str</option>
+                                <option value="number">num</option>
+                                <option value="boolean">bool</option>
+                              </select>
+                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                            </div>
+                            <input
+                              type="text"
+                              value={field.value}
+                              onChange={(e) => {
+                                updateDraft({
+                                  firstDocument: {
+                                    ...draftCollection.firstDocument!,
+                                    metadata: {
+                                      ...draftCollection.firstDocument!.metadata,
+                                      [key]: { ...field, value: e.target.value },
+                                    },
+                                  },
+                                })
+                              }}
+                              placeholder={field.type === 'boolean' ? 'true / false' : field.type === 'number' ? '0' : 'value'}
+                              className={`flex-1 h-7 px-2 rounded-md border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring ${
+                                validationError ? 'border-destructive' : 'border-input'
+                              }`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const { [key]: _, ...rest } = draftCollection.firstDocument!.metadata
+                                updateDraft({
+                                  firstDocument: {
+                                    ...draftCollection.firstDocument!,
+                                    metadata: rest,
+                                  },
+                                })
+                              }}
+                              className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                          {validationError && (
+                            <p className="text-xs text-destructive pl-1">{validationError}</p>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">No metadata. Click "Add field" to define schema.</p>

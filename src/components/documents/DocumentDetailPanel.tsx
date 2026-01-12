@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, ChevronDown } from 'lucide-react'
 import EmbeddingCell from './EmbeddingCell'
 import { RegenerateEmbeddingDialog } from './RegenerateEmbeddingDialog'
 import { useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
 import { Metadata } from 'chromadb'
+import { TypedMetadataRecord, TypedMetadataField, MetadataValueType, validateMetadataValue } from '../../types/metadata'
 
 interface DocumentRecord {
   id: string
@@ -220,14 +221,17 @@ export default function DocumentDetailPanel({
 
   // Add a new metadata field (only for first document drafts)
   const handleAddMetadataField = useCallback(() => {
-    const currentMetadata = draftMetadata || {}
+    const currentMetadata = (draftMetadata || {}) as TypedMetadataRecord
     let keyNum = 1
     let newKey = `key${keyNum}`
     while (newKey in currentMetadata) {
       keyNum++
       newKey = `key${keyNum}`
     }
-    const newMetadata = { ...currentMetadata, [newKey]: '' }
+    const newMetadata: TypedMetadataRecord = {
+      ...currentMetadata,
+      [newKey]: { value: '', type: 'string' }
+    }
     setDraftMetadata(newMetadata)
     if (isDraft && onDraftChange) {
       onDraftChange({ metadata: newMetadata })
@@ -237,7 +241,7 @@ export default function DocumentDetailPanel({
   // Remove a metadata field (only for first document drafts)
   const handleRemoveMetadataField = useCallback((keyToRemove: string) => {
     if (!draftMetadata) return
-    const { [keyToRemove]: _, ...rest } = draftMetadata
+    const { [keyToRemove]: _, ...rest } = draftMetadata as TypedMetadataRecord
     setDraftMetadata(rest)
     if (isDraft && onDraftChange) {
       onDraftChange({ metadata: rest })
@@ -247,8 +251,41 @@ export default function DocumentDetailPanel({
   // Handle metadata key rename (only for first document drafts)
   const handleMetadataKeyRename = useCallback((oldKey: string, newKey: string) => {
     if (!draftMetadata || oldKey === newKey) return
-    const { [oldKey]: value, ...rest } = draftMetadata
-    const newMetadata = { ...rest, [newKey]: value }
+    const typedMetadata = draftMetadata as TypedMetadataRecord
+    const { [oldKey]: field, ...rest } = typedMetadata
+    const newMetadata: TypedMetadataRecord = { ...rest, [newKey]: field }
+    setDraftMetadata(newMetadata)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
+  // Handle metadata type change (only for first document drafts)
+  const handleMetadataTypeChange = useCallback((key: string, newType: MetadataValueType) => {
+    if (!draftMetadata) return
+    const typedMetadata = draftMetadata as TypedMetadataRecord
+    const field = typedMetadata[key]
+    if (!field) return
+    const newMetadata: TypedMetadataRecord = {
+      ...typedMetadata,
+      [key]: { ...field, type: newType }
+    }
+    setDraftMetadata(newMetadata)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
+  // Handle metadata value change for typed fields (first document drafts)
+  const handleTypedMetadataValueChange = useCallback((key: string, newValue: string) => {
+    if (!draftMetadata) return
+    const typedMetadata = draftMetadata as TypedMetadataRecord
+    const field = typedMetadata[key]
+    if (!field) return
+    const newMetadata: TypedMetadataRecord = {
+      ...typedMetadata,
+      [key]: { ...field, value: newValue }
+    }
     setDraftMetadata(newMetadata)
     if (isDraft && onDraftChange) {
       onDraftChange({ metadata: newMetadata })
@@ -328,14 +365,25 @@ export default function DocumentDetailPanel({
           entries.sort(([a], [b]) => a.localeCompare(b))
         }
         return entries.map(([key, value], index) => {
+          // For first document drafts, value is TypedMetadataField; otherwise it's unknown
+          const isTypedField = canEditSchema && value && typeof value === 'object' && 'type' in value
+          const typedField = isTypedField ? (value as TypedMetadataField) : null
+          const displayValue = typedField ? typedField.value : (
+            value !== undefined
+              ? typeof value === 'object'
+                ? JSON.stringify(value)
+                : String(value)
+              : ''
+          )
           const originalValue = document.metadata?.[key]
-          const isDirty = value !== originalValue
+          const isDirty = canEditSchema ? true : value !== originalValue
+          const validationError = typedField ? validateMetadataValue(typedField.value, typedField.type) : null
 
           // Use index as key when editing schema to prevent focus loss when key name changes
           return (
             <section key={canEditSchema ? `field-${index}` : key}>
               {canEditSchema ? (
-                // First document draft - editable key with remove button
+                // First document draft - editable key with type selector and remove button
                 <div className="flex items-center gap-1 mb-1">
                   <input
                     type="text"
@@ -343,6 +391,20 @@ export default function DocumentDetailPanel({
                     onChange={(e) => handleMetadataKeyRename(key, e.target.value)}
                     className="flex-1 text-xs font-semibold text-muted-foreground bg-transparent border-none outline-none focus:text-foreground"
                   />
+                  {typedField && (
+                    <div className="relative">
+                      <select
+                        value={typedField.type}
+                        onChange={(e) => handleMetadataTypeChange(key, e.target.value as MetadataValueType)}
+                        className="h-5 pl-1.5 pr-5 appearance-none rounded border border-input bg-background text-[10px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                      >
+                        <option value="string">str</option>
+                        <option value="number">num</option>
+                        <option value="boolean">bool</option>
+                      </select>
+                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-2.5 w-2.5 text-muted-foreground pointer-events-none" />
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleRemoveMetadataField(key)}
@@ -357,17 +419,21 @@ export default function DocumentDetailPanel({
               )}
               <textarea
                 rows={1}
-                value={
-                  value !== undefined
-                    ? typeof value === 'object'
-                      ? JSON.stringify(value)
-                      : String(value)
-                    : ''
-                }
-                onChange={(e) => handleMetadataChange(key, e.target.value)}
+                value={displayValue}
+                onChange={(e) => {
+                  if (canEditSchema && typedField) {
+                    handleTypedMetadataValueChange(key, e.target.value)
+                  } else {
+                    handleMetadataChange(key, e.target.value)
+                  }
+                }}
+                placeholder={typedField?.type === 'boolean' ? 'true / false' : typedField?.type === 'number' ? '0' : undefined}
                 style={{ fieldSizing: 'content' } as React.CSSProperties}
-                className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)}`}
+                className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)} ${validationError ? 'border-destructive' : ''}`}
               />
+              {validationError && (
+                <p className="text-xs text-destructive mt-0.5">{validationError}</p>
+              )}
             </section>
           )
         })

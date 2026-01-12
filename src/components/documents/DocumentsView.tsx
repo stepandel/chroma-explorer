@@ -3,13 +3,14 @@ import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation } from '../../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
+import { TypedMetadataRecord, typedMetadataToChromaFormat } from '../../types/metadata'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
 import { FilterRow } from '../filters/FilterRow'
 
 interface DraftDocument {
   id: string
   document: string
-  metadata: Record<string, string>
+  metadata: TypedMetadataRecord
 }
 
 interface DocumentRecord {
@@ -250,10 +251,17 @@ export default function DocumentsView({
     const isFirstDocument = documents.length === 0
     // Initialize metadata with same keys as existing documents (empty values)
     // If first document, start with empty metadata (user will add fields)
-    const initialMetadata: Record<string, string> = {}
+    const initialMetadata: TypedMetadataRecord = {}
     if (!isFirstDocument) {
+      // Infer types from existing documents
       metadataFields.forEach(key => {
-        initialMetadata[key] = ''
+        // Find the first document with this metadata key to infer type
+        const existingDoc = documents.find(d => d.metadata && key in d.metadata)
+        const existingValue = existingDoc?.metadata?.[key]
+        let inferredType: 'string' | 'number' | 'boolean' = 'string'
+        if (typeof existingValue === 'number') inferredType = 'number'
+        else if (typeof existingValue === 'boolean') inferredType = 'boolean'
+        initialMetadata[key] = { value: '', type: inferredType }
       })
     }
     setDraftDocument({
@@ -278,7 +286,7 @@ export default function DocumentsView({
       return {
         ...prev,
         document: updates.document !== undefined ? updates.document : prev.document,
-        metadata: updates.metadata !== undefined ? (updates.metadata as Record<string, string>) : prev.metadata,
+        metadata: updates.metadata !== undefined ? (updates.metadata as TypedMetadataRecord) : prev.metadata,
       }
     })
   }, [])
@@ -311,22 +319,8 @@ export default function DocumentsView({
     }
 
     try {
-      // Convert string metadata values to appropriate types
-      const metadata = Object.keys(draftDocument.metadata).length > 0
-        ? Object.fromEntries(
-            Object.entries(draftDocument.metadata)
-              .filter(([_, v]) => v.trim() !== '')
-              .map(([k, v]) => {
-                // Try to parse as number
-                const num = Number(v)
-                if (!isNaN(num) && v.trim() !== '') return [k, num]
-                // Try to parse as boolean
-                if (v.toLowerCase() === 'true') return [k, true]
-                if (v.toLowerCase() === 'false') return [k, false]
-                return [k, v]
-              })
-          )
-        : undefined
+      // Convert typed metadata to ChromaDB format
+      const metadata = typedMetadataToChromaFormat(draftDocument.metadata)
 
       await createMutation.mutateAsync({
         id: draftDocument.id,

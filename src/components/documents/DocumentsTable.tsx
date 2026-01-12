@@ -7,6 +7,7 @@ import {
   ColumnResizeMode,
 } from '@tanstack/react-table'
 import EmbeddingCell from './EmbeddingCell'
+import { TypedMetadataRecord } from '../../types/metadata'
 
 interface DocumentRecord {
   id: string
@@ -18,7 +19,7 @@ interface DocumentRecord {
 interface DraftDocument {
   id: string
   document: string
-  metadata: Record<string, string>
+  metadata: TypedMetadataRecord
 }
 
 interface DocumentsTableProps {
@@ -344,23 +345,29 @@ export default function DocumentsTable({
                 />
               </td>
               {/* Editable metadata cells */}
-              {metadataKeys.map(key => (
-                <td
-                  key={`draft-${key}`}
-                  className="pl-3 py-0.5 align-top border-r border-border"
-                >
-                  <input
-                    type="text"
-                    value={draftDocument.metadata[key] || ''}
-                    onChange={(e) => onDraftChange({
-                      ...draftDocument,
-                      metadata: { ...draftDocument.metadata, [key]: e.target.value }
-                    })}
-                    placeholder="-"
-                    className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-                  />
-                </td>
-              ))}
+              {metadataKeys.map(key => {
+                const field = draftDocument.metadata[key]
+                return (
+                  <td
+                    key={`draft-${key}`}
+                    className="pl-3 py-0.5 align-top border-r border-border"
+                  >
+                    <input
+                      type="text"
+                      value={field?.value || ''}
+                      onChange={(e) => onDraftChange({
+                        ...draftDocument,
+                        metadata: {
+                          ...draftDocument.metadata,
+                          [key]: { ...field, value: e.target.value }
+                        }
+                      })}
+                      placeholder="-"
+                      className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
+                    />
+                  </td>
+                )
+              })}
               {/* Filler cell */}
               <td className="border-r border-border"></td>
             </tr>

@@ -3,6 +3,7 @@ import { useChromaDB } from '../providers/ChromaDBProvider'
 import { useCreateCollectionMutation } from '../hooks/useChromaQueries'
 import { useCollection } from './CollectionContext'
 import { EMBEDDING_FUNCTIONS } from '../constants/embedding-functions'
+import { TypedMetadataRecord, typedMetadataToChromaFormat } from '../types/metadata'
 
 export interface DraftCollection {
   name: string
@@ -12,7 +13,7 @@ export interface DraftCollection {
   firstDocument: {
     id: string
     document: string
-    metadata: Record<string, string>
+    metadata: TypedMetadataRecord
   } | null
 }
 
@@ -121,12 +122,7 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
         params.firstDocument = {
           id: draftCollection.firstDocument.id.trim(),
           document: draftCollection.firstDocument.document || undefined,
-          metadata:
-            Object.keys(draftCollection.firstDocument.metadata).length > 0
-              ? Object.fromEntries(
-                  Object.entries(draftCollection.firstDocument.metadata).filter(([_, v]) => v.trim() !== '')
-                )
-              : undefined,
+          metadata: typedMetadataToChromaFormat(draftCollection.firstDocument.metadata),
         }
       }
 
