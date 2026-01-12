@@ -197,21 +197,37 @@ export default function DocumentDetailPanel({
   const handleMetadataChange = (key: string, value: string) => {
     if (!draftMetadata) return
 
-    // Try to preserve original type
-    const originalValue = document.metadata?.[key]
-    let parsedValue: unknown = value
+    // Check if this is a typed metadata field (for drafts)
+    const existingField = draftMetadata[key]
+    const isTypedField = existingField && typeof existingField === 'object' && 'type' in existingField
 
-    if (typeof originalValue === 'number') {
-      const num = Number(value)
-      if (!isNaN(num)) {
-        parsedValue = num
+    let newMetadata: Record<string, unknown>
+
+    if (isDraft && isTypedField) {
+      // For drafts with typed fields, update the value property
+      const typedField = existingField as TypedMetadataField
+      newMetadata = {
+        ...draftMetadata,
+        [key]: { ...typedField, value }
       }
-    } else if (typeof originalValue === 'boolean') {
-      if (value.toLowerCase() === 'true') parsedValue = true
-      else if (value.toLowerCase() === 'false') parsedValue = false
+    } else {
+      // For existing documents, try to preserve original type
+      const originalValue = document.metadata?.[key]
+      let parsedValue: unknown = value
+
+      if (typeof originalValue === 'number') {
+        const num = Number(value)
+        if (!isNaN(num)) {
+          parsedValue = num
+        }
+      } else if (typeof originalValue === 'boolean') {
+        if (value.toLowerCase() === 'true') parsedValue = true
+        else if (value.toLowerCase() === 'false') parsedValue = false
+      }
+
+      newMetadata = { ...draftMetadata, [key]: parsedValue }
     }
 
-    const newMetadata = { ...draftMetadata, [key]: parsedValue }
     setDraftMetadata(newMetadata)
 
     if (isDraft && onDraftChange) {
@@ -365,8 +381,8 @@ export default function DocumentDetailPanel({
           entries.sort(([a], [b]) => a.localeCompare(b))
         }
         return entries.map(([key, value], index) => {
-          // For first document drafts, value is TypedMetadataField; otherwise it's unknown
-          const isTypedField = canEditSchema && value && typeof value === 'object' && 'type' in value
+          // Check if value is a TypedMetadataField (has value and type properties)
+          const isTypedField = value && typeof value === 'object' && 'value' in value && 'type' in value
           const typedField = isTypedField ? (value as TypedMetadataField) : null
           const displayValue = typedField ? typedField.value : (
             value !== undefined
@@ -376,8 +392,8 @@ export default function DocumentDetailPanel({
               : ''
           )
           const originalValue = document.metadata?.[key]
-          const isDirty = canEditSchema ? true : value !== originalValue
-          const validationError = typedField ? validateMetadataValue(typedField.value, typedField.type) : null
+          const isDirty = isDraft ? true : value !== originalValue
+          const validationError = canEditSchema && typedField ? validateMetadataValue(typedField.value, typedField.type) : null
 
           // Use index as key when editing schema to prevent focus loss when key name changes
           return (

@@ -37,9 +37,17 @@ export function validateMetadataValue(value: string, type: MetadataValueType): s
 
 // Convert typed metadata to ChromaDB format (actual typed values)
 export function typedMetadataToChromaFormat(
-  metadata: TypedMetadataRecord
+  metadata: TypedMetadataRecord | Record<string, unknown>
 ): Record<string, string | number | boolean> | undefined {
-  const entries = Object.entries(metadata).filter(([_, field]) => field.value.trim() !== '')
+  const entries = Object.entries(metadata).filter(([_, field]) => {
+    // Handle both typed fields and plain values
+    if (field && typeof field === 'object' && 'value' in field) {
+      const typedField = field as TypedMetadataField
+      return typedField.value?.trim() !== ''
+    }
+    // Plain value - treat as string
+    return field !== undefined && field !== null && String(field).trim() !== ''
+  })
 
   if (entries.length === 0) {
     return undefined
@@ -47,16 +55,27 @@ export function typedMetadataToChromaFormat(
 
   return Object.fromEntries(
     entries.map(([key, field]) => {
-      const trimmed = field.value.trim()
-      switch (field.type) {
-        case 'number':
-          return [key, Number(trimmed)]
-        case 'boolean':
-          return [key, trimmed.toLowerCase() === 'true']
-        case 'string':
-        default:
-          return [key, trimmed]
+      // Handle typed field
+      if (field && typeof field === 'object' && 'value' in field && 'type' in field) {
+        const typedField = field as TypedMetadataField
+        const trimmed = typedField.value.trim()
+        switch (typedField.type) {
+          case 'number':
+            return [key, Number(trimmed)]
+          case 'boolean':
+            return [key, trimmed.toLowerCase() === 'true']
+          case 'string':
+          default:
+            return [key, trimmed]
+        }
       }
+      // Handle plain value - try to infer type
+      const strValue = String(field).trim()
+      const num = Number(strValue)
+      if (!isNaN(num) && strValue !== '') return [key, num]
+      if (strValue.toLowerCase() === 'true') return [key, true]
+      if (strValue.toLowerCase() === 'false') return [key, false]
+      return [key, strValue]
     })
   )
 }
