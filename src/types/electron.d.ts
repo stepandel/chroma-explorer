@@ -104,6 +104,7 @@ declare global {
       createDocument: (profileId: string, params: CreateDocumentParams) => Promise<void>
       deleteDocuments: (profileId: string, params: DeleteDocumentsParams) => Promise<void>
       createCollection: (profileId: string, params: CreateCollectionParams) => Promise<CollectionInfo>
+      deleteCollection: (profileId: string, collectionName: string) => Promise<void>
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>
