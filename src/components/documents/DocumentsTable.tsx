@@ -213,7 +213,10 @@ export default function DocumentsTable({
         <tbody className="divide-y divide-border">
           {/* Draft row for creating new document */}
           {draftDocument && onDraftChange && (
-            <tr className={`${selectedDocumentId === draftDocument.id ? 'bg-blue-100' : 'bg-blue-50/50'}`}>
+            <tr
+              className={`cursor-pointer ${selectedDocumentId === draftDocument.id ? 'bg-blue-100' : 'bg-blue-50/50'}`}
+              onClick={() => onDocumentSelect(draftDocument.id)}
+            >
               {/* ID cell - editable */}
               <td
                 className="pl-3 py-0.5 align-top border-r border-border"
