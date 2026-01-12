@@ -61,3 +61,12 @@ export interface UpdateDocumentParams {
   embedding?: number[]
   regenerateEmbedding?: boolean // If true, regenerate embedding from document text
 }
+
+export interface CreateDocumentParams {
+  collectionName: string
+  id: string
+  document?: string
+  metadata?: Metadata
+  embedding?: number[]
+  generateEmbedding?: boolean // If true, generate embedding from document text
+}

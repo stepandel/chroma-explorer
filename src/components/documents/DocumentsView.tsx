@@ -1,10 +1,17 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
-import { useDocumentsQuery, useCollectionsQuery } from '../../hooks/useChromaQueries'
+import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation } from '../../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
 import { FilterRow } from '../filters/FilterRow'
+import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
+
+interface DraftDocument {
+  id: string
+  document: string
+}
 
 interface DocumentRecord {
   id: string
@@ -37,6 +44,15 @@ export default function DocumentsView({
   const { currentProfile } = useChromaDB()
   const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
   const [nResults, setNResults] = useState(10)
+
+  // Draft document state for creating new documents
+  const [draftDocument, setDraftDocument] = useState<DraftDocument | null>(null)
+
+  // Create document mutation
+  const createMutation = useCreateDocumentMutation(
+    currentProfile?.id || '',
+    collectionName
+  )
 
   // Fetch collections to get the current collection's info
   const { data: collections = [] } = useCollectionsQuery(currentProfile?.id || null)
@@ -185,6 +201,60 @@ export default function DocumentsView({
     (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim())
   )
 
+  // Draft document handlers
+  const handleStartCreate = useCallback(() => {
+    setDraftDocument({
+      id: crypto.randomUUID(),
+      document: '',
+    })
+  }, [])
+
+  const handleDraftChange = useCallback((draft: DraftDocument) => {
+    setDraftDocument(draft)
+  }, [])
+
+  const handleCancelDraft = useCallback(() => {
+    setDraftDocument(null)
+  }, [])
+
+  const handleSaveDraft = useCallback(async () => {
+    if (!draftDocument) return
+    if (!draftDocument.id.trim()) {
+      // ID is required
+      return
+    }
+
+    try {
+      await createMutation.mutateAsync({
+        id: draftDocument.id,
+        document: draftDocument.document || undefined,
+        generateEmbedding: !!draftDocument.document,
+      })
+      setDraftDocument(null)
+    } catch (error) {
+      console.error('Failed to create document:', error)
+    }
+  }, [draftDocument, createMutation])
+
+  // Keyboard shortcuts for draft
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command+S to save draft
+      if (e.metaKey && e.key === 's' && draftDocument) {
+        e.preventDefault()
+        handleSaveDraft()
+      }
+      // Escape to cancel draft
+      if (e.key === 'Escape' && draftDocument) {
+        e.preventDefault()
+        handleCancelDraft()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [draftDocument, handleSaveDraft, handleCancelDraft])
+
   // Extract unique metadata fields from documents
   const metadataFields = useMemo(() => {
     const fields = new Set<string>()
@@ -254,7 +324,33 @@ export default function DocumentsView({
           hasActiveFilters={hasActiveFilters}
           selectedDocumentId={selectedDocumentId}
           onDocumentSelect={onDocumentSelect}
+          draftDocument={draftDocument}
+          onDraftChange={handleDraftChange}
+          onDraftCancel={handleCancelDraft}
         />
+      </div>
+
+      {/* Bottom Toolbar */}
+      <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+          onClick={handleStartCreate}
+          disabled={!!draftDocument}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        {draftDocument && (
+          <Button
+            size="sm"
+            className="h-7 px-3 text-xs"
+            onClick={handleSaveDraft}
+            disabled={createMutation.isPending || !draftDocument.id.trim()}
+          >
+            {createMutation.isPending ? 'Saving...' : 'Save'}
+          </Button>
+        )}
       </div>
     </div>
   )

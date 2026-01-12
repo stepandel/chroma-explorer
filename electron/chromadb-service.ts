@@ -5,6 +5,7 @@ import {
   DocumentRecord,
   SearchDocumentsParams,
   UpdateDocumentParams,
+  CreateDocumentParams,
   EmbeddingFunctionOverride,
 } from './types'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
@@ -294,6 +295,71 @@ class ChromaDBService {
     }
 
     await collection.update(updatePayload)
+  }
+
+  async createDocument(
+    params: CreateDocumentParams,
+    embeddingOverride?: EmbeddingFunctionOverride | null
+  ): Promise<void> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    // Find the collection's embedding function config from cache
+    const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
+
+    // Build embedding function if generation is requested
+    let efConfig: CollectionInfo['embeddingFunction'] = null
+    if (params.generateEmbedding && params.document) {
+      if (embeddingOverride) {
+        efConfig = {
+          name: embeddingOverride.type === 'default' ? 'default' : 'openai',
+          type: 'known',
+          config: embeddingOverride.type === 'openai'
+            ? { model_name: embeddingOverride.modelName }
+            : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
+        }
+      } else {
+        efConfig = collectionInfo?.embeddingFunction
+      }
+    }
+
+    // Get embedding function only if generating
+    const embeddingFunction = params.generateEmbedding
+      ? await this.efFactory?.getEmbeddingFunction(params.collectionName, efConfig)
+      : undefined
+
+    const collection = await this.client.getCollection({
+      name: params.collectionName,
+      embeddingFunction,
+    })
+
+    // Build add payload
+    const addPayload: {
+      ids: string[]
+      documents?: string[]
+      metadatas?: Metadata[]
+      embeddings?: number[][]
+    } = {
+      ids: [params.id],
+    }
+
+    // Include document if provided
+    if (params.document !== undefined) {
+      addPayload.documents = [params.document]
+    }
+
+    // Include metadata if provided
+    if (params.metadata !== undefined) {
+      addPayload.metadatas = [params.metadata]
+    }
+
+    // Include embedding if provided (only when not generating - ChromaDB handles it)
+    if (params.embedding !== undefined && !params.generateEmbedding) {
+      addPayload.embeddings = [params.embedding]
+    }
+
+    await collection.add(addPayload as any)
   }
 
   isConnected(): boolean {

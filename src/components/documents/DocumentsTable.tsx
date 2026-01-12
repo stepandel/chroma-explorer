@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,6 +15,11 @@ interface DocumentRecord {
   embedding: number[] | null
 }
 
+interface DraftDocument {
+  id: string
+  document: string
+}
+
 interface DocumentsTableProps {
   documents: DocumentRecord[]
   loading: boolean
@@ -22,6 +27,9 @@ interface DocumentsTableProps {
   hasActiveFilters?: boolean
   selectedDocumentId: string | null
   onDocumentSelect: (id: string | null) => void
+  draftDocument?: DraftDocument | null
+  onDraftChange?: (draft: DraftDocument) => void
+  onDraftCancel?: () => void
 }
 
 export default function DocumentsTable({
@@ -31,7 +39,19 @@ export default function DocumentsTable({
   hasActiveFilters = false,
   selectedDocumentId,
   onDocumentSelect,
+  draftDocument,
+  onDraftChange,
+  onDraftCancel,
 }: DocumentsTableProps) {
+  // Ref for auto-focusing the id input when draft starts
+  const draftIdInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-focus when draft is created
+  useEffect(() => {
+    if (draftDocument && draftIdInputRef.current) {
+      draftIdInputRef.current.focus()
+    }
+  }, [draftDocument])
   // Extract all unique metadata keys from documents
   const metadataKeys = useMemo(() =>
     Array.from(
@@ -183,15 +203,60 @@ export default function DocumentsTable({
           ))}
         </thead>
         <tbody className="divide-y divide-border">
+          {/* Draft row for creating new document */}
+          {draftDocument && onDraftChange && (
+            <tr className="bg-blue-50/50">
+              {/* ID cell - editable */}
+              <td
+                className="pl-3 py-0.5 align-top border-r border-border"
+                style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
+              >
+                <input
+                  ref={draftIdInputRef}
+                  type="text"
+                  value={draftDocument.id}
+                  onChange={(e) => onDraftChange({ ...draftDocument, id: e.target.value })}
+                  placeholder="Enter document ID"
+                  className="w-full text-xs font-mono bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
+                />
+              </td>
+              {/* Document cell - editable */}
+              <td
+                className="pl-3 py-0.5 align-top border-r border-border"
+                style={{ width: table.getHeaderGroups()[0]?.headers[1]?.getSize() }}
+              >
+                <input
+                  type="text"
+                  value={draftDocument.document}
+                  onChange={(e) => onDraftChange({ ...draftDocument, document: e.target.value })}
+                  placeholder="Enter document text"
+                  className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
+                />
+              </td>
+              {/* Empty cells for metadata columns */}
+              {metadataKeys.map(key => (
+                <td
+                  key={`draft-${key}`}
+                  className="pl-3 py-0.5 align-top border-r border-border"
+                >
+                  <span className="text-xs text-muted-foreground/50 italic">-</span>
+                </td>
+              ))}
+              {/* Filler cell */}
+              <td className="border-r border-border"></td>
+            </tr>
+          )}
           {table.getRowModel().rows.map((row, index) => {
             const isSelected = selectedDocumentId === row.original.id
+            // Adjust index for alternating colors when draft exists
+            const adjustedIndex = draftDocument ? index + 1 : index
             return (
               <tr
                 key={row.id}
                 className={`transition-colors cursor-pointer ${
                   isSelected
                     ? 'bg-blue-100'
-                    : index % 2 === 0 ? 'bg-background' : 'bg-muted/100'
+                    : adjustedIndex % 2 === 0 ? 'bg-background' : 'bg-muted/100'
                 }`}
                 onClick={() => onDocumentSelect(isSelected ? null : row.original.id)}
               >
