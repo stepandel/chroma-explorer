@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { cn } from '@/lib/utils'
 
 const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 
@@ -45,55 +39,104 @@ export function DeleteCollectionDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-destructive">Delete Collection</DialogTitle>
-          <DialogDescription className="text-sm">
-            This action cannot be undone. This will permanently delete the collection
-            <strong className="text-foreground"> {collectionName}</strong> and all{' '}
-            <strong className="text-foreground">{documentCount} document{documentCount !== 1 ? 's' : ''}</strong> within it.
-          </DialogDescription>
-        </DialogHeader>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        {/* Subtle overlay */}
+        <DialogPrimitive.Overlay
+          className="fixed inset-0 z-50 bg-black/20 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        />
+        <DialogPrimitive.Content
+          className={cn(
+            "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
+            "w-[320px] rounded-xl",
+            "bg-background/80 backdrop-blur-2xl backdrop-saturate-150",
+            "shadow-[0_24px_48px_-12px_rgba(0,0,0,0.3)]",
+            "ring-1 ring-black/10 dark:ring-white/10",
+            "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          )}
+        >
+          {/* Content */}
+          <div className="px-5 pt-5 pb-4 text-center">
+            <DialogPrimitive.Title className="text-[13px] font-semibold text-destructive">
+              Delete Collection
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Description className="mt-2 text-[11px] text-muted-foreground leading-[1.4]">
+              This will permanently delete <span className="font-medium text-foreground">{collectionName}</span> and
+              all <span className="font-medium text-foreground">{documentCount}</span> document{documentCount !== 1 ? 's' : ''}.
+              This action cannot be undone.
+            </DialogPrimitive.Description>
 
-        <div className="space-y-2 py-2">
-          <label className="text-[11px] font-medium text-muted-foreground">
-            Type <span className="font-mono text-foreground">{collectionName}</span> to confirm
-          </label>
-          <input
-            type="text"
-            value={confirmInput}
-            onChange={(e) => setConfirmInput(e.target.value)}
-            placeholder={collectionName}
-            className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
-            style={inputStyle}
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && isConfirmValid) {
-                handleConfirm()
-              }
-            }}
-          />
-        </div>
+            {/* Confirmation input */}
+            <div className="mt-3">
+              <label className="text-[10px] text-muted-foreground">
+                Type <span className="font-mono text-foreground">{collectionName}</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                placeholder={collectionName}
+                className={cn(
+                  "mt-1.5 w-full h-7 px-2 text-[11px] text-center",
+                  "rounded-md border border-input bg-background/50",
+                  "placeholder:text-muted-foreground/40",
+                  "focus:outline-none focus:ring-1 focus:ring-ring"
+                )}
+                style={inputStyle}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && isConfirmValid) {
+                    handleConfirm()
+                  }
+                }}
+              />
+            </div>
+          </div>
 
-        <DialogFooter className="gap-2">
-          <button
-            onClick={() => onOpenChange(false)}
-            disabled={isDeleting}
-            className="h-8 px-3 text-sm rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-            style={inputStyle}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={!isConfirmValid || isDeleting}
-            className="h-8 px-3 text-sm rounded-md bg-destructive hover:bg-destructive/90 text-destructive-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isDeleting ? 'Deleting...' : 'Delete Collection'}
-          </button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          {/* Buttons - horizontal layout like macOS desktop alerts */}
+          <div className="px-4 pb-4 flex gap-2">
+            {/* Secondary button - subtle rounded rect */}
+            <button
+              onClick={() => onOpenChange(false)}
+              disabled={isDeleting}
+              className={cn(
+                "flex-1 h-[22px] px-3 text-[12px] font-normal",
+                "rounded-md",
+                "bg-white/10 dark:bg-white/10",
+                "text-foreground/90",
+                "ring-1 ring-black/10 dark:ring-white/15",
+                "shadow-sm",
+                "transition-all duration-100",
+                "hover:bg-white/20 dark:hover:bg-white/15",
+                "active:bg-white/25 dark:active:bg-white/20",
+                "disabled:opacity-40 disabled:cursor-not-allowed",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              )}
+            >
+              Cancel
+            </button>
+            {/* Destructive button - red filled */}
+            <button
+              onClick={handleConfirm}
+              disabled={!isConfirmValid || isDeleting}
+              className={cn(
+                "flex-1 h-[22px] px-3 text-[12px] font-medium",
+                "rounded-md",
+                "bg-destructive hover:bg-destructive/90 active:bg-destructive/80",
+                "text-destructive-foreground",
+                "shadow-sm",
+                "transition-all duration-100",
+                "disabled:opacity-40 disabled:cursor-not-allowed",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-offset-1"
+              )}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   )
 }
