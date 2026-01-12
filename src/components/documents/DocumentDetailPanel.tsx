@@ -317,54 +317,60 @@ export default function DocumentDetailPanel({
         />
       </section>
 
-      {/* Metadata Fields - Each as Individual Section (sorted alphabetically) */}
-      {draftMetadata &&
-        Object.entries(draftMetadata)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([key, value]) => {
-            const originalValue = document.metadata?.[key]
-            const isDirty = value !== originalValue
-            const canEditSchema = isDraft && isFirstDocument
+      {/* Metadata Fields - Each as Individual Section */}
+      {(() => {
+        if (!draftMetadata) return null
+        const canEditSchema = isDraft && isFirstDocument
+        const entries = Object.entries(draftMetadata)
+        // Only sort when not editing schema (sorting while editing causes focus issues)
+        if (!canEditSchema) {
+          entries.sort(([a], [b]) => a.localeCompare(b))
+        }
+        return entries.map(([key, value], index) => {
+          const originalValue = document.metadata?.[key]
+          const isDirty = value !== originalValue
 
-            return (
-              <section key={key}>
-                {canEditSchema ? (
-                  // First document draft - editable key with remove button
-                  <div className="flex items-center gap-1 mb-1">
-                    <input
-                      type="text"
-                      value={key}
-                      onChange={(e) => handleMetadataKeyRename(key, e.target.value)}
-                      className="flex-1 text-xs font-semibold text-muted-foreground bg-transparent border-none outline-none focus:text-foreground"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveMetadataField(key)}
-                      className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  // Regular mode - just the label
-                  <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
-                )}
-                <textarea
-                  rows={1}
-                  value={
-                    value !== undefined
-                      ? typeof value === 'object'
-                        ? JSON.stringify(value)
-                        : String(value)
-                      : ''
-                  }
-                  onChange={(e) => handleMetadataChange(key, e.target.value)}
-                  style={{ fieldSizing: 'content' } as React.CSSProperties}
-                  className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)}`}
-                />
-              </section>
-            )
-          })}
+          // Use index as key when editing schema to prevent focus loss when key name changes
+          return (
+            <section key={canEditSchema ? `field-${index}` : key}>
+              {canEditSchema ? (
+                // First document draft - editable key with remove button
+                <div className="flex items-center gap-1 mb-1">
+                  <input
+                    type="text"
+                    value={key}
+                    onChange={(e) => handleMetadataKeyRename(key, e.target.value)}
+                    className="flex-1 text-xs font-semibold text-muted-foreground bg-transparent border-none outline-none focus:text-foreground"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveMetadataField(key)}
+                    className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                // Regular mode - just the label
+                <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
+              )}
+              <textarea
+                rows={1}
+                value={
+                  value !== undefined
+                    ? typeof value === 'object'
+                      ? JSON.stringify(value)
+                      : String(value)
+                    : ''
+                }
+                onChange={(e) => handleMetadataChange(key, e.target.value)}
+                style={{ fieldSizing: 'content' } as React.CSSProperties}
+                className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(isDirty)}`}
+              />
+            </section>
+          )
+        })
+      })()}
 
       {/* Add metadata field button - only for first document drafts */}
       {isDraft && isFirstDocument && (
