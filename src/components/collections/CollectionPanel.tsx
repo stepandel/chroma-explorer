@@ -116,8 +116,8 @@ export function CollectionPanel() {
         handleCommitDeletion()
       }
 
-      // Escape to cancel deletion mark
-      if (e.key === 'Escape' && markedForDeletion) {
+      // Escape or Command+Z to cancel deletion mark
+      if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && markedForDeletion) {
         e.preventDefault()
         setMarkedForDeletion(null)
       }
