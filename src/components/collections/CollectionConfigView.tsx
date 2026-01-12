@@ -220,7 +220,9 @@ export function CollectionConfigView() {
                 {Object.keys(draftCollection.firstDocument.metadata || {}).length > 0 ? (
                   <div className="space-y-1.5">
                     {Object.entries(draftCollection.firstDocument.metadata).map(([key, field], index) => {
-                      const validationError = validateMetadataValue(field.value, field.type)
+                      const localError = validateMetadataValue(field.value, field.type)
+                      const contextError = validationErrors[`metadata.${key}`]
+                      const displayError = localError || contextError
                       return (
                         <div key={index} className="space-y-1">
                           <div className="flex items-center gap-1.5">
@@ -279,7 +281,7 @@ export function CollectionConfigView() {
                               }}
                               placeholder={field.type === 'boolean' ? 'true / false' : field.type === 'number' ? '0' : 'value'}
                               className={`flex-1 h-7 px-2 rounded-md border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring ${
-                                validationError ? 'border-destructive' : 'border-input'
+                                displayError ? 'border-destructive' : 'border-input'
                               }`}
                             />
                             <button
@@ -298,8 +300,8 @@ export function CollectionConfigView() {
                               <X className="h-3 w-3" />
                             </button>
                           </div>
-                          {validationError && (
-                            <p className="text-xs text-destructive pl-1">{validationError}</p>
+                          {displayError && (
+                            <p className="text-xs text-destructive pl-1">{displayError}</p>
                           )}
                         </div>
                       )

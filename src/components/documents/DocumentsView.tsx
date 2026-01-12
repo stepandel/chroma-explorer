@@ -3,7 +3,7 @@ import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation } from '../../hooks/useChromaQueries'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
-import { TypedMetadataRecord, typedMetadataToChromaFormat } from '../../types/metadata'
+import { TypedMetadataRecord, TypedMetadataField, typedMetadataToChromaFormat, validateMetadataValue } from '../../types/metadata'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
 import { FilterRow } from '../filters/FilterRow'
 
@@ -69,6 +69,9 @@ export default function DocumentsView({
   // Draft document state for creating new documents
   const [draftDocument, setDraftDocument] = useState<DraftDocument | null>(null)
 
+  // Validation error for draft document
+  const [draftError, setDraftError] = useState<string | null>(null)
+
   // Marked for deletion state (set of document IDs)
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set())
 
@@ -133,6 +136,7 @@ export default function DocumentsView({
     setNResults(10)
     setMarkedForDeletion(new Set())
     setDraftDocument(null)
+    setDraftError(null)
   }, [collectionName])
 
   // Build search params from filter rows
@@ -277,6 +281,7 @@ export default function DocumentsView({
 
   const handleDraftChange = useCallback((draft: DraftDocument) => {
     setDraftDocument(draft)
+    setDraftError(null) // Clear error when user makes changes
   }, [])
 
   // Handler for external draft updates (from detail panel)
@@ -289,6 +294,7 @@ export default function DocumentsView({
         metadata: updates.metadata !== undefined ? (updates.metadata as TypedMetadataRecord) : prev.metadata,
       }
     })
+    setDraftError(null) // Clear error when user makes changes
   }, [])
 
   // Expose the draft update handler to parent
@@ -300,22 +306,37 @@ export default function DocumentsView({
 
   const handleCancelDraft = useCallback(() => {
     setDraftDocument(null)
+    setDraftError(null)
     onClearSelection() // Deselect when cancelling
     onIsFirstDocumentChange?.(false) // Reset first document flag
   }, [onClearSelection, onIsFirstDocumentChange])
 
   const handleSaveDraft = useCallback(async () => {
     if (!draftDocument) return
+    setDraftError(null)
+
     if (!draftDocument.id.trim()) {
-      // ID is required
+      setDraftError('Document ID is required')
       return
     }
 
     // Document text is required (ChromaDB needs either document or embeddings)
     const documentText = draftDocument.document?.trim()
     if (!documentText) {
-      console.error('Document text is required')
+      setDraftError('Document text is required')
       return
+    }
+
+    // Validate metadata types before saving
+    for (const [key, field] of Object.entries(draftDocument.metadata)) {
+      if (field && typeof field === 'object' && 'value' in field && 'type' in field) {
+        const typedField = field as TypedMetadataField
+        const error = validateMetadataValue(typedField.value, typedField.type)
+        if (error) {
+          setDraftError(`Metadata "${key}": ${error}`)
+          return
+        }
+      }
     }
 
     try {
@@ -329,10 +350,12 @@ export default function DocumentsView({
         generateEmbedding: true,
       })
       setDraftDocument(null)
+      setDraftError(null)
       onClearSelection() // Deselect after saving
       onIsFirstDocumentChange?.(false) // Reset first document flag
     } catch (error) {
-      console.error('Failed to create document:', error)
+      const message = error instanceof Error ? error.message : 'Failed to create document'
+      setDraftError(message)
     }
   }, [draftDocument, createMutation, onClearSelection, onIsFirstDocumentChange])
 
@@ -509,22 +532,27 @@ export default function DocumentsView({
           +
         </button>
         {draftDocument && (
-          <div className="flex gap-2">
-            <button
-              onClick={handleCancelDraft}
-              disabled={createMutation.isPending}
-              className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveDraft}
-              disabled={createMutation.isPending || !draftDocument.id.trim()}
-              className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {createMutation.isPending ? 'Saving...' : 'Save'}
-            </button>
+          <div className="flex items-center gap-3">
+            {draftError && (
+              <span className="text-[11px] text-destructive">{draftError}</span>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancelDraft}
+                disabled={createMutation.isPending}
+                className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDraft}
+                disabled={createMutation.isPending || !draftDocument.id.trim()}
+                className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         )}
         {!draftDocument && markedForDeletion.size > 0 && (

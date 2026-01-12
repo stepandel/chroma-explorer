@@ -3,7 +3,7 @@ import { useChromaDB } from '../providers/ChromaDBProvider'
 import { useCreateCollectionMutation } from '../hooks/useChromaQueries'
 import { useCollection } from './CollectionContext'
 import { EMBEDDING_FUNCTIONS } from '../constants/embedding-functions'
-import { TypedMetadataRecord, typedMetadataToChromaFormat } from '../types/metadata'
+import { TypedMetadataRecord, typedMetadataToChromaFormat, validateMetadataValue } from '../types/metadata'
 
 export interface DraftCollection {
   name: string
@@ -88,6 +88,16 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
     const errors: Record<string, string> = {}
     if (!draftCollection.name.trim()) {
       errors.name = 'Collection name is required'
+    }
+
+    // Validate first document metadata types
+    if (draftCollection.firstDocument) {
+      for (const [key, field] of Object.entries(draftCollection.firstDocument.metadata)) {
+        const error = validateMetadataValue(field.value, field.type)
+        if (error) {
+          errors[`metadata.${key}`] = `${key}: ${error}`
+        }
+      }
     }
 
     if (Object.keys(errors).length > 0) {

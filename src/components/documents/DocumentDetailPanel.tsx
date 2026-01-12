@@ -393,7 +393,8 @@ export default function DocumentDetailPanel({
           )
           const originalValue = document.metadata?.[key]
           const isDirty = isDraft ? true : value !== originalValue
-          const validationError = canEditSchema && typedField ? validateMetadataValue(typedField.value, typedField.type) : null
+          // Validate typed fields for all drafts (not just first document)
+          const validationError = isDraft && typedField ? validateMetadataValue(typedField.value, typedField.type) : null
 
           // Use index as key when editing schema to prevent focus loss when key name changes
           return (
