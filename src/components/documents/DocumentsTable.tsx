@@ -181,13 +181,13 @@ export default function DocumentsTable({
   return (
     <div className="overflow-auto h-full">
       <table style={{ minWidth: '100%', width: table.getCenterTotalSize() }}>
-        <thead className="bg-blue-50 sticky top-0 z-10 border-b border-border">
+        <thead className="bg-muted sticky top-0 z-10 border-b border-border">
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map(header => (
                 <th
                   key={header.id}
-                  className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border relative bg-blue-50"
+                  className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border relative bg-muted"
                   style={{ width: header.getSize() }}
                 >
                   {header.isPlaceholder
@@ -214,7 +214,7 @@ export default function DocumentsTable({
           {/* Draft row for creating new document */}
           {draftDocument && onDraftChange && (
             <tr
-              className={`cursor-pointer ${selectedDocumentId === draftDocument.id ? 'bg-blue-100' : 'bg-blue-50/50'}`}
+              className={`cursor-pointer ${selectedDocumentId === draftDocument.id ? 'bg-blue-50' : 'bg-blue-50/50'}`}
               onClick={() => onDocumentSelect(draftDocument.id)}
             >
               {/* ID cell - editable */}
