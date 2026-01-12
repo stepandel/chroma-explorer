@@ -67,6 +67,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data
     },
+    deleteCollection: async (profileId: string, collectionName: string): Promise<void> => {
+      const result = await ipcRenderer.invoke('chromadb:deleteCollection', profileId, collectionName)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
   },
   profiles: {
     getAll: async (): Promise<ConnectionProfile[]> => {

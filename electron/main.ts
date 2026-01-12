@@ -130,6 +130,20 @@ ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, pa
   }
 })
 
+ipcMain.handle('chromadb:deleteCollection', async (_event, profileId: string, collectionName: string) => {
+  try {
+    const service = chromaDBConnectionPool.getConnection(profileId)
+    if (!service) {
+      return { success: false, error: 'Not connected to ChromaDB' }
+    }
+    await service.deleteCollection(collectionName)
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete collection'
+    return { success: false, error: message }
+  }
+})
+
 // Profile management IPC handlers
 ipcMain.handle('profiles:getAll', async () => {
   try {

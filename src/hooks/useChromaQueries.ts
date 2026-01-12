@@ -207,3 +207,20 @@ export function useCreateCollectionMutation(profileId: string) {
   })
 }
 
+// Delete Collection Mutation
+export function useDeleteCollectionMutation(profileId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (collectionName: string) => {
+      await window.electronAPI.chromadb.deleteCollection(profileId, collectionName)
+    },
+    onSuccess: () => {
+      // Invalidate collections to refetch
+      queryClient.invalidateQueries({
+        queryKey: chromaQueryKeys.collections(profileId),
+      })
+    },
+  })
+}
+

@@ -469,6 +469,14 @@ class ChromaDBService {
     }
   }
 
+  async deleteCollection(collectionName: string): Promise<void> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    await this.client.deleteCollection({ name: collectionName })
+  }
+
   isConnected(): boolean {
     return this.client !== null
   }
