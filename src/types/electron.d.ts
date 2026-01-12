@@ -68,6 +68,20 @@ declare global {
     ids: string[]
   }
 
+  interface CreateCollectionParams {
+    name: string
+    embeddingFunction?: {
+      type: 'default' | 'openai'
+      modelName?: string
+    }
+    metadata?: Record<string, unknown>
+    firstDocument?: {
+      id: string
+      document?: string
+      metadata?: Record<string, unknown>
+    }
+  }
+
   interface ElectronAPI {
     chromadb: {
       connect: (profileId: string, profile: ConnectionProfile) => Promise<void>
@@ -77,6 +91,7 @@ declare global {
       updateDocument: (profileId: string, params: UpdateDocumentParams) => Promise<void>
       createDocument: (profileId: string, params: CreateDocumentParams) => Promise<void>
       deleteDocuments: (profileId: string, params: DeleteDocumentsParams) => Promise<void>
+      createCollection: (profileId: string, params: CreateCollectionParams) => Promise<CollectionInfo>
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>

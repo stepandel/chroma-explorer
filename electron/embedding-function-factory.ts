@@ -1,5 +1,6 @@
 import { ChromaClient, CloudClient, EmbeddingFunction } from 'chromadb'
 import { DefaultEmbeddingFunction } from '@chroma-core/default-embed'
+import { OpenAIEmbeddingFunction } from '@chroma-core/openai'
 import { CollectionInfo } from './types'
 
 // Python name -> JS package name mapping
@@ -72,8 +73,6 @@ export class EmbeddingFunctionFactory {
         }
 
         case 'openai': {
-          // Dynamic import for openai
-          const { OpenAIEmbeddingFunction } = await import('@chroma-core/openai')
           const config = efConfig.config as Record<string, unknown> || {}
 
           // Read API key from environment variable
@@ -83,13 +82,16 @@ export class EmbeddingFunctionFactory {
           if (!apiKey) {
             console.warn(
               `[EF Factory] Environment variable "${apiKeyEnvVar}" not set. ` +
-              `OpenAI embedding function will fail.`
+              `OpenAI embedding function will not work for generating embeddings.`
             )
           }
 
+          const modelName = (config.model_name as string) || 'text-embedding-ada-002'
+          console.log(`[EF Factory] Creating OpenAI embedding function with model: ${modelName}`)
+
           return new OpenAIEmbeddingFunction({
-            apiKey,
-            modelName: (config.model_name as string) || 'text-embedding-ada-002',
+            apiKey: apiKey || '', // Pass empty string if not set - will fail at embed time
+            modelName,
             organizationId: config.organization_id as string | undefined,
             dimensions: config.dimensions as number | undefined,
             apiBase: config.api_base as string | undefined,

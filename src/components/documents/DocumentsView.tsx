@@ -32,6 +32,8 @@ interface DocumentsViewProps {
   onClearSelection: () => void
   onSetSelectionAnchor: (id: string | null) => void
   onSelectedDocumentChange: (document: DocumentRecord | null, isDraft: boolean) => void
+  // Expose draft change handler for external updates (e.g., from detail panel)
+  onExposeDraftHandler?: (handler: ((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null) => void
 }
 
 function createDefaultFilterRow(): FilterRowType {
@@ -54,6 +56,7 @@ export default function DocumentsView({
   onClearSelection,
   onSetSelectionAnchor,
   onSelectedDocumentChange,
+  onExposeDraftHandler,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
   const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
@@ -258,6 +261,25 @@ export default function DocumentsView({
     setDraftDocument(draft)
   }, [])
 
+  // Handler for external draft updates (from detail panel)
+  const handleExternalDraftUpdate = useCallback((updates: { document?: string; metadata?: Record<string, unknown> }) => {
+    setDraftDocument((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        document: updates.document !== undefined ? updates.document : prev.document,
+        metadata: updates.metadata !== undefined ? (updates.metadata as Record<string, string>) : prev.metadata,
+      }
+    })
+  }, [])
+
+  // Expose the draft update handler to parent
+  useEffect(() => {
+    if (onExposeDraftHandler) {
+      onExposeDraftHandler(draftDocument ? handleExternalDraftUpdate : null)
+    }
+  }, [onExposeDraftHandler, draftDocument, handleExternalDraftUpdate])
+
   const handleCancelDraft = useCallback(() => {
     setDraftDocument(null)
     onClearSelection() // Deselect when cancelling
@@ -267,6 +289,13 @@ export default function DocumentsView({
     if (!draftDocument) return
     if (!draftDocument.id.trim()) {
       // ID is required
+      return
+    }
+
+    // Document text is required (ChromaDB needs either document or embeddings)
+    const documentText = draftDocument.document?.trim()
+    if (!documentText) {
+      console.error('Document text is required')
       return
     }
 
@@ -290,9 +319,9 @@ export default function DocumentsView({
 
       await createMutation.mutateAsync({
         id: draftDocument.id,
-        document: draftDocument.document || undefined,
+        document: documentText,
         metadata,
-        generateEmbedding: !!draftDocument.document,
+        generateEmbedding: true,
       })
       setDraftDocument(null)
       onClearSelection() // Deselect after saving

@@ -16,6 +16,7 @@ interface DocumentDetailPanelProps {
   collectionName: string
   profileId: string
   isDraft?: boolean
+  onDraftChange?: (updates: { document?: string; metadata?: Record<string, unknown> }) => void
 }
 
 export default function DocumentDetailPanel({
@@ -23,6 +24,7 @@ export default function DocumentDetailPanel({
   collectionName,
   profileId,
   isDraft = false,
+  onDraftChange,
 }: DocumentDetailPanelProps) {
   // Draft state
   const [draftDocument, setDraftDocument] = useState(document.document)
@@ -204,7 +206,12 @@ export default function DocumentDetailPanel({
       else if (value.toLowerCase() === 'false') parsedValue = false
     }
 
-    setDraftMetadata({ ...draftMetadata, [key]: parsedValue })
+    const newMetadata = { ...draftMetadata, [key]: parsedValue }
+    setDraftMetadata(newMetadata)
+
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
   }
 
   // Keyboard shortcuts
@@ -258,7 +265,12 @@ export default function DocumentDetailPanel({
         <textarea
           rows={1}
           value={draftDocument ?? ''}
-          onChange={(e) => setDraftDocument(e.target.value)}
+          onChange={(e) => {
+            setDraftDocument(e.target.value)
+            if (isDraft && onDraftChange) {
+              onDraftChange({ document: e.target.value })
+            }
+          }}
           placeholder="No document - type to add"
           style={{ fieldSizing: 'content' } as React.CSSProperties}
           className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasDocumentChanges)}`}

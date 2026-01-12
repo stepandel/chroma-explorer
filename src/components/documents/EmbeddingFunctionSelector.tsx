@@ -3,38 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Button } from '../ui/button'
 import { Label } from '../ui/label'
-
-// Predefined embedding functions with their configurations
-const EMBEDDING_FUNCTIONS = [
-  {
-    id: 'default',
-    label: 'Default (MiniLM)',
-    type: 'default' as const,
-    modelName: 'Xenova/all-MiniLM-L6-v2',
-    dimensions: 384,
-  },
-  {
-    id: 'openai-ada',
-    label: 'OpenAI Ada',
-    type: 'openai' as const,
-    modelName: 'text-embedding-ada-002',
-    dimensions: 1536,
-  },
-  {
-    id: 'openai-3-small',
-    label: 'OpenAI 3-Small',
-    type: 'openai' as const,
-    modelName: 'text-embedding-3-small',
-    dimensions: 1536,
-  },
-  {
-    id: 'openai-3-large',
-    label: 'OpenAI 3-Large',
-    type: 'openai' as const,
-    modelName: 'text-embedding-3-large',
-    dimensions: 3072,
-  },
-]
+import { EMBEDDING_FUNCTIONS } from '../../constants/embedding-functions'
 
 interface EmbeddingFunctionSelectorProps {
   collectionName: string

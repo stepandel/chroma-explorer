@@ -75,3 +75,18 @@ export interface DeleteDocumentsParams {
   collectionName: string
   ids: string[]
 }
+
+export interface CreateCollectionParams {
+  name: string
+  embeddingFunction?: {
+    type: 'default' | 'openai'
+    modelName?: string
+  }
+  metadata?: Record<string, unknown>
+  // Optional: create first document in same call
+  firstDocument?: {
+    id: string
+    document?: string
+    metadata?: Record<string, unknown>
+  }
+}
