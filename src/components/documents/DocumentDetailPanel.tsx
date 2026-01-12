@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Plus, X } from 'lucide-react'
 import EmbeddingCell from './EmbeddingCell'
 import { RegenerateEmbeddingDialog } from './RegenerateEmbeddingDialog'
 import { useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
@@ -16,6 +17,7 @@ interface DocumentDetailPanelProps {
   collectionName: string
   profileId: string
   isDraft?: boolean
+  isFirstDocument?: boolean
   onDraftChange?: (updates: { document?: string; metadata?: Record<string, unknown> }) => void
 }
 
@@ -24,6 +26,7 @@ export default function DocumentDetailPanel({
   collectionName,
   profileId,
   isDraft = false,
+  isFirstDocument = false,
   onDraftChange,
 }: DocumentDetailPanelProps) {
   // Draft state
@@ -214,6 +217,43 @@ export default function DocumentDetailPanel({
     }
   }
 
+  // Add a new metadata field (only for first document drafts)
+  const handleAddMetadataField = useCallback(() => {
+    const currentMetadata = draftMetadata || {}
+    let keyNum = 1
+    let newKey = `key${keyNum}`
+    while (newKey in currentMetadata) {
+      keyNum++
+      newKey = `key${keyNum}`
+    }
+    const newMetadata = { ...currentMetadata, [newKey]: '' }
+    setDraftMetadata(newMetadata)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
+  // Remove a metadata field (only for first document drafts)
+  const handleRemoveMetadataField = useCallback((keyToRemove: string) => {
+    if (!draftMetadata) return
+    const { [keyToRemove]: _, ...rest } = draftMetadata
+    setDraftMetadata(rest)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: rest })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
+  // Handle metadata key rename (only for first document drafts)
+  const handleMetadataKeyRename = useCallback((oldKey: string, newKey: string) => {
+    if (!draftMetadata || oldKey === newKey) return
+    const { [oldKey]: value, ...rest } = draftMetadata
+    const newMetadata = { ...rest, [newKey]: value }
+    setDraftMetadata(newMetadata)
+    if (isDraft && onDraftChange) {
+      onDraftChange({ metadata: newMetadata })
+    }
+  }, [draftMetadata, isDraft, onDraftChange])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -284,10 +324,31 @@ export default function DocumentDetailPanel({
           .map(([key, value]) => {
             const originalValue = document.metadata?.[key]
             const isDirty = value !== originalValue
+            const canEditSchema = isDraft && isFirstDocument
 
             return (
               <section key={key}>
-                <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
+                {canEditSchema ? (
+                  // First document draft - editable key with remove button
+                  <div className="flex items-center gap-1 mb-1">
+                    <input
+                      type="text"
+                      value={key}
+                      onChange={(e) => handleMetadataKeyRename(key, e.target.value)}
+                      className="flex-1 text-xs font-semibold text-muted-foreground bg-transparent border-none outline-none focus:text-foreground"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMetadataField(key)}
+                      className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  // Regular mode - just the label
+                  <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
+                )}
                 <textarea
                   rows={1}
                   value={
@@ -304,6 +365,20 @@ export default function DocumentDetailPanel({
               </section>
             )
           })}
+
+      {/* Add metadata field button - only for first document drafts */}
+      {isDraft && isFirstDocument && (
+        <section>
+          <button
+            type="button"
+            onClick={handleAddMetadataField}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add metadata field
+          </button>
+        </section>
+      )}
 
       {/* Embedding Section - Click to edit (hidden for drafts) */}
       {!isDraft && (

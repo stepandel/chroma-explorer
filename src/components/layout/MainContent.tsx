@@ -37,6 +37,7 @@ export function MainContent() {
   } = usePanel()
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
   const [isSelectedDraft, setIsSelectedDraft] = useState(false)
+  const [isFirstDocument, setIsFirstDocument] = useState(false)
   const [draftUpdateHandler, setDraftUpdateHandler] = useState<((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null>(null)
 
   const handleSelectedDocumentChange = (document: DocumentRecord | null, isDraft: boolean) => {
@@ -46,6 +47,10 @@ export function MainContent() {
 
   const handleExposeDraftHandler = (handler: ((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null) => {
     setDraftUpdateHandler(() => handler)
+  }
+
+  const handleIsFirstDocumentChange = (isFirst: boolean) => {
+    setIsFirstDocument(isFirst)
   }
 
   return (
@@ -97,6 +102,7 @@ export function MainContent() {
               onSetSelectionAnchor={setSelectionAnchor}
               onSelectedDocumentChange={handleSelectedDocumentChange}
               onExposeDraftHandler={handleExposeDraftHandler}
+              onIsFirstDocumentChange={handleIsFirstDocumentChange}
             />
           ) : (
             <div className="flex items-center justify-center h-full bg-background">
@@ -139,6 +145,7 @@ export function MainContent() {
               collectionName={activeCollection}
               profileId={currentProfile.id}
               isDraft={isSelectedDraft}
+              isFirstDocument={isFirstDocument}
               onDraftChange={isSelectedDraft ? draftUpdateHandler ?? undefined : undefined}
             />
           ) : (

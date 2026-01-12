@@ -8,8 +8,7 @@ export interface DraftCollection {
   name: string
   embeddingFunctionId: string
   dimensionOverride: string // String to allow empty input for auto
-  metadata: Record<string, unknown>
-  // Optional first document
+  // Optional first document (metadata here defines the collection's schema)
   firstDocument: {
     id: string
     document: string
@@ -42,7 +41,6 @@ function createInitialDraft(): DraftCollection {
     name: '',
     embeddingFunctionId: DEFAULT_EF.id,
     dimensionOverride: '',
-    metadata: {},
     firstDocument: null,
   }
 }
@@ -116,7 +114,6 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
           type: selectedEf.type,
           modelName: selectedEf.modelName,
         },
-        metadata: Object.keys(draftCollection.metadata).length > 0 ? draftCollection.metadata : undefined,
       }
 
       // Add first document if provided

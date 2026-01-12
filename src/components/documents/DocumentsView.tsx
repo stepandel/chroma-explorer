@@ -34,6 +34,8 @@ interface DocumentsViewProps {
   onSelectedDocumentChange: (document: DocumentRecord | null, isDraft: boolean) => void
   // Expose draft change handler for external updates (e.g., from detail panel)
   onExposeDraftHandler?: (handler: ((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null) => void
+  // Callback to notify parent if current draft is for the first document (empty collection)
+  onIsFirstDocumentChange?: (isFirst: boolean) => void
 }
 
 function createDefaultFilterRow(): FilterRowType {
@@ -57,6 +59,7 @@ export default function DocumentsView({
   onSetSelectionAnchor,
   onSelectedDocumentChange,
   onExposeDraftHandler,
+  onIsFirstDocumentChange,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
   const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
@@ -243,11 +246,16 @@ export default function DocumentsView({
   // Draft document handlers
   const handleStartCreate = useCallback(() => {
     const newId = crypto.randomUUID()
+    // Check if this is the first document (collection is empty)
+    const isFirstDocument = documents.length === 0
     // Initialize metadata with same keys as existing documents (empty values)
+    // If first document, start with empty metadata (user will add fields)
     const initialMetadata: Record<string, string> = {}
-    metadataFields.forEach(key => {
-      initialMetadata[key] = ''
-    })
+    if (!isFirstDocument) {
+      metadataFields.forEach(key => {
+        initialMetadata[key] = ''
+      })
+    }
     setDraftDocument({
       id: newId,
       document: '',
@@ -255,7 +263,9 @@ export default function DocumentsView({
     })
     // Select the draft so it shows in the detail panel
     onSingleSelect(newId)
-  }, [onSingleSelect, metadataFields])
+    // Notify parent about first document status
+    onIsFirstDocumentChange?.(isFirstDocument)
+  }, [onSingleSelect, metadataFields, documents.length, onIsFirstDocumentChange])
 
   const handleDraftChange = useCallback((draft: DraftDocument) => {
     setDraftDocument(draft)
@@ -283,7 +293,8 @@ export default function DocumentsView({
   const handleCancelDraft = useCallback(() => {
     setDraftDocument(null)
     onClearSelection() // Deselect when cancelling
-  }, [onClearSelection])
+    onIsFirstDocumentChange?.(false) // Reset first document flag
+  }, [onClearSelection, onIsFirstDocumentChange])
 
   const handleSaveDraft = useCallback(async () => {
     if (!draftDocument) return
@@ -325,10 +336,11 @@ export default function DocumentsView({
       })
       setDraftDocument(null)
       onClearSelection() // Deselect after saving
+      onIsFirstDocumentChange?.(false) // Reset first document flag
     } catch (error) {
       console.error('Failed to create document:', error)
     }
-  }, [draftDocument, createMutation, onClearSelection])
+  }, [draftDocument, createMutation, onClearSelection, onIsFirstDocumentChange])
 
   // Toggle deletion mark for all selected documents
   const handleToggleDeletion = useCallback(() => {

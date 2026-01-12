@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Plus, X } from 'lucide-react'
 import { useDraftCollection } from '../../context/DraftCollectionContext'
 import { Button } from '../ui/button'
 import { Label } from '../ui/label'
@@ -186,6 +186,92 @@ export function CollectionConfigView() {
                   placeholder="Enter document text..."
                   className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-xs resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 />
+              </div>
+
+              {/* Metadata Fields */}
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Metadata</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentMetadata = draftCollection.firstDocument?.metadata || {}
+                      let keyNum = 1
+                      let newKey = `key${keyNum}`
+                      while (newKey in currentMetadata) {
+                        keyNum++
+                        newKey = `key${keyNum}`
+                      }
+                      updateDraft({
+                        firstDocument: {
+                          ...draftCollection.firstDocument!,
+                          metadata: { ...currentMetadata, [newKey]: '' },
+                        },
+                      })
+                    }}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add field
+                  </button>
+                </div>
+
+                {Object.keys(draftCollection.firstDocument.metadata || {}).length > 0 ? (
+                  <div className="space-y-1.5">
+                    {Object.entries(draftCollection.firstDocument.metadata).map(([key, value], index) => (
+                      <div key={index} className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={key}
+                          onChange={(e) => {
+                            const newKey = e.target.value
+                            if (newKey === key) return
+                            const { [key]: oldValue, ...rest } = draftCollection.firstDocument!.metadata
+                            updateDraft({
+                              firstDocument: {
+                                ...draftCollection.firstDocument!,
+                                metadata: { ...rest, [newKey]: oldValue },
+                              },
+                            })
+                          }}
+                          placeholder="key"
+                          className="w-1/3 h-7 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <input
+                          type="text"
+                          value={value}
+                          onChange={(e) => {
+                            updateDraft({
+                              firstDocument: {
+                                ...draftCollection.firstDocument!,
+                                metadata: { ...draftCollection.firstDocument!.metadata, [key]: e.target.value },
+                              },
+                            })
+                          }}
+                          placeholder="value"
+                          className="flex-1 h-7 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const { [key]: _, ...rest } = draftCollection.firstDocument!.metadata
+                            updateDraft({
+                              firstDocument: {
+                                ...draftCollection.firstDocument!,
+                                metadata: rest,
+                              },
+                            })
+                          }}
+                          className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">No metadata. Click "Add field" to define schema.</p>
+                )}
               </div>
             </div>
           )}
