@@ -285,8 +285,8 @@ export default function DocumentsView({
         e.preventDefault()
         handleSaveDraft()
       }
-      // Escape to cancel draft
-      if (e.key === 'Escape' && draftDocument) {
+      // Escape or Command+Z to cancel draft
+      if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && draftDocument) {
         e.preventDefault()
         handleCancelDraft()
       }
