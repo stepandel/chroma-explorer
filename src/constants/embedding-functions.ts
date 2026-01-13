@@ -10,6 +10,9 @@ export type EmbeddingFunctionType =
   | 'together-ai'
   | 'huggingface-server'
   | 'cloudflare-worker-ai'
+  | 'morph'
+  | 'chroma-cloud-qwen'
+  | 'sentence-transformer'
 
 export interface EmbeddingFunctionConfig {
   id: string
@@ -101,8 +104,16 @@ export const EMBEDDING_FUNCTIONS: EmbeddingFunctionConfig[] = [
 
   // Cohere
   {
+    id: 'cohere-embed-v4',
+    label: 'Cohere Embed v4',
+    type: 'cohere',
+    modelName: 'embed-v4.0',
+    dimensions: 1536,
+    group: 'Cohere',
+  },
+  {
     id: 'cohere-embed-v3',
-    label: 'Cohere Embed v3',
+    label: 'Cohere Embed v3 English',
     type: 'cohere',
     modelName: 'embed-english-v3.0',
     dimensions: 1024,
@@ -124,11 +135,35 @@ export const EMBEDDING_FUNCTIONS: EmbeddingFunctionConfig[] = [
     dimensions: 384,
     group: 'Cohere',
   },
+  {
+    id: 'cohere-embed-v3-multilingual-light',
+    label: 'Cohere Embed v3 Multilingual Light',
+    type: 'cohere',
+    modelName: 'embed-multilingual-light-v3.0',
+    dimensions: 384,
+    group: 'Cohere',
+  },
 
   // Google Gemini
   {
+    id: 'google-gemini-embedding-001',
+    label: 'Gemini Embedding 001 (3072d)',
+    type: 'google-gemini',
+    modelName: 'gemini-embedding-001',
+    dimensions: 3072,
+    group: 'Google',
+  },
+  {
+    id: 'google-gemini-embedding-001-1536',
+    label: 'Gemini Embedding 001 (1536d)',
+    type: 'google-gemini',
+    modelName: 'gemini-embedding-001',
+    dimensions: 1536,
+    group: 'Google',
+  },
+  {
     id: 'google-gemini-embedding',
-    label: 'Google Gemini Embedding',
+    label: 'Gemini Embedding 004 (768d)',
     type: 'google-gemini',
     modelName: 'text-embedding-004',
     dimensions: 768,
@@ -165,6 +200,30 @@ export const EMBEDDING_FUNCTIONS: EmbeddingFunctionConfig[] = [
 
   // VoyageAI
   {
+    id: 'voyage-3-5',
+    label: 'Voyage 3.5',
+    type: 'voyageai',
+    modelName: 'voyage-3.5',
+    dimensions: 1024,
+    group: 'Voyage AI',
+  },
+  {
+    id: 'voyage-3-5-lite',
+    label: 'Voyage 3.5 Lite',
+    type: 'voyageai',
+    modelName: 'voyage-3.5-lite',
+    dimensions: 1024,
+    group: 'Voyage AI',
+  },
+  {
+    id: 'voyage-3-large',
+    label: 'Voyage 3 Large',
+    type: 'voyageai',
+    modelName: 'voyage-3-large',
+    dimensions: 1024,
+    group: 'Voyage AI',
+  },
+  {
     id: 'voyage-3',
     label: 'Voyage 3',
     type: 'voyageai',
@@ -188,6 +247,22 @@ export const EMBEDDING_FUNCTIONS: EmbeddingFunctionConfig[] = [
     dimensions: 1024,
     group: 'Voyage AI',
   },
+  {
+    id: 'voyage-finance-2',
+    label: 'Voyage Finance 2',
+    type: 'voyageai',
+    modelName: 'voyage-finance-2',
+    dimensions: 1024,
+    group: 'Voyage AI',
+  },
+  {
+    id: 'voyage-law-2',
+    label: 'Voyage Law 2',
+    type: 'voyageai',
+    modelName: 'voyage-law-2',
+    dimensions: 1024,
+    group: 'Voyage AI',
+  },
 
   // Together AI
   {
@@ -197,6 +272,44 @@ export const EMBEDDING_FUNCTIONS: EmbeddingFunctionConfig[] = [
     modelName: 'togethercomputer/m2-bert-80M-8k-retrieval',
     dimensions: 768,
     group: 'Together AI',
+  },
+
+  // Morph
+  {
+    id: 'morph-embed-base',
+    label: 'Morph Embed Base',
+    type: 'morph',
+    modelName: 'morph-embedding-base',
+    dimensions: 768,
+    group: 'Morph',
+  },
+
+  // Sentence Transformer
+  {
+    id: 'sentence-transformer-minilm',
+    label: 'Sentence Transformer (MiniLM)',
+    type: 'sentence-transformer',
+    modelName: 'Xenova/all-MiniLM-L6-v2',
+    dimensions: 384,
+    group: 'Local',
+  },
+  {
+    id: 'sentence-transformer-mpnet',
+    label: 'Sentence Transformer (MPNet)',
+    type: 'sentence-transformer',
+    modelName: 'Xenova/all-mpnet-base-v2',
+    dimensions: 768,
+    group: 'Local',
+  },
+
+  // Chroma Cloud
+  {
+    id: 'chroma-cloud-qwen',
+    label: 'Chroma Cloud Qwen',
+    type: 'chroma-cloud-qwen',
+    modelName: 'qwen-embedding',
+    dimensions: null,
+    group: 'Chroma Cloud',
   },
 
   // Cloudflare Workers AI

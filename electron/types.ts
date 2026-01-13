@@ -12,6 +12,9 @@ export type EmbeddingFunctionType =
   | 'together-ai'
   | 'huggingface-server'
   | 'cloudflare-worker-ai'
+  | 'morph'
+  | 'chroma-cloud-qwen'
+  | 'sentence-transformer'
 
 export interface EmbeddingFunctionOverride {
   type: EmbeddingFunctionType

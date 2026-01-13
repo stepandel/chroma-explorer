@@ -11,6 +11,9 @@ declare global {
     | 'together-ai'
     | 'huggingface-server'
     | 'cloudflare-worker-ai'
+    | 'morph'
+    | 'chroma-cloud-qwen'
+    | 'sentence-transformer'
 
   interface EmbeddingFunctionOverride {
     type: EmbeddingFunctionType

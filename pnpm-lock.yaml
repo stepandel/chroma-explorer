@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@chroma-core/chroma-cloud-qwen':
+    specifier: ^0.1.10
+    version: 0.1.10(chromadb@3.2.0)
   '@chroma-core/cloudflare-worker-ai':
     specifier: ^0.1.8
     version: 0.1.8(chromadb@3.2.0)
@@ -26,12 +29,18 @@ dependencies:
   '@chroma-core/mistral':
     specifier: ^0.1.8
     version: 0.1.8(chromadb@3.2.0)
+  '@chroma-core/morph':
+    specifier: ^0.1.8
+    version: 0.1.8(chromadb@3.2.0)(zod@3.25.76)
   '@chroma-core/ollama':
     specifier: ^0.1.8
     version: 0.1.8(chromadb@3.2.0)
   '@chroma-core/openai':
     specifier: ^0.1.9
     version: 0.1.9(chromadb@3.2.0)(zod@3.25.76)
+  '@chroma-core/sentence-transformer':
+    specifier: ^0.1.0
+    version: 0.1.0(chromadb@3.2.0)
   '@chroma-core/together-ai':
     specifier: ^0.1.8
     version: 0.1.8(bufferutil@4.1.0)(chromadb@3.2.0)(utf-8-validate@6.0.6)
@@ -83,6 +92,12 @@ dependencies:
   lucide-react:
     specifier: ^0.562.0
     version: 0.562.0(react@19.2.3)
+  onnxruntime-node:
+    specifier: ^1.23.2
+    version: 1.23.2
+  openai:
+    specifier: ^6.16.0
+    version: 6.16.0(zod@3.25.76)
   react:
     specifier: ^19.2.3
     version: 19.2.3
@@ -92,6 +107,9 @@ dependencies:
   react-resizable-panels:
     specifier: ^4.3.2
     version: 4.3.2(react-dom@19.2.3)(react@19.2.3)
+  sharp:
+    specifier: ^0.34.5
+    version: 0.34.5
   tailwind-merge:
     specifier: ^3.4.0
     version: 3.4.0
@@ -709,6 +727,16 @@ packages:
       ajv: 8.17.1
     dev: false
 
+  /@chroma-core/chroma-cloud-qwen@0.1.10(chromadb@3.2.0):
+    resolution: {integrity: sha512-w2Iw4XckVyUGJ0bWjM7xM3drGpwIb07InopF+c0lMn8D79mgI77duek+3XN4gXX2Os+9uetucC50OXoCuUyWnA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      chromadb: ^3.2.0
+    dependencies:
+      '@chroma-core/ai-embeddings-common': 0.1.9
+      chromadb: 3.2.0
+    dev: false
+
   /@chroma-core/cloudflare-worker-ai@0.1.8(chromadb@3.2.0):
     resolution: {integrity: sha512-hcWzA+SgYucV5BSgAYDVRKjyZdK4YJtzI2KhG/NcC9rvF9/VWfLpalNHPxgGSlESe/JqLW3fqGaBK5xq4f3Bxg==}
     engines: {node: '>=20'}
@@ -787,6 +815,21 @@ packages:
       chromadb: 3.2.0
     dev: false
 
+  /@chroma-core/morph@0.1.8(chromadb@3.2.0)(zod@3.25.76):
+    resolution: {integrity: sha512-JWnLHgvMH+f5xAe0FQLURkWUu5NY34gM1E8NInQWk1umlEGLhGX2w5dCSWTT2AXm+uqK2gbSLFfFgUSd2zLxHg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      chromadb: ^3.1.2
+    dependencies:
+      '@chroma-core/ai-embeddings-common': 0.1.9
+      chromadb: 3.2.0
+      openai: 4.104.0(zod@3.25.76)
+    transitivePeerDependencies:
+      - encoding
+      - ws
+      - zod
+    dev: false
+
   /@chroma-core/ollama@0.1.8(chromadb@3.2.0):
     resolution: {integrity: sha512-hVVGy1zcDnZ8g4dMORoasy1uS2VE09OqsxYupC1kHGsp2eXHpJkpwzhmWlYmH+sVHC4yJ88gyBJkYf0CgHtqRg==}
     engines: {node: '>=20'}
@@ -817,6 +860,17 @@ packages:
       - encoding
       - ws
       - zod
+    dev: false
+
+  /@chroma-core/sentence-transformer@0.1.0(chromadb@3.2.0):
+    resolution: {integrity: sha512-E8AhBCCYU/NpGmWv4IApVyoye2suMTfUOL+SM++IyhKVFuTHmo0YTSXvn4uZKO8tw9M5EiD+cwaXE8iWU6L1hA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      chromadb: ^3.1.5
+    dependencies:
+      '@chroma-core/ai-embeddings-common': 0.1.9
+      '@huggingface/transformers': 3.8.1
+      chromadb: 3.2.0
     dev: false
 
   /@chroma-core/together-ai@0.1.8(bufferutil@4.1.0)(chromadb@3.2.0)(utf-8-validate@6.0.6):
@@ -3258,6 +3312,11 @@ packages:
     engines: {node: '>=6.5'}
     dependencies:
       event-target-shim: 5.0.1
+    dev: false
+
+  /adm-zip@0.5.16:
+    resolution: {integrity: sha512-TGw5yVi4saajsSEgz25grObGHEUaDrniwvA2qwSC060KfqGPdglhvPMA2lPIoxs3PQIItj2iag35fONcQqgUaQ==}
+    engines: {node: '>=12.0'}
     dev: false
 
   /agent-base@6.0.2:
@@ -5714,6 +5773,10 @@ packages:
     resolution: {integrity: sha512-vDJMkfCfb0b1A836rgHj+ORuZf4B4+cc2bASQtpeoJLueuFc5DuYwjIZUBrSvx/fO5IrLjLz+oTrB3pcGlhovQ==}
     dev: false
 
+  /onnxruntime-common@1.23.2:
+    resolution: {integrity: sha512-5LFsC9Dukzp2WV6kNHYLNzp8sT6V02IubLCbzw2Xd6X5GOlr65gAX6xiJwyi2URJol/s71gaQLC5F2C25AAR2w==}
+    dev: false
+
   /onnxruntime-node@1.21.0:
     resolution: {integrity: sha512-NeaCX6WW2L8cRCSqy3bInlo5ojjQqu2fD3D+9W5qb5irwxhEyWKXeH2vZ8W9r6VxaMPUan+4/7NDwZMtouZxEw==}
     os: [win32, darwin, linux]
@@ -5722,6 +5785,16 @@ packages:
       global-agent: 3.0.0
       onnxruntime-common: 1.21.0
       tar: 7.5.2
+    dev: false
+
+  /onnxruntime-node@1.23.2:
+    resolution: {integrity: sha512-OBTsG0W8ddBVOeVVVychpVBS87A9YV5sa2hJ6lc025T97Le+J4v++PwSC4XFs1C62SWyNdof0Mh4KvnZgtt4aw==}
+    os: [win32, darwin, linux]
+    requiresBuild: true
+    dependencies:
+      adm-zip: 0.5.16
+      global-agent: 3.0.0
+      onnxruntime-common: 1.23.2
     dev: false
 
   /onnxruntime-web@1.22.0-dev.20250409-89f8206ba4:
@@ -5757,6 +5830,21 @@ packages:
       zod: 3.25.76
     transitivePeerDependencies:
       - encoding
+    dev: false
+
+  /openai@6.16.0(zod@3.25.76):
+    resolution: {integrity: sha512-fZ1uBqjFUjXzbGc35fFtYKEOxd20kd9fDpFeqWtsOZWiubY8CZ1NAlXHW3iathaFvqmNtCWMIsosCuyeI7Joxg==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+    dependencies:
+      zod: 3.25.76
     dev: false
 
   /ora@5.4.1:

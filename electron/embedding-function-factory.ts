@@ -10,6 +10,9 @@ import { VoyageAIEmbeddingFunction } from '@chroma-core/voyageai'
 import { TogetherAIEmbeddingFunction } from '@chroma-core/together-ai'
 import { HuggingfaceServerEmbeddingFunction } from '@chroma-core/huggingface-server'
 import { CloudflareWorkerAIEmbeddingFunction } from '@chroma-core/cloudflare-worker-ai'
+import { MorphEmbeddingFunction } from '@chroma-core/morph'
+import { ChromaCloudQwenEmbeddingFunction, ChromaCloudQwenEmbeddingModel } from '@chroma-core/chroma-cloud-qwen'
+import { SentenceTransformersEmbeddingFunction } from '@chroma-core/sentence-transformer'
 import { CollectionInfo } from './types'
 
 // Custom error for missing API credentials
@@ -42,6 +45,11 @@ const PYTHON_TO_JS_PACKAGE: Record<string, string> = {
   'huggingface-server': 'huggingface-server',
   'cloudflare_worker_ai': 'cloudflare-worker-ai',
   'cloudflare-worker-ai': 'cloudflare-worker-ai',
+  'morph': 'morph',
+  'chroma_cloud_qwen': 'chroma-cloud-qwen',
+  'chroma-cloud-qwen': 'chroma-cloud-qwen',
+  'sentence_transformer': 'sentence-transformer',
+  'sentence-transformer': 'sentence-transformer',
 }
 
 type EFConfig = CollectionInfo['embeddingFunction']
@@ -290,6 +298,47 @@ export class EmbeddingFunctionFactory {
           return new CloudflareWorkerAIEmbeddingFunction({
             accountId,
             apiKey,
+            modelName,
+          })
+        }
+
+        case 'morph': {
+          const config = efConfig.config as Record<string, unknown> || {}
+          const apiKeyEnvVar = (config.api_key_env_var as string) || 'MORPH_API_KEY'
+          const apiKey = process.env[apiKeyEnvVar]
+
+          if (!apiKey) {
+            throw new EmbeddingCredentialsError('Morph', apiKeyEnvVar)
+          }
+
+          const modelName = (config.model_name as string) || 'morph-embedding-base'
+          console.log(`[EF Factory] Creating Morph embedding function with model: ${modelName}`)
+
+          return new MorphEmbeddingFunction({
+            api_key: apiKey,
+            model_name: modelName,
+          })
+        }
+
+        case 'chroma-cloud-qwen': {
+          const config = efConfig.config as Record<string, unknown> || {}
+          const task = (config.task as string) || null
+          console.log(`[EF Factory] Creating Chroma Cloud Qwen embedding function`)
+
+          // Chroma Cloud Qwen uses the client credentials from the CloudClient
+          return new ChromaCloudQwenEmbeddingFunction({
+            model: ChromaCloudQwenEmbeddingModel.QWEN3_EMBEDDING_0p6B,
+            task,
+            client: this.client as CloudClient,
+          })
+        }
+
+        case 'sentence-transformer': {
+          const config = efConfig.config as Record<string, unknown> || {}
+          const modelName = (config.model_name as string) || 'Xenova/all-MiniLM-L6-v2'
+          console.log(`[EF Factory] Creating Sentence Transformer embedding function with model: ${modelName}`)
+
+          return new SentenceTransformersEmbeddingFunction({
             modelName,
           })
         }
