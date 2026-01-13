@@ -1,17 +1,32 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
 import { useDraftCollection, DraftHNSWConfig } from '../../context/DraftCollectionContext'
+import { useChromaDB } from '../../providers/ChromaDBProvider'
+import { useCollection } from '../../context/CollectionContext'
 import { EMBEDDING_FUNCTIONS, getEmbeddingFunctionById } from '../../constants/embedding-functions'
 import { MetadataValueType, validateMetadataValue } from '../../types/metadata'
+import { CopyProgressDialog } from './CopyProgressDialog'
 
 const inputClassName = "w-full h-6 text-[11px] px-1.5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 
 export function CollectionConfigView() {
-  const { draftCollection, updateDraft, cancelCreation, saveDraft, isCreating, validationErrors } = useDraftCollection()
+  const { draftCollection, updateDraft, cancelCreation, saveDraft, isCreating, validationErrors, isCopyMode } = useDraftCollection()
+  const { currentProfile, refreshCollections } = useChromaDB()
+  const { setActiveCollection } = useCollection()
 
   const [showFirstDocument, setShowFirstDocument] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Copy operation state
+  const [isCopying, setIsCopying] = useState(false)
+  const [showCopyProgress, setShowCopyProgress] = useState(false)
+  const [copyProgress, setCopyProgress] = useState<CopyProgress>({
+    phase: 'creating',
+    totalDocuments: 0,
+    processedDocuments: 0,
+    message: 'Preparing...',
+  })
 
   const selectedEf = draftCollection ? getEmbeddingFunctionById(draftCollection.embeddingFunctionId) : EMBEDDING_FUNCTIONS[0]
 
@@ -50,13 +65,138 @@ export function CollectionConfigView() {
     [updateDraft]
   )
 
+  // Determine if embedding function has changed from source
+  const needsEmbeddingRegeneration = useCallback(() => {
+    if (!draftCollection?.sourceCollection) return false
+
+    const source = draftCollection.sourceCollection
+    const sourceType = source.embeddingFunction?.name === 'openai' ? 'openai' : 'default'
+    const sourceModel = source.embeddingFunction?.config?.model_name as string | undefined
+
+    const draftEf = getEmbeddingFunctionById(draftCollection.embeddingFunctionId)
+
+    if (draftEf?.type !== sourceType) return true
+    if (draftEf?.type === 'openai' && draftEf?.modelName !== sourceModel) return true
+
+    return false
+  }, [draftCollection])
+
+  // Handle copy collection
+  const handleCopyCollection = useCallback(async () => {
+    if (!draftCollection?.sourceCollection || !currentProfile) return
+
+    const errors: Record<string, string> = {}
+    if (!draftCollection.name.trim()) {
+      errors.name = 'Collection name is required'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+
+    setIsCopying(true)
+    setShowCopyProgress(true)
+    setCopyProgress({
+      phase: 'creating',
+      totalDocuments: 0,
+      processedDocuments: 0,
+      message: 'Creating collection...',
+    })
+
+    // Subscribe to progress updates
+    const unsubscribe = window.electronAPI.chromadb.onCopyProgress((progress) => {
+      setCopyProgress(progress)
+    })
+
+    try {
+      const draftEf = getEmbeddingFunctionById(draftCollection.embeddingFunctionId)
+
+      // Build HNSW config
+      const hnswConfig: HNSWConfig = {}
+      if (draftCollection.hnsw.space !== 'l2') {
+        hnswConfig.space = draftCollection.hnsw.space
+      }
+      if (draftCollection.hnsw.efConstruction.trim()) {
+        const parsed = parseInt(draftCollection.hnsw.efConstruction, 10)
+        if (!isNaN(parsed) && parsed > 0) {
+          hnswConfig.efConstruction = parsed
+        }
+      }
+      if (draftCollection.hnsw.maxNeighbors.trim()) {
+        const parsed = parseInt(draftCollection.hnsw.maxNeighbors, 10)
+        if (!isNaN(parsed) && parsed > 0) {
+          hnswConfig.maxNeighbors = parsed
+        }
+      }
+
+      const result = await window.electronAPI.chromadb.copyCollection(currentProfile.id, {
+        sourceCollectionName: draftCollection.sourceCollection.name,
+        targetName: draftCollection.name.trim(),
+        embeddingFunction: draftEf ? {
+          type: draftEf.type,
+          modelName: draftEf.modelName,
+        } : undefined,
+        hnsw: Object.keys(hnswConfig).length > 0 ? hnswConfig : undefined,
+        regenerateEmbeddings: needsEmbeddingRegeneration(),
+      })
+
+      if (result.success) {
+        setCopyProgress({
+          phase: 'complete',
+          totalDocuments: result.totalDocuments,
+          processedDocuments: result.copiedDocuments,
+          message: `Copied ${result.copiedDocuments} documents`,
+        })
+        // Refresh collections list
+        await refreshCollections()
+        // Select the new collection after dialog is closed
+        setTimeout(() => {
+          setActiveCollection(draftCollection.name.trim())
+          cancelCreation()
+        }, 500)
+      } else {
+        setCopyProgress({
+          phase: 'error',
+          totalDocuments: 0,
+          processedDocuments: 0,
+          message: result.error || 'Copy failed',
+        })
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to copy collection'
+      setCopyProgress({
+        phase: 'error',
+        totalDocuments: 0,
+        processedDocuments: 0,
+        message,
+      })
+    } finally {
+      unsubscribe()
+      setIsCopying(false)
+    }
+  }, [draftCollection, currentProfile, needsEmbeddingRegeneration, refreshCollections, setActiveCollection, cancelCreation])
+
+  // Handle cancel copy
+  const handleCancelCopy = useCallback(async () => {
+    if (!currentProfile) return
+    try {
+      await window.electronAPI.chromadb.cancelCopy(currentProfile.id)
+    } catch (error) {
+      console.error('Failed to cancel copy:', error)
+    }
+  }, [currentProfile])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+S or Cmd+Enter to save
+      // Cmd+S or Cmd+Enter to save/copy
       if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'Enter')) {
         e.preventDefault()
-        saveDraft()
+        if (isCopyMode) {
+          handleCopyCollection()
+        } else {
+          saveDraft()
+        }
       }
       // Escape to cancel
       if (e.key === 'Escape') {
@@ -67,7 +207,7 @@ export function CollectionConfigView() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [saveDraft, cancelCreation])
+  }, [saveDraft, cancelCreation, isCopyMode, handleCopyCollection])
 
   if (!draftCollection) return null
 
@@ -76,6 +216,20 @@ export function CollectionConfigView() {
 
       {/* Configuration Form */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
+        {/* Copy mode indicator */}
+        {isCopyMode && draftCollection.sourceCollection && (
+          <div className="p-2 bg-primary/10 border border-primary/20 rounded-md">
+            <p className="text-[11px] text-primary">
+              Copying from <span className="font-medium">{draftCollection.sourceCollection.name}</span>
+              {' · '}
+              <span className="text-muted-foreground">{draftCollection.sourceCollection.count} documents</span>
+              {needsEmbeddingRegeneration() && (
+                <span className="text-amber-600 dark:text-amber-400"> · embeddings will be regenerated</span>
+              )}
+            </p>
+          </div>
+        )}
+
         {/* Form error */}
         {validationErrors._form && (
           <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
@@ -216,7 +370,8 @@ export function CollectionConfigView() {
           )}
         </div>
 
-        {/* Optional First Document Section */}
+        {/* Optional First Document Section - hidden in copy mode */}
+        {!isCopyMode && (
         <div className="space-y-2 pt-3 border-t border-border">
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
@@ -395,33 +550,63 @@ export function CollectionConfigView() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Footer Actions */}
       <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
         <div className="text-[10px] text-muted-foreground">
-          <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] font-mono">⌘↵</kbd> save
+          <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] font-mono">⌘↵</kbd> {isCopyMode ? 'copy' : 'save'}
           {' · '}
           <kbd className="px-1 py-0.5 bg-muted rounded text-[9px] font-mono">Esc</kbd> cancel
         </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={cancelCreation}
-            disabled={isCreating}
+            disabled={isCreating || isCopying}
             className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             style={inputStyle}
           >
             Cancel
           </button>
-          <button
-            onClick={saveDraft}
-            disabled={isCreating || !draftCollection.name.trim()}
-            className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isCreating ? 'Creating...' : 'Create'}
-          </button>
+          {isCopyMode ? (
+            <button
+              onClick={handleCopyCollection}
+              disabled={isCopying || !draftCollection.name.trim()}
+              className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCopying ? 'Copying...' : 'Copy Collection'}
+            </button>
+          ) : (
+            <button
+              onClick={saveDraft}
+              disabled={isCreating || !draftCollection.name.trim()}
+              className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCreating ? 'Creating...' : 'Create'}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Copy Progress Dialog */}
+      {isCopyMode && draftCollection.sourceCollection && (
+        <CopyProgressDialog
+          open={showCopyProgress}
+          onOpenChange={(open) => {
+            if (!open && copyProgress.phase !== 'copying' && copyProgress.phase !== 'creating') {
+              setShowCopyProgress(false)
+              if (copyProgress.phase === 'complete') {
+                cancelCreation()
+              }
+            }
+          }}
+          sourceCollectionName={draftCollection.sourceCollection.name}
+          targetCollectionName={draftCollection.name}
+          progress={copyProgress}
+          onCancel={handleCancelCopy}
+        />
+      )}
     </div>
   )
 }

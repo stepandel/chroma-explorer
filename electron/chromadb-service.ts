@@ -8,6 +8,9 @@ import {
   CreateDocumentParams,
   DeleteDocumentsParams,
   CreateCollectionParams,
+  CopyCollectionParams,
+  CopyCollectionResult,
+  CopyProgress,
   EmbeddingFunctionOverride,
 } from './types'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
@@ -466,6 +469,219 @@ class ChromaDBService {
       metadata: collection.metadata ?? null,
       count,
       embeddingFunction: efConfig,
+    }
+  }
+
+  async copyCollection(
+    params: CopyCollectionParams,
+    embeddingOverride: EmbeddingFunctionOverride | null,
+    onProgress: (progress: CopyProgress) => void,
+    signal?: AbortSignal
+  ): Promise<CopyCollectionResult> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    const BATCH_SIZE = 100
+
+    try {
+      // Phase 1: Creating target collection
+      onProgress({
+        phase: 'creating',
+        totalDocuments: 0,
+        processedDocuments: 0,
+        message: 'Creating collection...',
+      })
+
+      // Check for cancellation
+      if (signal?.aborted) {
+        return {
+          success: false,
+          totalDocuments: 0,
+          copiedDocuments: 0,
+          error: 'Operation cancelled',
+        }
+      }
+
+      // Build embedding function config
+      let efConfig: CollectionInfo['embeddingFunction'] = null
+      if (params.embeddingFunction) {
+        efConfig = {
+          name: params.embeddingFunction.type === 'default' ? 'default' : 'openai',
+          type: 'known',
+          config: params.embeddingFunction.type === 'openai'
+            ? { model_name: params.embeddingFunction.modelName }
+            : { model_name: params.embeddingFunction.modelName || 'Xenova/all-MiniLM-L6-v2' }
+        }
+      } else if (embeddingOverride) {
+        efConfig = {
+          name: embeddingOverride.type === 'default' ? 'default' : 'openai',
+          type: 'known',
+          config: embeddingOverride.type === 'openai'
+            ? { model_name: embeddingOverride.modelName }
+            : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
+        }
+      }
+
+      // Get embedding function for the new collection
+      const embeddingFunction = await this.efFactory?.getEmbeddingFunction(
+        params.targetName,
+        efConfig
+      )
+
+      // Build collection metadata including HNSW config
+      const collectionMetadata: Record<string, unknown> = { ...params.metadata }
+
+      if (params.hnsw) {
+        if (params.hnsw.space) collectionMetadata['hnsw:space'] = params.hnsw.space
+        if (params.hnsw.efConstruction !== undefined) collectionMetadata['hnsw:construction_ef'] = params.hnsw.efConstruction
+        if (params.hnsw.efSearch !== undefined) collectionMetadata['hnsw:search_ef'] = params.hnsw.efSearch
+        if (params.hnsw.maxNeighbors !== undefined) collectionMetadata['hnsw:M'] = params.hnsw.maxNeighbors
+        if (params.hnsw.numThreads !== undefined) collectionMetadata['hnsw:num_threads'] = params.hnsw.numThreads
+        if (params.hnsw.batchSize !== undefined) collectionMetadata['hnsw:batch_size'] = params.hnsw.batchSize
+        if (params.hnsw.syncThreshold !== undefined) collectionMetadata['hnsw:sync_threshold'] = params.hnsw.syncThreshold
+        if (params.hnsw.resizeFactor !== undefined) collectionMetadata['hnsw:resize_factor'] = params.hnsw.resizeFactor
+      }
+
+      // Create the target collection
+      const targetCollection = await this.client.createCollection({
+        name: params.targetName,
+        embeddingFunction,
+        metadata: Object.keys(collectionMetadata).length > 0 ? collectionMetadata as Metadata : undefined,
+      })
+
+      // Phase 2: Fetch source documents
+      const sourceCollection = await this.client.getCollection({
+        name: params.sourceCollectionName,
+      })
+
+      const allDocs = await sourceCollection.get({
+        include: ['documents', 'metadatas', 'embeddings'],
+      })
+
+      const totalDocuments = allDocs.ids.length
+
+      // If no documents, we're done
+      if (totalDocuments === 0) {
+        onProgress({
+          phase: 'complete',
+          totalDocuments: 0,
+          processedDocuments: 0,
+          message: 'Collection copied (empty)',
+        })
+
+        return {
+          success: true,
+          collectionInfo: {
+            name: targetCollection.name,
+            id: targetCollection.id,
+            metadata: targetCollection.metadata ?? null,
+            count: 0,
+            embeddingFunction: efConfig,
+          },
+          totalDocuments: 0,
+          copiedDocuments: 0,
+        }
+      }
+
+      // Phase 3: Copy documents in batches
+      const totalBatches = Math.ceil(totalDocuments / BATCH_SIZE)
+      let copiedDocuments = 0
+
+      for (let i = 0; i < totalBatches; i++) {
+        // Check for cancellation
+        if (signal?.aborted) {
+          // Delete the partially created collection on cancellation
+          try {
+            await this.client.deleteCollection({ name: params.targetName })
+          } catch {
+            // Ignore cleanup errors
+          }
+
+          return {
+            success: false,
+            totalDocuments,
+            copiedDocuments,
+            error: 'Operation cancelled',
+          }
+        }
+
+        const start = i * BATCH_SIZE
+        const end = Math.min(start + BATCH_SIZE, totalDocuments)
+
+        onProgress({
+          phase: 'copying',
+          totalDocuments,
+          processedDocuments: copiedDocuments,
+          message: `Copying documents... ${copiedDocuments}/${totalDocuments}`,
+        })
+
+        // Build batch add payload
+        const batchPayload: {
+          ids: string[]
+          documents?: (string | null)[]
+          metadatas?: (Metadata | null)[]
+          embeddings?: (number[] | null)[]
+        } = {
+          ids: allDocs.ids.slice(start, end),
+        }
+
+        // Always include documents and metadatas
+        if (allDocs.documents) {
+          batchPayload.documents = allDocs.documents.slice(start, end)
+        }
+        if (allDocs.metadatas) {
+          batchPayload.metadatas = allDocs.metadatas.slice(start, end)
+        }
+
+        // Include embeddings only if not regenerating
+        if (!params.regenerateEmbeddings && allDocs.embeddings) {
+          batchPayload.embeddings = allDocs.embeddings.slice(start, end)
+        }
+
+        await targetCollection.add(batchPayload as any)
+        copiedDocuments = end
+      }
+
+      // Phase 4: Complete
+      onProgress({
+        phase: 'complete',
+        totalDocuments,
+        processedDocuments: copiedDocuments,
+        message: `Copied ${copiedDocuments} documents`,
+      })
+
+      const finalCount = await targetCollection.count()
+
+      return {
+        success: true,
+        collectionInfo: {
+          name: targetCollection.name,
+          id: targetCollection.id,
+          metadata: targetCollection.metadata ?? null,
+          count: finalCount,
+          embeddingFunction: efConfig,
+        },
+        totalDocuments,
+        copiedDocuments,
+      }
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to copy collection'
+
+      onProgress({
+        phase: 'error',
+        totalDocuments: 0,
+        processedDocuments: 0,
+        message,
+      })
+
+      return {
+        success: false,
+        totalDocuments: 0,
+        copiedDocuments: 0,
+        error: message,
+      }
     }
   }
 

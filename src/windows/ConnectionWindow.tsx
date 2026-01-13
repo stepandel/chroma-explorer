@@ -1,6 +1,7 @@
 import { ChromaDBProvider } from '../providers/ChromaDBProvider'
 import { CollectionProvider } from '../context/CollectionContext'
 import { DraftCollectionProvider } from '../context/DraftCollectionContext'
+import { ClipboardProvider } from '../context/ClipboardContext'
 import { AppLayout } from '../components/layout/AppLayout'
 import { useProfileQuery } from '../hooks/useChromaQueries'
 
@@ -32,11 +33,13 @@ export function ConnectionWindow({ windowId, profileId }: ConnectionWindowProps)
 
   return (
     <ChromaDBProvider profile={profile} windowId={windowId}>
-      <CollectionProvider>
-        <DraftCollectionProvider>
-          <AppLayout />
-        </DraftCollectionProvider>
-      </CollectionProvider>
+      <ClipboardProvider>
+        <CollectionProvider>
+          <DraftCollectionProvider>
+            <AppLayout />
+          </DraftCollectionProvider>
+        </CollectionProvider>
+      </ClipboardProvider>
     </ChromaDBProvider>
   )
 }

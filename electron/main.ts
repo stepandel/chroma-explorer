@@ -1,12 +1,15 @@
 import 'dotenv/config'
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
 import { windowManager } from './window-manager'
 import { createApplicationMenu } from './menu'
-import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateCollectionParams } from './types'
+import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateCollectionParams, CopyCollectionParams } from './types'
+
+// Track active copy operations per profile for cancellation
+const activeCopyOperations: Map<string, AbortController> = new Map()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -141,6 +144,88 @@ ipcMain.handle('chromadb:deleteCollection', async (_event, profileId: string, co
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete collection'
     return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('chromadb:copyCollection', async (event, profileId: string, params: CopyCollectionParams) => {
+  try {
+    const service = chromaDBConnectionPool.getConnection(profileId)
+    if (!service) {
+      return { success: false, error: 'Not connected to ChromaDB' }
+    }
+
+    // Create abort controller for this copy operation
+    const abortController = new AbortController()
+    activeCopyOperations.set(profileId, abortController)
+
+    // Check for user embedding override
+    const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.sourceCollectionName)
+
+    // Progress callback sends updates to renderer
+    const onProgress = (progress: any) => {
+      event.sender.send('chromadb:copyProgress', progress)
+    }
+
+    const result = await service.copyCollection(params, embeddingOverride, onProgress, abortController.signal)
+
+    // Clean up abort controller
+    activeCopyOperations.delete(profileId)
+
+    return { success: result.success, data: result, error: result.error }
+  } catch (error) {
+    activeCopyOperations.delete(profileId)
+    const message = error instanceof Error ? error.message : 'Failed to copy collection'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('chromadb:cancelCopy', async (_event, profileId: string) => {
+  const controller = activeCopyOperations.get(profileId)
+  if (controller) {
+    controller.abort()
+    activeCopyOperations.delete(profileId)
+    return { success: true }
+  }
+  return { success: false, error: 'No active copy operation' }
+})
+
+// Context menu IPC handlers
+ipcMain.on('context-menu:show-collection', (event, collectionName: string, options?: { hasCopiedCollection?: boolean }) => {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Copy Collection',
+      click: () => event.sender.send('context-menu:action', { action: 'copy', collectionName })
+    },
+    {
+      label: 'Paste Collection',
+      enabled: options?.hasCopiedCollection ?? false,
+      click: () => event.sender.send('context-menu:action', { action: 'paste', collectionName })
+    },
+    { type: 'separator' },
+    {
+      label: 'Delete Collection',
+      click: () => event.sender.send('context-menu:action', { action: 'delete', collectionName })
+    }
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    menu.popup({ window: win })
+  }
+})
+
+ipcMain.on('context-menu:show-collection-panel', (event, options?: { hasCopiedCollection?: boolean }) => {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Paste Collection',
+      enabled: options?.hasCopiedCollection ?? false,
+      click: () => event.sender.send('context-menu:action', { action: 'paste', collectionName: '' })
+    }
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    menu.popup({ window: win })
   }
 })
 

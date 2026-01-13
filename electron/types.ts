@@ -102,3 +102,30 @@ export interface CreateCollectionParams {
     metadata?: Record<string, unknown>
   }
 }
+
+export interface CopyCollectionParams {
+  sourceCollectionName: string
+  targetName: string
+  embeddingFunction?: {
+    type: 'default' | 'openai'
+    modelName?: string
+  }
+  hnsw?: HNSWConfig
+  metadata?: Record<string, unknown>
+  regenerateEmbeddings: boolean
+}
+
+export interface CopyCollectionResult {
+  success: boolean
+  collectionInfo?: CollectionInfo
+  totalDocuments: number
+  copiedDocuments: number
+  error?: string
+}
+
+export interface CopyProgress {
+  phase: 'creating' | 'copying' | 'complete' | 'error' | 'cancelled'
+  totalDocuments: number
+  processedDocuments: number
+  message: string
+}

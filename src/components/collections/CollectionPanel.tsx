@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useCollection } from '../../context/CollectionContext'
 import { useDraftCollection } from '../../context/DraftCollectionContext'
+import { useClipboard } from '../../context/ClipboardContext'
 import { useDeleteCollectionMutation } from '../../hooks/useChromaQueries'
 import { Button } from '../ui/button'
 import { DeleteCollectionDialog } from './DeleteCollectionDialog'
@@ -13,7 +14,8 @@ const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 export function CollectionPanel() {
   const { collections, collectionsLoading, collectionsError, refreshCollections, currentProfile } = useChromaDB()
   const { activeCollection, setActiveCollection } = useCollection()
-  const { draftCollection, startCreation, updateDraft, cancelCreation } = useDraftCollection()
+  const { draftCollection, startCreation, startCopyFromCollection, updateDraft, cancelCreation } = useDraftCollection()
+  const { clipboard, copyCollection, hasCopiedCollection } = useClipboard()
   const [searchTerm, setSearchTerm] = useState('')
 
   // Deletion state
@@ -96,16 +98,59 @@ export function CollectionPanel() {
     }
   }, [markedForDeletion, deleteMutation, activeCollection, setActiveCollection])
 
+  // Copy collection to clipboard
+  const handleCopyCollection = useCallback((collectionName: string) => {
+    if (!currentProfile) return
+    const collection = collections.find(c => c.name === collectionName)
+    if (collection) {
+      copyCollection(collection, currentProfile.id)
+    }
+  }, [collections, currentProfile, copyCollection])
+
+  // Paste collection (start copy mode)
+  const handlePasteCollection = useCallback(() => {
+    if (!clipboard || draftCollection) return
+    startCopyFromCollection(clipboard.collection)
+  }, [clipboard, draftCollection, startCopyFromCollection])
+
+  // Context menu handler for collection item
+  const handleContextMenu = useCallback((e: React.MouseEvent, collectionName: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    window.electronAPI.contextMenu.showCollectionMenu(collectionName, { hasCopiedCollection })
+  }, [hasCopiedCollection])
+
+  // Context menu handler for empty space in panel
+  const handlePanelContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    window.electronAPI.contextMenu.showCollectionPanelMenu({ hasCopiedCollection })
+  }, [hasCopiedCollection])
+
+  // Context menu action listener
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.contextMenu.onAction((data) => {
+      if (data.action === 'copy') {
+        handleCopyCollection(data.collectionName)
+      } else if (data.action === 'paste') {
+        handlePasteCollection()
+      } else if (data.action === 'delete') {
+        // Select and mark for deletion
+        setActiveCollection(data.collectionName)
+        setMarkedForDeletion(data.collectionName)
+      }
+    })
+    return unsubscribe
+  }, [handleCopyCollection, handlePasteCollection, setActiveCollection])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      const target = e.target as HTMLElement
+      const isInputting = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+
       // Delete/Backspace (with or without Command) to toggle deletion mark
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !draftCollection) {
-        // Don't trigger if user is typing in an input
-        const target = e.target as HTMLElement
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-          return
-        }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !draftCollection && !isInputting) {
         e.preventDefault()
         handleToggleDeletion()
       }
@@ -120,12 +165,32 @@ export function CollectionPanel() {
       if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && markedForDeletion) {
         e.preventDefault()
         setMarkedForDeletion(null)
+        return
+      }
+
+      // Command+Z to cancel copy mode (draft collection)
+      if (e.metaKey && e.key === 'z' && draftCollection) {
+        e.preventDefault()
+        cancelCreation()
+        return
+      }
+
+      // Command+C to copy active collection
+      if (e.metaKey && e.key === 'c' && activeCollection && !draftCollection && !isInputting) {
+        e.preventDefault()
+        handleCopyCollection(activeCollection)
+      }
+
+      // Command+V to paste (start copy mode)
+      if (e.metaKey && e.key === 'v' && hasCopiedCollection && !draftCollection && !isInputting) {
+        e.preventDefault()
+        handlePasteCollection()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleToggleDeletion, handleCommitDeletion, markedForDeletion, draftCollection])
+  }, [handleToggleDeletion, handleCommitDeletion, handleCopyCollection, handlePasteCollection, cancelCreation, markedForDeletion, draftCollection, activeCollection, hasCopiedCollection])
 
   const filteredCollections = collections.filter(collection =>
     collection.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -157,7 +222,7 @@ export function CollectionPanel() {
       </div>
 
       {/* Collections List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" onContextMenu={handlePanelContextMenu}>
         {collectionsLoading && (
           <div className="p-4 text-sm text-muted-foreground">Loading collections...</div>
         )}
@@ -224,6 +289,7 @@ export function CollectionPanel() {
                 <button
                   key={collection.id}
                   onClick={() => handleCollectionClick(collection.name)}
+                  onContextMenu={(e) => handleContextMenu(e, collection.name)}
                   className={`w-full px-4 py-1 text-left transition-all duration-150 ${bgClass} ${borderClass} ${!isActive && !isMarkedForDeletion ? 'hover:bg-sidebar-accent/50' : ''}`}
                 >
                   <div className={`text-xs font-medium truncate ${textClass}`}>

@@ -94,6 +94,33 @@ declare global {
     }
   }
 
+  interface CopyCollectionParams {
+    sourceCollectionName: string
+    targetName: string
+    embeddingFunction?: {
+      type: 'default' | 'openai'
+      modelName?: string
+    }
+    hnsw?: HNSWConfig
+    metadata?: Record<string, unknown>
+    regenerateEmbeddings: boolean
+  }
+
+  interface CopyCollectionResult {
+    success: boolean
+    collectionInfo?: CollectionInfo
+    totalDocuments: number
+    copiedDocuments: number
+    error?: string
+  }
+
+  interface CopyProgress {
+    phase: 'creating' | 'copying' | 'complete' | 'error' | 'cancelled'
+    totalDocuments: number
+    processedDocuments: number
+    message: string
+  }
+
   interface ElectronAPI {
     chromadb: {
       connect: (profileId: string, profile: ConnectionProfile) => Promise<void>
@@ -105,6 +132,14 @@ declare global {
       deleteDocuments: (profileId: string, params: DeleteDocumentsParams) => Promise<void>
       createCollection: (profileId: string, params: CreateCollectionParams) => Promise<CollectionInfo>
       deleteCollection: (profileId: string, collectionName: string) => Promise<void>
+      copyCollection: (profileId: string, params: CopyCollectionParams) => Promise<CopyCollectionResult>
+      onCopyProgress: (callback: (progress: CopyProgress) => void) => () => void
+      cancelCopy: (profileId: string) => Promise<void>
+    }
+    contextMenu: {
+      showCollectionMenu: (collectionName: string, options?: { hasCopiedCollection?: boolean }) => void
+      showCollectionPanelMenu: (options?: { hasCopiedCollection?: boolean }) => void
+      onAction: (callback: (action: { action: string; collectionName: string }) => void) => () => void
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>
