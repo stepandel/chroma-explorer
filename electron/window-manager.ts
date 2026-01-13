@@ -76,7 +76,7 @@ class WindowManager {
     // Create new setup window
     const win = new BrowserWindow({
       width: 800,
-      height: 340,
+      height: 400,
       resizable: false,
       minimizable: false,
       maximizable: false,
