@@ -1,7 +1,22 @@
 declare global {
+  type EmbeddingFunctionType =
+    | 'default'
+    | 'openai'
+    | 'ollama'
+    | 'cohere'
+    | 'google-gemini'
+    | 'jina'
+    | 'mistral'
+    | 'voyageai'
+    | 'together-ai'
+    | 'huggingface-server'
+    | 'cloudflare-worker-ai'
+
   interface EmbeddingFunctionOverride {
-    type: 'default' | 'openai'
+    type: EmbeddingFunctionType
     modelName?: string
+    url?: string // For Ollama, HuggingFace Server
+    accountId?: string // For Cloudflare Workers AI
   }
 
   interface ConnectionProfile {
@@ -82,8 +97,10 @@ declare global {
   interface CreateCollectionParams {
     name: string
     embeddingFunction?: {
-      type: 'default' | 'openai'
+      type: EmbeddingFunctionType
       modelName?: string
+      url?: string // For Ollama, HuggingFace Server
+      accountId?: string // For Cloudflare Workers AI
     }
     metadata?: Record<string, unknown>
     hnsw?: HNSWConfig
@@ -98,8 +115,10 @@ declare global {
     sourceCollectionName: string
     targetName: string
     embeddingFunction?: {
-      type: 'default' | 'openai'
+      type: EmbeddingFunctionType
       modelName?: string
+      url?: string // For Ollama, HuggingFace Server
+      accountId?: string // For Cloudflare Workers AI
     }
     hnsw?: HNSWConfig
     metadata?: Record<string, unknown>
