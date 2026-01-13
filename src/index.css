@@ -134,6 +134,10 @@ body {
   --content-background: oklch(0.92 0 0);
   --shadow-panel: 0 0 1px oklch(0 0 0 / 15%), 0 12px 32px oklch(0 0 0 / 12%);
 
+  /* Content canvas - primary working surface */
+  --canvas-background: oklch(1 0 0);
+  --canvas-shadow: inset 0 1px 3px oklch(0 0 0 / 0.04);
+
   /* Inspector inset sections */
   --inspector-section-bg: oklch(0 0 0 / 4%);
   --inspector-section-border: oklch(0 0 0 / 6%);
@@ -187,6 +191,10 @@ body {
     -8px 0 24px oklch(0 0 0 / 30%);
   --content-background: oklch(0.1 0 0);
   --shadow-panel: 0 0 1px oklch(0 0 0 / 40%), 0 12px 32px oklch(0 0 0 / 35%);
+
+  /* Content canvas - dark */
+  --canvas-background: oklch(0.14 0 0);
+  --canvas-shadow: inset 0 1px 3px oklch(0 0 0 / 0.15);
 
   /* Inspector inset sections - dark */
   --inspector-section-bg: oklch(1 0 0 / 4%);

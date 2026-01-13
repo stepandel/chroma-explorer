@@ -121,7 +121,10 @@ export function MainContent() {
             onIsFirstDocumentChange={handleIsFirstDocumentChange}
           />
         ) : (
-          <div className="flex items-center justify-center h-full bg-background">
+          <div
+            className="flex items-center justify-center h-full"
+            style={{ background: 'var(--canvas-background)' }}
+          >
             <div className="text-center text-muted-foreground">
               <p className="text-lg mb-2">No collection selected</p>
               <p className="text-sm">Select a collection from the sidebar to get started</p>

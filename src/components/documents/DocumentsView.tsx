@@ -742,8 +742,13 @@ export default function DocumentsView({
               ))}
             </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
+      {/* Table - primary content canvas */}
+      <div
+        className="flex-1 overflow-auto"
+        style={{
+          background: 'var(--canvas-background)',
+        }}
+      >
         <DocumentsTable
           documents={documents}
           loading={loading}
@@ -766,7 +771,7 @@ export default function DocumentsView({
       </div>
 
       {/* Bottom Toolbar */}
-      <div className="px-4 py-2 flex items-center justify-between bg-black/[0.02] dark:bg-white/[0.02]">
+      <div className="px-4 py-1.5 flex items-center justify-between">
         <button
           onClick={handleStartCreate}
           disabled={hasDrafts || markedForDeletion.size > 0}
