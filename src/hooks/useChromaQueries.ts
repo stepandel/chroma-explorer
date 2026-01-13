@@ -38,6 +38,12 @@ export function useCollectionsQuery(profileId: string | null, enabled: boolean =
   })
 }
 
+// Documents Query Result with timing
+interface DocumentsQueryResult {
+  documents: Awaited<ReturnType<typeof window.electronAPI.chromadb.searchDocuments>>
+  fetchTimeMs: number
+}
+
 // Documents Query
 export function useDocumentsQuery(
   profileId: string | null,
@@ -46,12 +52,14 @@ export function useDocumentsQuery(
 ) {
   return useQuery({
     queryKey: chromaQueryKeys.documents(profileId || '', params),
-    queryFn: async () => {
+    queryFn: async (): Promise<DocumentsQueryResult> => {
       if (!profileId) {
         throw new Error('Profile ID is required')
       }
+      const startTime = performance.now()
       const documents = await window.electronAPI.chromadb.searchDocuments(profileId, params)
-      return documents
+      const fetchTimeMs = Math.round(performance.now() - startTime)
+      return { documents, fetchTimeMs }
     },
     enabled: enabled && !!profileId && !!params.collectionName,
     staleTime: 1000 * 15, // 15 seconds
