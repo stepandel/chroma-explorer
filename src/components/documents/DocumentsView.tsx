@@ -705,42 +705,45 @@ export default function DocumentsView({
 
   return (
     <div className="flex flex-col h-full">
-            {/* Row 1: Collection name and count */}
-            <div className="px-4 py-2 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
-                <EmbeddingFunctionSelector
-                  collectionName={collectionName}
-                  currentOverride={embeddingOverride}
-                  serverConfig={currentCollection?.embeddingFunction || null}
-                  onSave={handleSaveOverride}
-                  onClear={handleClearOverride}
-                />
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
-              </span>
-            </div>
+      {/* Toolbar area - calm floating control surface */}
+      <div className="flex-shrink-0 bg-white/60 dark:bg-white/[0.03]">
+        {/* Row 1: Collection name and count */}
+        <div className="px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
+            <EmbeddingFunctionSelector
+              collectionName={collectionName}
+              currentOverride={embeddingOverride}
+              serverConfig={currentCollection?.embeddingFunction || null}
+              onSave={handleSaveOverride}
+              onClear={handleClearOverride}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
+          </span>
+        </div>
 
-            {/* Row 2: Filters */}
-            <div className="px-4 py-2 pb-3 space-y-2">
-              {/* Filter rows */}
-              {filterRows.map((row, index) => (
-                <FilterRow
-                  key={row.id}
-                  row={row}
-                  isFirst={index === 0}
-                  isLast={index === filterRows.length - 1}
-                  canRemove={filterRows.length > 1}
-                  onChange={handleFilterRowChange}
-                  onAdd={handleAddFilterRow}
-                  onRemove={handleRemoveFilterRow}
-                  nResults={nResults}
-                  onNResultsChange={setNResults}
-                  metadataFields={metadataFields}
-                />
-              ))}
-            </div>
+        {/* Row 2: Filters */}
+        <div className="px-4 py-2 pb-3 space-y-2">
+          {/* Filter rows */}
+          {filterRows.map((row, index) => (
+            <FilterRow
+              key={row.id}
+              row={row}
+              isFirst={index === 0}
+              isLast={index === filterRows.length - 1}
+              canRemove={filterRows.length > 1}
+              onChange={handleFilterRowChange}
+              onAdd={handleAddFilterRow}
+              onRemove={handleRemoveFilterRow}
+              nResults={nResults}
+              onNResultsChange={setNResults}
+              metadataFields={metadataFields}
+            />
+          ))}
+        </div>
+      </div>
 
       {/* Table - primary content canvas */}
       <div
