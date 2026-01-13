@@ -23,12 +23,7 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
-function inferValueType(value: string, operator: MetadataOperator): any {
-  // For $in and $nin operators, split by comma and infer type for each element
-  if (operator === '$in' || operator === '$nin') {
-    return value.split(',').map((v) => inferSingleValue(v.trim()))
-  }
-
+function inferValueType(value: string): any {
   return inferSingleValue(value)
 }
 
@@ -53,7 +48,7 @@ function buildWhereClause(metadataFilters: MetadataFilter[]): Record<string, any
     const filter = metadataFilters[0]
     return {
       [filter.key]: {
-        [filter.operator]: inferValueType(filter.value, filter.operator),
+        [filter.operator]: inferValueType(filter.value),
       },
     }
   }
@@ -62,7 +57,7 @@ function buildWhereClause(metadataFilters: MetadataFilter[]): Record<string, any
   return {
     $and: metadataFilters.map((filter) => ({
       [filter.key]: {
-        [filter.operator]: inferValueType(filter.value, filter.operator),
+        [filter.operator]: inferValueType(filter.value),
       },
     })),
   }

@@ -633,9 +633,10 @@ export default function DocumentsView({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger copy/paste if user is typing in an input
+      // Don't trigger copy/paste if user is typing in an input or has text selected
       const target = e.target as HTMLElement
       const isInputting = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+      const hasTextSelection = (window.getSelection()?.toString() || '').length > 0
 
       // Command+S or Command+Enter to save drafts or commit deletions
       if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
@@ -657,8 +658,8 @@ export default function DocumentsView({
         e.preventDefault()
         handleToggleDeletion()
       }
-      // Command+C to copy selected documents
-      if (e.metaKey && e.key === 'c' && selectedDocumentIds.size > 0 && !hasDrafts && !isInputting) {
+      // Command+C to copy selected documents (but not if text is selected - let native copy work)
+      if (e.metaKey && e.key === 'c' && selectedDocumentIds.size > 0 && !hasDrafts && !isInputting && !hasTextSelection) {
         e.preventDefault()
         handleCopyDocuments()
       }

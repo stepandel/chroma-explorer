@@ -147,9 +147,10 @@ export function CollectionPanel() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
+      // Don't trigger if user is typing in an input or has text selected
       const target = e.target as HTMLElement
       const isInputting = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+      const hasTextSelection = (window.getSelection()?.toString() || '').length > 0
 
       // Delete/Backspace (with or without Command) to toggle deletion mark
       if ((e.key === 'Delete' || e.key === 'Backspace') && !draftCollection && !isInputting) {
@@ -177,8 +178,8 @@ export function CollectionPanel() {
         return
       }
 
-      // Command+C to copy active collection (only if no documents are selected)
-      if (e.metaKey && e.key === 'c' && activeCollection && !draftCollection && !isInputting && selectedDocumentIds.size === 0) {
+      // Command+C to copy active collection (only if no documents are selected and no text selected)
+      if (e.metaKey && e.key === 'c' && activeCollection && !draftCollection && !isInputting && !hasTextSelection && selectedDocumentIds.size === 0) {
         e.preventDefault()
         handleCopyCollection(activeCollection)
       }
