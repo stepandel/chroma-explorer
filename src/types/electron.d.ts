@@ -59,6 +59,7 @@ declare global {
     queryText?: string
     nResults?: number
     metadataFilter?: Record<string, any>
+    ids?: string[] // Filter by specific IDs (no embedding function needed)
     limit?: number
     offset?: number
   }

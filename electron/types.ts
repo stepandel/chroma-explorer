@@ -68,6 +68,7 @@ export interface SearchDocumentsParams {
   queryText?: string // Triggers semantic search
   nResults?: number // Max results (default: 10)
   metadataFilter?: Record<string, any> // Where clause
+  ids?: string[] // Filter by specific IDs (no embedding function needed)
   limit?: number // For get() pagination
   offset?: number // For get() pagination
 }
