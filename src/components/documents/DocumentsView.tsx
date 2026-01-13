@@ -223,10 +223,14 @@ export default function DocumentsView({
 
   // Use React Query for documents with debouncing via staleTime
   const {
-    data: rawDocuments = [],
+    data: queryData,
     isLoading: loading,
     error,
+    isFetching,
   } = useDocumentsQuery(currentProfile?.id || null, searchParams)
+
+  const rawDocuments = queryData?.documents ?? []
+  const fetchTimeMs = queryData?.fetchTimeMs ?? null
 
   // Extract ID filter value for client-side filtering
   const idFilterValue = useMemo(() => {
@@ -819,6 +823,11 @@ export default function DocumentsView({
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </button>
           </div>
+        )}
+        {!hasDrafts && markedForDeletion.size === 0 && fetchTimeMs !== null && !loading && (
+          <span className="text-[10px] text-muted-foreground">
+            {isFetching ? 'fetching...' : `${fetchTimeMs}ms`}
+          </span>
         )}
       </div>
     </div>

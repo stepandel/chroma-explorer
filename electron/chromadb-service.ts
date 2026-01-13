@@ -213,12 +213,22 @@ class ChromaDBService {
     // If queryText is provided, use semantic search (query method)
     if (params.queryText && params.queryText.trim() !== '') {
       // Use queryTexts parameter - ChromaDB will handle embedding on the server side
-      const queryResults = await collection.query({
+      // nResults: 0 means no limit - omit to use ChromaDB's default behavior
+      const queryOptions: {
+        queryTexts: string[]
+        nResults?: number
+        where?: Record<string, any>
+        include: ('documents' | 'metadatas' | 'embeddings' | 'distances')[]
+      } = {
         queryTexts: [params.queryText],
-        nResults: params.nResults || 10,
         where: params.metadataFilter,
         include: ['documents', 'metadatas', 'embeddings', 'distances'],
-      })
+      }
+      // Only specify nResults if not "no limit" (0)
+      if (params.nResults !== 0) {
+        queryOptions.nResults = params.nResults || 10
+      }
+      const queryResults = await collection.query(queryOptions)
 
       // Transform query results to DocumentRecord format by mapping over documents[0]
       const documents: DocumentRecord[] = (queryResults.ids?.[0] || []).map((id, i) => ({
@@ -226,17 +236,28 @@ class ChromaDBService {
         document: queryResults.documents?.[0]?.[i] || null,
         metadata: queryResults.metadatas?.[0]?.[i] || null,
         embedding: queryResults.embeddings?.[0]?.[i] || null,
+        distance: queryResults.distances?.[0]?.[i] ?? null,
       }));
 
       return documents
     } else {
       // Use get method for metadata filtering only
-      const getResults = await collection.get({
+      // nResults: 0 means no limit, omit the limit parameter
+      const getOptions: {
+        where?: Record<string, any>
+        limit?: number
+        offset?: number
+        include: ('documents' | 'metadatas' | 'embeddings')[]
+      } = {
         where: params.metadataFilter,
-        limit: params.limit || 300,
         offset: params.offset || 0,
         include: ['documents', 'metadatas', 'embeddings'],
-      })
+      }
+      // Only specify limit if not "no limit" (0)
+      if (params.nResults !== 0) {
+        getOptions.limit = params.limit || 300
+      }
+      const getResults = await collection.get(getOptions)
 
       // Transform get results to DocumentRecord format
       const documents: DocumentRecord[] = (getResults.ids || []).map((id, i) => ({

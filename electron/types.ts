@@ -60,6 +60,7 @@ export interface DocumentRecord {
   document: string | null
   metadata: Record<string, unknown> | null
   embedding: number[] | null
+  distance?: number | null // Only present for semantic search results
 }
 
 export interface SearchDocumentsParams {
