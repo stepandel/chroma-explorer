@@ -213,6 +213,7 @@ class ChromaDBService {
         document: queryResults.documents?.[0]?.[i] || null,
         metadata: queryResults.metadatas?.[0]?.[i] || null,
         embedding: queryResults.embeddings?.[0]?.[i] || null,
+        distance: queryResults.distances?.[0]?.[i] ?? null,
       }));
 
       return documents

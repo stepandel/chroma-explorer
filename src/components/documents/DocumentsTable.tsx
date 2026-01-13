@@ -14,6 +14,7 @@ interface DocumentRecord {
   document: string | null
   metadata: Record<string, unknown> | null
   embedding: number[] | null
+  distance?: number | null
 }
 
 interface DraftDocument {
@@ -288,9 +289,34 @@ export default function DocumentsTable({
     [documents]
   )
 
+  // Check if any documents have distance scores (semantic search results)
+  const hasDistances = useMemo(() =>
+    documents.some(doc => doc.distance !== undefined && doc.distance !== null),
+    [documents]
+  )
+
   // Define columns
   const columns = useMemo<ColumnDef<DocumentRecord>[]>(() => {
-    const baseColumns: ColumnDef<DocumentRecord>[] = [
+    const baseColumns: ColumnDef<DocumentRecord>[] = []
+
+    // Add distance column only when we have semantic search results
+    if (hasDistances) {
+      baseColumns.push({
+        accessorKey: 'distance',
+        header: 'dist',
+        size: 60,
+        cell: info => {
+          const value = info.getValue() as number | null | undefined
+          return (
+            <div className="text-xs font-mono text-muted-foreground text-center">
+              {value !== undefined && value !== null ? value.toFixed(3) : '-'}
+            </div>
+          )
+        },
+      })
+    }
+
+    baseColumns.push(
       {
         accessorKey: 'id',
         header: 'id',
@@ -316,7 +342,7 @@ export default function DocumentsTable({
           )
         },
       },
-    ]
+    )
 
     // Add dynamic metadata columns
     const metadataColumns: ColumnDef<DocumentRecord>[] = metadataKeys.map(key => ({
@@ -347,7 +373,7 @@ export default function DocumentsTable({
     }))
 
     return [...baseColumns, ...metadataColumns]
-  }, [metadataKeys])
+  }, [metadataKeys, hasDistances])
 
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
 
@@ -428,7 +454,11 @@ export default function DocumentsTable({
         </thead>
         <tbody className="divide-y divide-border select-none">
           {/* Draft rows for creating/pasting documents */}
-          {draftDocuments.length > 0 && onDraftChange && draftDocuments.map((draft, draftIndex) => (
+          {draftDocuments.length > 0 && onDraftChange && draftDocuments.map((draft, draftIndex) => {
+            // Column indices depend on whether distance column is shown
+            const idColIndex = hasDistances ? 1 : 0
+            const docColIndex = hasDistances ? 2 : 1
+            return (
             <tr
               key={`draft-${draftIndex}`}
               className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-blue-50' : 'bg-blue-50/50'}`}
@@ -437,10 +467,19 @@ export default function DocumentsTable({
               onMouseDown={(e) => handleMouseDown(e, draftIndex)}
               onMouseEnter={() => handleMouseEnter(draftIndex)}
             >
+              {/* Distance cell - empty placeholder when distance column is visible */}
+              {hasDistances && (
+                <td
+                  className="pl-3 py-0.5 align-top border-r border-border"
+                  style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
+                >
+                  <div className="text-xs font-mono text-muted-foreground text-center">-</div>
+                </td>
+              )}
               {/* ID cell - editable */}
               <td
                 className="pl-3 py-0.5 align-top border-r border-border"
-                style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
+                style={{ width: table.getHeaderGroups()[0]?.headers[idColIndex]?.getSize() }}
               >
                 <input
                   ref={draftIndex === 0 ? draftIdInputRef : undefined}
@@ -454,7 +493,7 @@ export default function DocumentsTable({
               {/* Document cell - editable */}
               <td
                 className="pl-3 py-0.5 align-top border-r border-border"
-                style={{ width: table.getHeaderGroups()[0]?.headers[1]?.getSize() }}
+                style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
               >
                 <input
                   type="text"
@@ -491,7 +530,7 @@ export default function DocumentsTable({
               {/* Filler cell */}
               <td className="border-r border-border"></td>
             </tr>
-          ))}
+          )})}
           {table.getRowModel().rows.map((row, index) => {
             const isSelected = selectedDocumentIds.has(row.original.id)
             const isMarkedForDeletion = markedForDeletion.has(row.original.id)
@@ -514,6 +553,10 @@ export default function DocumentsTable({
               rowBgClass = adjustedIndex % 2 === 0 ? 'bg-background' : 'bg-muted/100'
             }
 
+            // Column indices depend on whether distance column is shown
+            const idColIndex = hasDistances ? 1 : 0
+            const docColIndex = hasDistances ? 2 : 1
+
             // Render editing row
             if (isEditing && editingState) {
               return (
@@ -522,10 +565,23 @@ export default function DocumentsTable({
                   className={`transition-colors cursor-pointer ${rowBgClass}`}
                   onContextMenu={(e) => onDocumentContextMenu?.(e, row.original.id)}
                 >
+                  {/* Distance cell - display only when distance column is visible */}
+                  {hasDistances && (
+                    <td
+                      className="pl-3 py-0.5 align-top border-r border-border"
+                      style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
+                    >
+                      <div className="text-xs font-mono text-muted-foreground text-center">
+                        {row.original.distance !== undefined && row.original.distance !== null
+                          ? row.original.distance.toFixed(3)
+                          : '-'}
+                      </div>
+                    </td>
+                  )}
                   {/* ID cell - not editable */}
                   <td
                     className="pl-3 py-0.5 align-top border-r border-border"
-                    style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
+                    style={{ width: table.getHeaderGroups()[0]?.headers[idColIndex]?.getSize() }}
                   >
                     <div className="text-xs font-mono text-foreground">
                       {row.original.id}
@@ -534,7 +590,7 @@ export default function DocumentsTable({
                   {/* Document cell - editable */}
                   <td
                     className="pl-3 py-0.5 align-top border-r border-border"
-                    style={{ width: table.getHeaderGroups()[0]?.headers[1]?.getSize() }}
+                    style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
                   >
                     <input
                       ref={editingInputRef}
