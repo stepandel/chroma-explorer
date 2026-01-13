@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'
@@ -479,6 +479,17 @@ ipcMain.handle('settings:setApiKeys', async (_event, apiKeys: ApiKeys) => {
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to save API keys'
+    return { success: false, error: message }
+  }
+})
+
+// Shell IPC handlers
+ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+  try {
+    await shell.openExternal(url)
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to open URL'
     return { success: false, error: message }
   }
 })

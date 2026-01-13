@@ -89,15 +89,14 @@ export function SettingsWindow() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-foreground">{provider.name}</span>
                   {provider.docsUrl && (
-                    <a
-                      href={provider.docsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => window.electronAPI.shell.openExternal(provider.docsUrl!)}
                       className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                     >
                       Get key
                       <ExternalLink className="h-2.5 w-2.5" />
-                    </a>
+                    </button>
                   )}
                 </div>
 

@@ -197,6 +197,9 @@ declare global {
       getApiKeys: () => Promise<Record<string, string>>
       setApiKeys: (apiKeys: Record<string, string>) => Promise<void>
     }
+    shell: {
+      openExternal: (url: string) => Promise<void>
+    }
   }
 
   interface Window {

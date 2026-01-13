@@ -224,6 +224,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
     },
   },
+  shell: {
+    openExternal: async (url: string): Promise<void> => {
+      const result = await ipcRenderer.invoke('shell:openExternal', url)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+  },
 })
 
 console.log('Preload script finished, electronAPI exposed:', typeof window !== 'undefined' ? !!(window as any).electronAPI : 'window not defined')
