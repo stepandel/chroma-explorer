@@ -93,14 +93,6 @@ export const EMBEDDING_FUNCTIONS: EmbeddingFunctionConfig[] = [
     dimensions: 3072,
     group: 'OpenAI',
   },
-  {
-    id: 'openai-ada',
-    label: 'OpenAI Ada (legacy)',
-    type: 'openai',
-    modelName: 'text-embedding-ada-002',
-    dimensions: 1536,
-    group: 'OpenAI',
-  },
 
   // Cohere
   {

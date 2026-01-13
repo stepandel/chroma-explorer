@@ -95,9 +95,6 @@ dependencies:
   onnxruntime-node:
     specifier: ^1.23.2
     version: 1.23.2
-  openai:
-    specifier: ^6.16.0
-    version: 6.16.0(zod@3.25.76)
   react:
     specifier: ^19.2.3
     version: 19.2.3
@@ -5830,21 +5827,6 @@ packages:
       zod: 3.25.76
     transitivePeerDependencies:
       - encoding
-    dev: false
-
-  /openai@6.16.0(zod@3.25.76):
-    resolution: {integrity: sha512-fZ1uBqjFUjXzbGc35fFtYKEOxd20kd9fDpFeqWtsOZWiubY8CZ1NAlXHW3iathaFvqmNtCWMIsosCuyeI7Joxg==}
-    hasBin: true
-    peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
-        optional: true
-    dependencies:
-      zod: 3.25.76
     dev: false
 
   /ora@5.4.1:

@@ -32,10 +32,8 @@ export default defineConfig({
             rollupOptions: {
               external: [
                 '@chroma-core/default-embed',
-                '@chroma-core/openai',
                 'onnxruntime-node',
                 'sharp',
-                'openai',
               ],
             },
           },

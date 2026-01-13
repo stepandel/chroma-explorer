@@ -64,7 +64,6 @@
     "electron-store": "^11.0.2",
     "lucide-react": "^0.562.0",
     "onnxruntime-node": "^1.23.2",
-    "openai": "^6.16.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-resizable-panels": "^4.3.2",
