@@ -111,7 +111,7 @@ export function CollectionPanel() {
 
   // Paste collection (start copy mode)
   const handlePasteCollection = useCallback(() => {
-    if (!clipboard || draftCollection) return
+    if (!clipboard || clipboard.type !== 'collection' || draftCollection) return
     startCopyFromCollection(clipboard.collection)
   }, [clipboard, draftCollection, startCopyFromCollection])
 
