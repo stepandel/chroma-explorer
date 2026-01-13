@@ -141,21 +141,6 @@ export default function DocumentsView({
 
   // Build search params from filter rows
   const searchParams = useMemo(() => {
-    // Check for select filter (ID lookup) - when present, ignore all other filters
-    const selectRow = filterRows.find(r => r.type === 'select' && r.selectValue?.trim())
-    if (selectRow) {
-      // Parse the ID value - support comma-separated list for multiple IDs
-      const ids = selectRow.selectValue!
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean)
-
-      return {
-        collectionName,
-        ids,
-      }
-    }
-
     // Extract search query from search-type rows
     const searchRow = filterRows.find(r => r.type === 'search' && r.searchValue?.trim())
     const queryText = searchRow?.searchValue?.trim() || undefined
@@ -217,10 +202,26 @@ export default function DocumentsView({
 
   // Use React Query for documents with debouncing via staleTime
   const {
-    data: documents = [],
+    data: rawDocuments = [],
     isLoading: loading,
     error,
   } = useDocumentsQuery(currentProfile?.id || null, searchParams)
+
+  // Extract ID filter value for client-side filtering
+  const idFilterValue = useMemo(() => {
+    const selectRow = filterRows.find(r => r.type === 'select' && r.selectValue?.trim())
+    return selectRow?.selectValue?.trim().toLowerCase() || ''
+  }, [filterRows])
+
+  // Apply client-side ID filter (case-insensitive "includes" match)
+  const documents = useMemo(() => {
+    if (!idFilterValue) {
+      return rawDocuments
+    }
+    return rawDocuments.filter(doc =>
+      doc.id.toLowerCase().includes(idFilterValue)
+    )
+  }, [rawDocuments, idFilterValue])
 
   // Extract unique metadata fields from documents (needed for draft creation)
   const metadataFields = useMemo(() => {
