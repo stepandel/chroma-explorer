@@ -5,8 +5,6 @@ export type MetadataOperator =
   | '$gte'
   | '$lt'
   | '$lte'
-  | '$in'
-  | '$nin'
 
 export interface MetadataFilter {
   id: string // UUID for React keys

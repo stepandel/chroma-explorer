@@ -20,8 +20,6 @@ const operatorLabels: Record<MetadataOperator, string> = {
   $gte: '>=',
   $lt: '<',
   $lte: '<=',
-  $in: 'in',
-  $nin: 'not in',
 }
 
 const inputClassName = "h-6 text-[11px] py-0 px-1.5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
