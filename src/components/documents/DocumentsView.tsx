@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
-import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation, useCreateDocumentsBatchMutation } from '../../hooks/useChromaQueries'
+import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation, useCreateDocumentsBatchMutation, useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
 import { useClipboard } from '../../context/ClipboardContext'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
@@ -95,6 +95,12 @@ export default function DocumentsView({
 
   // Create documents batch mutation (for pasting)
   const createBatchMutation = useCreateDocumentsBatchMutation(
+    currentProfile?.id || '',
+    collectionName
+  )
+
+  // Update document mutation (for inline editing)
+  const updateMutation = useUpdateDocumentMutation(
     currentProfile?.id || '',
     collectionName
   )
@@ -575,6 +581,18 @@ export default function DocumentsView({
     window.electronAPI.contextMenu.showDocumentsPanelMenu({ hasCopiedDocuments })
   }, [hasCopiedDocuments])
 
+  // Inline document update handler
+  const handleInlineDocumentUpdate = useCallback(async (
+    documentId: string,
+    updates: { document?: string; metadata?: Record<string, unknown> }
+  ) => {
+    await updateMutation.mutateAsync({
+      documentId,
+      document: updates.document,
+      metadata: updates.metadata as Record<string, string | number | boolean> | undefined,
+    })
+  }, [updateMutation])
+
   // Context menu action listener
   useEffect(() => {
     const unsubscribe = window.electronAPI.contextMenu.onDocumentAction((data) => {
@@ -719,6 +737,7 @@ export default function DocumentsView({
           onDraftChange={handleDraftChange}
           onDraftCancel={handleCancelDraft}
           markedForDeletion={markedForDeletion}
+          onDocumentUpdate={handleInlineDocumentUpdate}
           onDocumentContextMenu={handleDocumentContextMenu}
           onTableContextMenu={handleTableContextMenu}
         />
