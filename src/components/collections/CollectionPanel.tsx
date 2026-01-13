@@ -4,6 +4,7 @@ import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useCollection } from '../../context/CollectionContext'
 import { useDraftCollection } from '../../context/DraftCollectionContext'
 import { useClipboard } from '../../context/ClipboardContext'
+import { usePanel } from '../../context/PanelContext'
 import { useDeleteCollectionMutation } from '../../hooks/useChromaQueries'
 import { Button } from '../ui/button'
 import { DeleteCollectionDialog } from './DeleteCollectionDialog'
@@ -16,6 +17,7 @@ export function CollectionPanel() {
   const { activeCollection, setActiveCollection } = useCollection()
   const { draftCollection, startCreation, startCopyFromCollection, updateDraft, cancelCreation } = useDraftCollection()
   const { clipboard, copyCollection, hasCopiedCollection } = useClipboard()
+  const { selectedDocumentIds } = usePanel()
   const [searchTerm, setSearchTerm] = useState('')
 
   // Deletion state
@@ -175,8 +177,8 @@ export function CollectionPanel() {
         return
       }
 
-      // Command+C to copy active collection
-      if (e.metaKey && e.key === 'c' && activeCollection && !draftCollection && !isInputting) {
+      // Command+C to copy active collection (only if no documents are selected)
+      if (e.metaKey && e.key === 'c' && activeCollection && !draftCollection && !isInputting && selectedDocumentIds.size === 0) {
         e.preventDefault()
         handleCopyCollection(activeCollection)
       }
@@ -190,7 +192,7 @@ export function CollectionPanel() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleToggleDeletion, handleCommitDeletion, handleCopyCollection, handlePasteCollection, cancelCreation, markedForDeletion, draftCollection, activeCollection, hasCopiedCollection])
+  }, [handleToggleDeletion, handleCommitDeletion, handleCopyCollection, handlePasteCollection, cancelCreation, markedForDeletion, draftCollection, activeCollection, hasCopiedCollection, selectedDocumentIds])
 
   const filteredCollections = collections.filter(collection =>
     collection.name.toLowerCase().includes(searchTerm.toLowerCase())

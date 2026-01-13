@@ -39,6 +39,9 @@ interface DocumentsTableProps {
   onDraftChange?: (draft: DraftDocument) => void
   onDraftCancel?: () => void
   markedForDeletion?: Set<string>
+  // Context menu props
+  onDocumentContextMenu?: (e: React.MouseEvent, documentId: string) => void
+  onTableContextMenu?: (e: React.MouseEvent) => void
 }
 
 export default function DocumentsTable({
@@ -56,6 +59,8 @@ export default function DocumentsTable({
   onDraftChange,
   onDraftCancel,
   markedForDeletion = new Set(),
+  onDocumentContextMenu,
+  onTableContextMenu,
 }: DocumentsTableProps) {
   // Ref for auto-focusing the id input when draft starts
   const draftIdInputRef = useRef<HTMLInputElement>(null)
@@ -277,7 +282,7 @@ export default function DocumentsTable({
   }
 
   return (
-    <div className="overflow-auto h-full">
+    <div className="overflow-auto h-full" onContextMenu={onTableContextMenu}>
       <table style={{ minWidth: '100%', width: table.getCenterTotalSize() }}>
         <thead className="bg-muted sticky top-0 z-10 border-b border-border">
           {table.getHeaderGroups().map(headerGroup => (
@@ -397,6 +402,7 @@ export default function DocumentsTable({
                 onClick={(e) => handleRowClick(e, row.original.id, rowIndex)}
                 onMouseDown={(e) => handleMouseDown(e, rowIndex)}
                 onMouseEnter={() => handleMouseEnter(rowIndex)}
+                onContextMenu={(e) => onDocumentContextMenu?.(e, row.original.id)}
               >
                 {row.getVisibleCells().map(cell => (
                   <td

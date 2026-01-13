@@ -7,6 +7,7 @@ import {
   UpdateDocumentParams,
   CreateDocumentParams,
   DeleteDocumentsParams,
+  CreateDocumentsBatchParams,
   CreateCollectionParams,
   CopyCollectionParams,
   CopyCollectionResult,
@@ -63,6 +64,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error)
       }
     },
+    createDocumentsBatch: async (profileId: string, params: CreateDocumentsBatchParams): Promise<{ createdIds: string[]; errors: string[] }> => {
+      const result = await ipcRenderer.invoke('chromadb:createDocumentsBatch', profileId, params)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
     createCollection: async (profileId: string, params: CreateCollectionParams): Promise<CollectionInfo> => {
       const result = await ipcRenderer.invoke('chromadb:createCollection', profileId, params)
       if (!result.success) {
@@ -106,6 +114,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
       const handler = (_event: any, data: { action: string; collectionName: string }) => callback(data)
       ipcRenderer.on('context-menu:action', handler)
       return () => ipcRenderer.removeListener('context-menu:action', handler)
+    },
+    showDocumentMenu: (documentId: string, options?: { hasCopiedDocuments?: boolean }): void => {
+      ipcRenderer.send('context-menu:show-document', documentId, options)
+    },
+    showDocumentsPanelMenu: (options?: { hasCopiedDocuments?: boolean }): void => {
+      ipcRenderer.send('context-menu:show-documents-panel', options)
+    },
+    onDocumentAction: (callback: (action: { action: string; documentId?: string }) => void): (() => void) => {
+      const handler = (_event: any, data: { action: string; documentId?: string }) => callback(data)
+      ipcRenderer.on('context-menu:document-action', handler)
+      return () => ipcRenderer.removeListener('context-menu:document-action', handler)
     },
   },
   profiles: {

@@ -7,6 +7,7 @@ import {
   UpdateDocumentParams,
   CreateDocumentParams,
   DeleteDocumentsParams,
+  CreateDocumentsBatchParams,
   CreateCollectionParams,
   CopyCollectionParams,
   CopyCollectionResult,
@@ -379,6 +380,89 @@ class ChromaDBService {
     await collection.delete({
       ids: params.ids,
     })
+  }
+
+  async createDocumentsBatch(
+    params: CreateDocumentsBatchParams,
+    embeddingOverride?: EmbeddingFunctionOverride | null
+  ): Promise<{ createdIds: string[]; errors: string[] }> {
+    if (!this.client) {
+      throw new Error('ChromaDB client not connected. Please connect first.')
+    }
+
+    const BATCH_SIZE = 100
+
+    // Find the collection's embedding function config from cache
+    const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
+
+    // Build embedding function if generation is requested
+    let efConfig: CollectionInfo['embeddingFunction'] = null
+    if (params.generateEmbeddings) {
+      if (embeddingOverride) {
+        efConfig = {
+          name: embeddingOverride.type === 'default' ? 'default' : 'openai',
+          type: 'known',
+          config: embeddingOverride.type === 'openai'
+            ? { model_name: embeddingOverride.modelName }
+            : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
+        }
+      } else {
+        efConfig = collectionInfo?.embeddingFunction
+      }
+    }
+
+    // Get embedding function only if generating
+    const embeddingFunction = params.generateEmbeddings
+      ? await this.efFactory?.getEmbeddingFunction(params.collectionName, efConfig)
+      : undefined
+
+    const collection = await this.client.getCollection({
+      name: params.collectionName,
+      embeddingFunction,
+    })
+
+    const createdIds: string[] = []
+    const errors: string[] = []
+
+    // Process documents in batches
+    const totalDocs = params.documents.length
+    const totalBatches = Math.ceil(totalDocs / BATCH_SIZE)
+
+    for (let i = 0; i < totalBatches; i++) {
+      const start = i * BATCH_SIZE
+      const end = Math.min(start + BATCH_SIZE, totalDocs)
+      const batch = params.documents.slice(start, end)
+
+      try {
+        const addPayload: {
+          ids: string[]
+          documents?: string[]
+          metadatas?: Metadata[]
+        } = {
+          ids: batch.map(d => d.id),
+        }
+
+        // Include documents if any have document text
+        const documents = batch.map(d => d.document).filter((d): d is string => d !== undefined)
+        if (documents.length > 0) {
+          addPayload.documents = batch.map(d => d.document || '')
+        }
+
+        // Include metadatas if any have metadata
+        const metadatas = batch.map(d => d.metadata).filter((m): m is Record<string, unknown> => m !== undefined)
+        if (metadatas.length > 0) {
+          addPayload.metadatas = batch.map(d => (d.metadata || {}) as Metadata)
+        }
+
+        await collection.add(addPayload as any)
+        createdIds.push(...batch.map(d => d.id))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        errors.push(`Batch ${i + 1}: ${message}`)
+      }
+    }
+
+    return { createdIds, errors }
   }
 
   async createCollection(params: CreateCollectionParams): Promise<CollectionInfo> {

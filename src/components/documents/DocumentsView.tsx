@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
-import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation } from '../../hooks/useChromaQueries'
+import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation, useCreateDocumentsBatchMutation } from '../../hooks/useChromaQueries'
+import { useClipboard } from '../../context/ClipboardContext'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
 import { TypedMetadataRecord, TypedMetadataField, typedMetadataToChromaFormat, validateMetadataValue } from '../../types/metadata'
@@ -86,6 +87,15 @@ export default function DocumentsView({
     currentProfile?.id || '',
     collectionName
   )
+
+  // Create documents batch mutation (for pasting)
+  const createBatchMutation = useCreateDocumentsBatchMutation(
+    currentProfile?.id || '',
+    collectionName
+  )
+
+  // Clipboard context
+  const { clipboard, copyDocuments, hasCopiedDocuments } = useClipboard()
 
   // Fetch collections to get the current collection's info
   const { data: collections = [] } = useCollectionsQuery(currentProfile?.id || null)
@@ -400,9 +410,102 @@ export default function DocumentsView({
     }
   }, [markedForDeletion, deleteMutation, selectedDocumentIds, onClearSelection])
 
+  // Copy selected documents to clipboard
+  const handleCopyDocuments = useCallback(() => {
+    if (selectedDocumentIds.size === 0 || !currentProfile?.id) return
+    // Filter out draft from selection and get document data
+    const docsToCopy = documents.filter(
+      doc => selectedDocumentIds.has(doc.id) && !(draftDocument && doc.id === draftDocument.id)
+    )
+    if (docsToCopy.length === 0) return
+    copyDocuments(docsToCopy, collectionName, currentProfile.id)
+  }, [selectedDocumentIds, documents, draftDocument, collectionName, currentProfile?.id, copyDocuments])
+
+  // Resolve ID conflicts for pasting
+  const resolveConflictingIds = useCallback((
+    documentsToPaste: Array<{ id: string; document: string | null; metadata: Record<string, unknown> | null }>,
+    existingIds: Set<string>
+  ) => {
+    const usedIds = new Set(existingIds)
+    return documentsToPaste.map(doc => {
+      let newId = doc.id
+      let copyNum = 0
+
+      while (usedIds.has(newId)) {
+        copyNum++
+        newId = copyNum === 1
+          ? `${doc.id}-copy`
+          : `${doc.id}-copy-${copyNum}`
+      }
+
+      usedIds.add(newId)
+      return { ...doc, id: newId }
+    })
+  }, [])
+
+  // Paste documents from clipboard
+  const handlePasteDocuments = useCallback(async () => {
+    if (!clipboard || clipboard.type !== 'documents' || !currentProfile?.id) return
+
+    // Get existing document IDs
+    const existingIds = new Set(documents.map(d => d.id))
+
+    // Resolve any ID conflicts
+    const resolvedDocs = resolveConflictingIds(clipboard.documents, existingIds)
+
+    // Convert to batch params format
+    const docsToCreate = resolvedDocs.map(doc => ({
+      id: doc.id,
+      document: doc.document || undefined,
+      metadata: doc.metadata || undefined,
+    }))
+
+    try {
+      await createBatchMutation.mutateAsync({
+        documents: docsToCreate,
+        generateEmbeddings: true, // Always regenerate embeddings on paste
+      })
+    } catch (error) {
+      console.error('Failed to paste documents:', error)
+    }
+  }, [clipboard, currentProfile?.id, documents, resolveConflictingIds, createBatchMutation])
+
+  // Context menu handler for document row
+  const handleDocumentContextMenu = useCallback((e: React.MouseEvent, documentId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    window.electronAPI.contextMenu.showDocumentMenu(documentId, { hasCopiedDocuments })
+  }, [hasCopiedDocuments])
+
+  // Context menu handler for empty space in table
+  const handleTableContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    window.electronAPI.contextMenu.showDocumentsPanelMenu({ hasCopiedDocuments })
+  }, [hasCopiedDocuments])
+
+  // Context menu action listener
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.contextMenu.onDocumentAction((data) => {
+      if (data.action === 'copy') {
+        handleCopyDocuments()
+      } else if (data.action === 'paste') {
+        handlePasteDocuments()
+      } else if (data.action === 'delete' && data.documentId) {
+        // Select and mark for deletion
+        onSingleSelect(data.documentId)
+        setMarkedForDeletion(new Set([data.documentId]))
+      }
+    })
+    return unsubscribe
+  }, [handleCopyDocuments, handlePasteDocuments, onSingleSelect])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger copy/paste if user is typing in an input
+      const target = e.target as HTMLElement
+      const isInputting = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+
       // Command+S or Command+Enter to save draft or commit deletions
       if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
         e.preventDefault()
@@ -419,19 +522,25 @@ export default function DocumentsView({
       }
       // Command+Delete/Backspace to toggle deletion mark
       if (e.metaKey && (e.key === 'Delete' || e.key === 'Backspace') && !draftDocument) {
-        // Don't trigger if user is typing in an input
-        const target = e.target as HTMLElement
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-          return
-        }
+        if (isInputting) return
         e.preventDefault()
         handleToggleDeletion()
+      }
+      // Command+C to copy selected documents
+      if (e.metaKey && e.key === 'c' && selectedDocumentIds.size > 0 && !draftDocument && !isInputting) {
+        e.preventDefault()
+        handleCopyDocuments()
+      }
+      // Command+V to paste documents
+      if (e.metaKey && e.key === 'v' && hasCopiedDocuments && !draftDocument && !isInputting) {
+        e.preventDefault()
+        handlePasteDocuments()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [draftDocument, handleSaveDraft, handleCancelDraft, handleToggleDeletion, handleCommitDeletions, markedForDeletion])
+  }, [draftDocument, handleSaveDraft, handleCancelDraft, handleToggleDeletion, handleCommitDeletions, markedForDeletion, selectedDocumentIds, handleCopyDocuments, handlePasteDocuments, hasCopiedDocuments])
 
   // Find primary selected document for drawer (check draft first, then existing documents)
   const selectedDocument: DocumentRecord | null = useMemo(() => {
@@ -517,6 +626,8 @@ export default function DocumentsView({
           onDraftChange={handleDraftChange}
           onDraftCancel={handleCancelDraft}
           markedForDeletion={markedForDeletion}
+          onDocumentContextMenu={handleDocumentContextMenu}
+          onTableContextMenu={handleTableContextMenu}
         />
       </div>
 
