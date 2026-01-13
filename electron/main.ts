@@ -289,6 +289,30 @@ ipcMain.on('context-menu:show-documents-panel', (event, options?: { hasCopiedDoc
   }
 })
 
+// Profile context menu handler
+ipcMain.on('context-menu:show-profile', (event, profileId: string) => {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Connect',
+      click: () => event.sender.send('context-menu:profile-action', { action: 'connect', profileId })
+    },
+    {
+      label: 'Edit',
+      click: () => event.sender.send('context-menu:profile-action', { action: 'edit', profileId })
+    },
+    { type: 'separator' },
+    {
+      label: 'Delete',
+      click: () => event.sender.send('context-menu:profile-action', { action: 'delete', profileId })
+    }
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    menu.popup({ window: win })
+  }
+})
+
 // Profile management IPC handlers
 ipcMain.handle('profiles:getAll', async () => {
   try {

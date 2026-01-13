@@ -1,6 +1,5 @@
-import { useState, FormEvent, useEffect } from 'react'
+import { useState, FormEvent, useEffect, useCallback } from 'react'
 import { ConnectionProfile } from '../../../electron/types'
-import { Trash2 } from 'lucide-react'
 
 interface ConnectionModalProps {
   isOpen: boolean
@@ -26,6 +25,26 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       loadProfiles()
     }
   }, [isOpen])
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, profileId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    window.electronAPI.contextMenu.showProfileMenu(profileId)
+  }, [])
+
+  // Handle context menu actions
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.contextMenu.onProfileAction((data) => {
+      if (data.action === 'connect') {
+        handleQuickConnect(data.profileId)
+      } else if (data.action === 'edit') {
+        handleProfileSelect(data.profileId)
+      } else if (data.action === 'delete') {
+        handleDeleteProfile(data.profileId)
+      }
+    })
+    return unsubscribe
+  }, [profiles]) // Re-subscribe when profiles change so handlers have latest data
 
   const loadProfiles = async () => {
     try {
@@ -64,18 +83,40 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     setApiKey('')
   }
 
-  const handleDeleteProfile = async () => {
-    if (!selectedProfileId) return
+  const handleDeleteProfile = async (profileId: string) => {
+    if (!profileId) return
 
-    if (confirm('Are you sure you want to delete this profile?')) {
+    const profile = profiles.find(p => p.id === profileId)
+    if (!profile) return
+
+    if (confirm(`Are you sure you want to delete "${profile.name}"?`)) {
       try {
-        await window.electronAPI.profiles.delete(selectedProfileId)
+        await window.electronAPI.profiles.delete(profileId)
         await loadProfiles()
-        setSelectedProfileId('')
-        resetForm()
+        if (selectedProfileId === profileId) {
+          setSelectedProfileId('')
+          resetForm()
+        }
       } catch (err) {
         setError('Failed to delete profile')
       }
+    }
+  }
+
+  const handleQuickConnect = async (profileId: string) => {
+    const profile = profiles.find(p => p.id === profileId)
+    if (!profile) return
+
+    setError('')
+    setIsConnecting(true)
+
+    try {
+      await window.electronAPI.chromadb.connect(profile.id, profile)
+      onConnect(profile)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect')
+    } finally {
+      setIsConnecting(false)
     }
   }
 
@@ -259,16 +300,6 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
               >
                 {isConnecting ? 'Connecting...' : 'Connect'}
               </button>
-              {selectedProfileId && (
-                <button
-                  type="button"
-                  onClick={handleDeleteProfile}
-                  className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  title="Delete profile"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              )}
             </div>
           </form>
         </div>
@@ -303,6 +334,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   <button
                     key={profile.id}
                     onClick={() => handleProfileSelect(profile.id)}
+                    onContextMenu={(e) => handleContextMenu(e, profile.id)}
                     className={`w-full px-4 py-1.5 text-left transition-colors ${
                       isSelected
                         ? 'bg-primary/10'
