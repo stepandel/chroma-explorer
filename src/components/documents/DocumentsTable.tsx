@@ -448,7 +448,7 @@ export default function DocumentsTable({
                 </th>
               ))}
               {/* Filler column to extend table structure */}
-              <th className="bg-blue-50"></th>
+              <th className="bg-muted"></th>
             </tr>
           ))}
         </thead>
