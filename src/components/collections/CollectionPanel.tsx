@@ -113,17 +113,26 @@ export function CollectionPanel() {
     startCopyFromCollection(clipboard.collection)
   }, [clipboard, draftCollection, startCopyFromCollection])
 
-  // Context menu handler
+  // Context menu handler for collection item
   const handleContextMenu = useCallback((e: React.MouseEvent, collectionName: string) => {
     e.preventDefault()
-    window.electronAPI.contextMenu.showCollectionMenu(collectionName)
-  }, [])
+    e.stopPropagation()
+    window.electronAPI.contextMenu.showCollectionMenu(collectionName, { hasCopiedCollection })
+  }, [hasCopiedCollection])
+
+  // Context menu handler for empty space in panel
+  const handlePanelContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    window.electronAPI.contextMenu.showCollectionPanelMenu({ hasCopiedCollection })
+  }, [hasCopiedCollection])
 
   // Context menu action listener
   useEffect(() => {
     const unsubscribe = window.electronAPI.contextMenu.onAction((data) => {
       if (data.action === 'copy') {
         handleCopyCollection(data.collectionName)
+      } else if (data.action === 'paste') {
+        handlePasteCollection()
       } else if (data.action === 'delete') {
         // Select and mark for deletion
         setActiveCollection(data.collectionName)
@@ -131,7 +140,7 @@ export function CollectionPanel() {
       }
     })
     return unsubscribe
-  }, [handleCopyCollection, setActiveCollection])
+  }, [handleCopyCollection, handlePasteCollection, setActiveCollection])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -205,7 +214,7 @@ export function CollectionPanel() {
       </div>
 
       {/* Collections List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" onContextMenu={handlePanelContextMenu}>
         {collectionsLoading && (
           <div className="p-4 text-sm text-muted-foreground">Loading collections...</div>
         )}

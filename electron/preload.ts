@@ -96,8 +96,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
   contextMenu: {
-    showCollectionMenu: (collectionName: string): void => {
-      ipcRenderer.send('context-menu:show-collection', collectionName)
+    showCollectionMenu: (collectionName: string, options?: { hasCopiedCollection?: boolean }): void => {
+      ipcRenderer.send('context-menu:show-collection', collectionName, options)
+    },
+    showCollectionPanelMenu: (options?: { hasCopiedCollection?: boolean }): void => {
+      ipcRenderer.send('context-menu:show-collection-panel', options)
     },
     onAction: (callback: (action: { action: string; collectionName: string }) => void): (() => void) => {
       const handler = (_event: any, data: { action: string; collectionName: string }) => callback(data)

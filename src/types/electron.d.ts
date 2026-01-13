@@ -137,7 +137,8 @@ declare global {
       cancelCopy: (profileId: string) => Promise<void>
     }
     contextMenu: {
-      showCollectionMenu: (collectionName: string) => void
+      showCollectionMenu: (collectionName: string, options?: { hasCopiedCollection?: boolean }) => void
+      showCollectionPanelMenu: (options?: { hasCopiedCollection?: boolean }) => void
       onAction: (callback: (action: { action: string; collectionName: string }) => void) => () => void
     }
     profiles: {

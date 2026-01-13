@@ -189,17 +189,37 @@ ipcMain.handle('chromadb:cancelCopy', async (_event, profileId: string) => {
   return { success: false, error: 'No active copy operation' }
 })
 
-// Context menu IPC handler
-ipcMain.on('context-menu:show-collection', (event, collectionName: string) => {
+// Context menu IPC handlers
+ipcMain.on('context-menu:show-collection', (event, collectionName: string, options?: { hasCopiedCollection?: boolean }) => {
   const template: MenuItemConstructorOptions[] = [
     {
       label: 'Copy Collection',
       click: () => event.sender.send('context-menu:action', { action: 'copy', collectionName })
     },
+    {
+      label: 'Paste Collection',
+      enabled: options?.hasCopiedCollection ?? false,
+      click: () => event.sender.send('context-menu:action', { action: 'paste', collectionName })
+    },
     { type: 'separator' },
     {
       label: 'Delete Collection',
       click: () => event.sender.send('context-menu:action', { action: 'delete', collectionName })
+    }
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    menu.popup({ window: win })
+  }
+})
+
+ipcMain.on('context-menu:show-collection-panel', (event, options?: { hasCopiedCollection?: boolean }) => {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Paste Collection',
+      enabled: options?.hasCopiedCollection ?? false,
+      click: () => event.sender.send('context-menu:action', { action: 'paste', collectionName: '' })
     }
   ]
   const menu = Menu.buildFromTemplate(template)
