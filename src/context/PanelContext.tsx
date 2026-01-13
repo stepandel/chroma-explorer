@@ -4,10 +4,14 @@ interface PanelContextType {
   // Left panel (CollectionPanel) state
   leftPanelOpen: boolean
   setLeftPanelOpen: (open: boolean) => void
+  leftPanelWidth: number
+  setLeftPanelWidth: (width: number) => void
 
   // Right panel (DocumentDetailPanel) state
   rightPanelOpen: boolean
   setRightPanelOpen: (open: boolean) => void
+  rightPanelWidth: number
+  setRightPanelWidth: (width: number) => void
 
   // Multi-select document state
   selectedDocumentIds: Set<string>
@@ -27,7 +31,9 @@ const PanelContext = createContext<PanelContextType | undefined>(undefined)
 
 export function PanelProvider({ children }: { children: ReactNode }) {
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
+  const [leftPanelWidth, setLeftPanelWidth] = useState(220)
   const [rightPanelOpen, setRightPanelOpen] = useState(false)
+  const [rightPanelWidth, setRightPanelWidth] = useState(320)
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set())
   const [primarySelectedDocumentId, setPrimarySelectedDocumentId] = useState<string | null>(null)
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null)
@@ -97,8 +103,12 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       value={{
         leftPanelOpen,
         setLeftPanelOpen,
+        leftPanelWidth,
+        setLeftPanelWidth,
         rightPanelOpen,
         setRightPanelOpen,
+        rightPanelWidth,
+        setRightPanelWidth,
         selectedDocumentIds,
         primarySelectedDocumentId,
         selectionAnchor,
