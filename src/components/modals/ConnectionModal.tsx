@@ -6,7 +6,7 @@ interface ConnectionModalProps {
   onConnect: (profile: ConnectionProfile) => void
 }
 
-const inputClassName = "w-full h-7 text-[13px] px-2 rounded-md bg-black/[0.04] dark:bg-white/[0.06] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-colors"
+const inputClassName = "w-full h-7 text-[13px] px-2.5 rounded bg-black/[0.06] dark:bg-white/[0.08] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/[0.12] transition-colors border-0"
 
 export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalProps) {
   const [profiles, setProfiles] = useState<ConnectionProfile[]>([])
@@ -193,30 +193,30 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     <div
       className="fixed inset-0 flex"
       style={{
-        background: 'oklch(0.96 0 0 / 85%)',
-        backdropFilter: 'blur(20px) saturate(1.2)',
-        WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
+        background: 'oklch(0.97 0.005 260 / 65%)',
       }}
     >
-      {/* Left side - Connection Form */}
+      {/* Left side - Form area */}
       <div className="flex-1 flex flex-col">
-        {/* Window chrome area */}
+        {/* Window drag region - title bar */}
         <div
-          className="h-11 flex items-center justify-center"
+          className="h-12 flex items-center justify-center flex-shrink-0"
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
-          <span className="text-[13px] font-medium text-foreground/60">
+          <span className="text-[13px] font-medium text-foreground/50">
             {selectedProfileId ? 'Edit Connection' : 'New Connection'}
           </span>
         </div>
 
         {/* Form content */}
-        <div className="flex-1 flex items-start justify-center pt-8 px-8">
-          <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
-            {/* Connection Settings */}
-            <div className="space-y-2">
+        <div className="flex-1 flex flex-col px-10 pb-5">
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col max-w-sm mx-auto w-full">
+            {/* Form fields */}
+            <div className="flex-1 space-y-4">
+              {/* Primary fields */}
+              <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
-                  <label htmlFor="profileName" className="text-[13px] text-foreground/70 w-20 text-right">Name</label>
+                  <label htmlFor="profileName" className="text-[12px] text-foreground/50 w-16 text-right">Name</label>
                   <input
                     type="text"
                     id="profileName"
@@ -228,7 +228,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label htmlFor="url" className="text-[13px] text-foreground/70 w-20 text-right">URL</label>
+                  <label htmlFor="url" className="text-[12px] text-foreground/50 w-16 text-right">URL</label>
                   <input
                     type="text"
                     id="url"
@@ -239,64 +239,64 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                     className={inputClassName}
                   />
                 </div>
-            </div>
+              </div>
 
-            {/* Advanced Settings Group */}
-            <div className="space-y-3">
-              <h3 className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wide">Advanced</h3>
-
-              <div className="space-y-2">
+              {/* Advanced fields */}
+              <div className="space-y-2.5 pt-2">
                 <div className="flex items-center gap-3">
-                  <label htmlFor="tenant" className="text-[13px] text-foreground/70 w-20 text-right">Tenant</label>
+                  <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Cloud</span>
+                  <div className="flex-1 h-px bg-foreground/10" />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="tenant" className="text-[12px] text-foreground/50 w-16 text-right">Tenant</label>
                   <input
                     type="text"
                     id="tenant"
                     value={tenant}
                     onChange={(e) => setTenant(e.target.value)}
-                    placeholder="Optional"
+                    placeholder="default_tenant"
                     className={inputClassName}
                   />
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label htmlFor="database" className="text-[13px] text-foreground/70 w-20 text-right">Database</label>
+                  <label htmlFor="database" className="text-[12px] text-foreground/50 w-16 text-right">Database</label>
                   <input
                     type="text"
                     id="database"
                     value={database}
                     onChange={(e) => setDatabase(e.target.value)}
-                    placeholder="Optional"
+                    placeholder="default_database"
                     className={inputClassName}
                   />
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label htmlFor="apiKey" className="text-[13px] text-foreground/70 w-20 text-right">API Key</label>
+                  <label htmlFor="apiKey" className="text-[12px] text-foreground/50 w-16 text-right">API Key</label>
                   <input
                     type="password"
                     id="apiKey"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Optional"
+                    placeholder="••••••••"
                     className={inputClassName}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Error */}
-            {error && (
-              <div className="ml-[92px] text-[12px] text-destructive">
-                {error}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-2 pt-2 ml-[92px]">
+            {/* Error + Action anchored to bottom */}
+            <div className="pt-4 flex items-center justify-end gap-3">
+              {error && (
+                <div className="flex-1 text-[11px] text-destructive truncate">
+                  {error}
+                </div>
+              )}
               <button
                 type="submit"
                 disabled={isConnecting}
-                className="h-7 px-4 text-[13px] font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="h-7 px-5 text-[12px] font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isConnecting ? 'Connecting...' : 'Connect'}
               </button>
@@ -305,29 +305,29 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         </div>
       </div>
 
-      {/* Right sidebar - Saved Connections */}
+      {/* Right sidebar - Saved Connections (full height) */}
       <div
-        className="w-52 flex flex-col"
+        className="w-44 flex flex-col border-l border-white/[0.06]"
         style={{
-          background: 'oklch(0 0 0 / 3%)',
+          background: 'oklch(0 0 0 / 4%)',
         }}
       >
-        {/* Header with drag region */}
+        {/* Sidebar header with drag region */}
         <div
-          className="h-11 flex items-center px-4"
+          className="h-12 flex items-center px-3"
           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
-          <span className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wide">Saved</span>
+          <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Saved</span>
         </div>
 
         {/* Connection list */}
         <div className="flex-1 overflow-y-auto">
           {profiles.length === 0 ? (
-            <div className="px-4 py-6 text-[12px] text-muted-foreground/50 text-center">
+            <div className="px-3 py-4 text-[11px] text-foreground/30 text-center">
               No saved connections
             </div>
           ) : (
-            <div className="py-1">
+            <div>
               {profiles.map((profile) => {
                 const isSelected = selectedProfileId === profile.id
                 return (
@@ -335,19 +335,19 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                     key={profile.id}
                     onClick={() => handleProfileSelect(profile.id)}
                     onContextMenu={(e) => handleContextMenu(e, profile.id)}
-                    className={`w-full px-4 py-1.5 text-left transition-colors ${
+                    className={`w-full px-3 py-1.5 text-left transition-colors ${
                       isSelected
-                        ? 'bg-primary/10'
-                        : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
+                        ? 'bg-white/[0.08]'
+                        : 'hover:bg-white/[0.04]'
                     }`}
                   >
-                    <div className={`text-[13px] truncate ${
-                      isSelected ? 'text-foreground font-medium' : 'text-foreground/70'
+                    <div className={`text-[12px] truncate ${
+                      isSelected ? 'text-foreground' : 'text-foreground/60'
                     }`}>
                       {profile.name}
                     </div>
-                    <div className="text-[11px] text-muted-foreground/50 truncate">
-                      {profile.url}
+                    <div className="text-[10px] text-foreground/30 truncate">
+                      {profile.url.replace(/^https?:\/\//, '')}
                     </div>
                   </button>
                 )
@@ -357,16 +357,16 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         </div>
 
         {/* New connection button */}
-        <div className="p-3">
+        <div className="p-2">
           <button
             onClick={() => handleProfileSelect('')}
-            className={`w-full h-7 text-[12px] rounded-md transition-colors ${
+            className={`w-full h-6 text-[11px] rounded transition-colors ${
               !selectedProfileId
-                ? 'bg-primary/10 text-foreground'
-                : 'bg-black/[0.03] dark:bg-white/[0.03] text-muted-foreground hover:bg-black/[0.06] dark:hover:bg-white/[0.06]'
+                ? 'bg-white/[0.08] text-foreground/70'
+                : 'text-foreground/40 hover:bg-white/[0.04] hover:text-foreground/60'
             }`}
           >
-            + New Connection
+            + New
           </button>
         </div>
       </div>

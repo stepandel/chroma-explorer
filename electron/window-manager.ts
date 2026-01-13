@@ -83,6 +83,9 @@ class WindowManager {
       titleBarStyle: 'hiddenInset',
       title: 'Chroma Explorer - Setup',
       center: true,
+      transparent: true,
+      vibrancy: 'under-window',
+      visualEffectState: 'active',
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
