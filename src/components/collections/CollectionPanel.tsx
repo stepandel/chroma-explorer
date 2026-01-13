@@ -200,7 +200,14 @@ export function CollectionPanel() {
   )
 
   return (
-    <aside className="w-full h-full bg-sidebar/70 backdrop-blur-xl flex flex-col">
+    <aside
+      className="w-full h-full border-r border-glass-border flex flex-col"
+      style={{
+        background: 'var(--sidebar)',
+        backdropFilter: 'blur(24px) saturate(1.5)',
+        WebkitBackdropFilter: 'blur(24px) saturate(1.5)',
+      }}
+    >
       {/* Header */}
       <div className="px-4 py-2">
         {/* Search input */}
@@ -306,7 +313,7 @@ export function CollectionPanel() {
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-2 border-t border-sidebar-border">
+      <div className="px-4 py-2 border-t border-glass-border">
         {markedForDeletion && !draftCollection ? (
           // Deletion mode footer
           <div className="flex items-center justify-between gap-2">

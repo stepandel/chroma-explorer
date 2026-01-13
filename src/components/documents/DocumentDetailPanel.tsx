@@ -344,7 +344,16 @@ export default function DocumentDetailPanel({
   }
 
   return (
-    <div className="h-full overflow-auto space-y-3 p-3">
+    <div
+      className="h-full border-l border-glass-border"
+      style={{
+        background: 'var(--panel-detail)',
+        backdropFilter: 'blur(24px) saturate(1.5)',
+        WebkitBackdropFilter: 'blur(24px) saturate(1.5)',
+        boxShadow: 'var(--shadow-panel)',
+      }}
+    >
+      <div className="h-full overflow-auto space-y-3 p-3">
       {/* ID Section - Editable for drafts */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
@@ -534,6 +543,7 @@ export default function DocumentDetailPanel({
         onConfirm={handleRegenerateConfirm}
         isLoading={isPending}
       />
+      </div>
     </div>
   )
 }
