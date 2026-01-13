@@ -22,6 +22,8 @@ export interface DraftCollection {
     document: string
     metadata: TypedMetadataRecord
   } | null
+  // If copying from an existing collection, this will be set
+  sourceCollection?: CollectionInfo
 }
 
 interface DraftCollectionContextValue {
@@ -31,9 +33,11 @@ interface DraftCollectionContextValue {
 
   // Actions
   startCreation: () => void
+  startCopyFromCollection: (collection: CollectionInfo) => void
   updateDraft: (updates: Partial<DraftCollection>) => void
   cancelCreation: () => void
   saveDraft: () => Promise<void>
+  isCopyMode: boolean
 }
 
 const DraftCollectionContext = createContext<DraftCollectionContextValue | null>(null)
@@ -71,6 +75,58 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
     setDraftCollection(createInitialDraft())
     setValidationErrors({})
     // Deselect current collection when starting creation
+    setActiveCollection(null)
+  }, [setActiveCollection])
+
+  const startCopyFromCollection = useCallback((collection: CollectionInfo) => {
+    // Find matching embedding function from collection's config
+    let embeddingFunctionId: string = DEFAULT_EF.id
+    if (collection.embeddingFunction) {
+      const efType = collection.embeddingFunction.name === 'openai' ? 'openai' : 'default'
+      const efModelName = collection.embeddingFunction.config?.model_name as string | undefined
+
+      // Try to find exact match
+      const matchingEf = EMBEDDING_FUNCTIONS.find(
+        (ef) => ef.type === efType && ef.modelName === efModelName
+      )
+      if (matchingEf) {
+        embeddingFunctionId = matchingEf.id
+      } else {
+        // Fall back to first matching type
+        const typeMatch = EMBEDDING_FUNCTIONS.find((ef) => ef.type === efType)
+        if (typeMatch) {
+          embeddingFunctionId = typeMatch.id
+        }
+      }
+    }
+
+    // Extract HNSW config from collection metadata
+    const hnsw: DraftHNSWConfig = {
+      space: 'l2',
+      efConstruction: '',
+      maxNeighbors: '',
+    }
+    if (collection.metadata) {
+      if (collection.metadata['hnsw:space']) {
+        hnsw.space = collection.metadata['hnsw:space'] as 'l2' | 'cosine' | 'ip'
+      }
+      if (collection.metadata['hnsw:construction_ef'] !== undefined) {
+        hnsw.efConstruction = String(collection.metadata['hnsw:construction_ef'])
+      }
+      if (collection.metadata['hnsw:M'] !== undefined) {
+        hnsw.maxNeighbors = String(collection.metadata['hnsw:M'])
+      }
+    }
+
+    setDraftCollection({
+      name: `${collection.name}-copy`,
+      embeddingFunctionId,
+      dimensionOverride: '',
+      hnsw,
+      firstDocument: null,
+      sourceCollection: collection,
+    })
+    setValidationErrors({})
     setActiveCollection(null)
   }, [setActiveCollection])
 
@@ -189,9 +245,11 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
     isCreating,
     validationErrors,
     startCreation,
+    startCopyFromCollection,
     updateDraft,
     cancelCreation,
     saveDraft,
+    isCopyMode: draftCollection?.sourceCollection !== undefined,
   }
 
   return <DraftCollectionContext.Provider value={value}>{children}</DraftCollectionContext.Provider>

@@ -8,6 +8,9 @@ import {
   CreateDocumentParams,
   DeleteDocumentsParams,
   CreateCollectionParams,
+  CopyCollectionParams,
+  CopyCollectionResult,
+  CopyProgress,
   EmbeddingFunctionOverride,
 } from './types'
 
@@ -72,6 +75,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) {
         throw new Error(result.error)
       }
+    },
+    copyCollection: async (profileId: string, params: CopyCollectionParams): Promise<CopyCollectionResult> => {
+      const result = await ipcRenderer.invoke('chromadb:copyCollection', profileId, params)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    onCopyProgress: (callback: (progress: CopyProgress) => void): (() => void) => {
+      const handler = (_event: any, progress: CopyProgress) => callback(progress)
+      ipcRenderer.on('chromadb:copyProgress', handler)
+      return () => ipcRenderer.removeListener('chromadb:copyProgress', handler)
+    },
+    cancelCopy: async (profileId: string): Promise<void> => {
+      const result = await ipcRenderer.invoke('chromadb:cancelCopy', profileId)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+  },
+  contextMenu: {
+    showCollectionMenu: (collectionName: string): void => {
+      ipcRenderer.send('context-menu:show-collection', collectionName)
+    },
+    onAction: (callback: (action: { action: string; collectionName: string }) => void): (() => void) => {
+      const handler = (_event: any, data: { action: string; collectionName: string }) => callback(data)
+      ipcRenderer.on('context-menu:action', handler)
+      return () => ipcRenderer.removeListener('context-menu:action', handler)
     },
   },
   profiles: {
