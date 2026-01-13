@@ -34,9 +34,9 @@ interface DocumentsTableProps {
   onToggleSelect: (id: string) => void
   onRangeSelect: (ids: string[], newAnchor?: string) => void
   onAddToSelection: (ids: string[]) => void
-  // Draft props
-  draftDocument?: DraftDocument | null
-  onDraftChange?: (draft: DraftDocument) => void
+  // Draft props - supports multiple drafts for paste operations
+  draftDocuments?: DraftDocument[]
+  onDraftChange?: (draft: DraftDocument, index: number) => void
   onDraftCancel?: () => void
   markedForDeletion?: Set<string>
   // Context menu props
@@ -55,7 +55,7 @@ export default function DocumentsTable({
   onToggleSelect,
   onRangeSelect,
   onAddToSelection,
-  draftDocument,
+  draftDocuments = [],
   onDraftChange,
   onDraftCancel,
   markedForDeletion = new Set(),
@@ -64,34 +64,33 @@ export default function DocumentsTable({
 }: DocumentsTableProps) {
   // Ref for auto-focusing the id input when draft starts
   const draftIdInputRef = useRef<HTMLInputElement>(null)
-  const prevDraftIdRef = useRef<string | null>(null)
+  const prevDraftCountRef = useRef<number>(0)
 
-  // Auto-focus only when draft is first created (not on every change)
+  // Auto-focus only when drafts are first created (not on every change)
   useEffect(() => {
-    const currentDraftId = draftDocument?.id ?? null
-    const prevDraftId = prevDraftIdRef.current
+    const currentDraftCount = draftDocuments.length
+    const prevDraftCount = prevDraftCountRef.current
 
-    // Only focus if we just created a new draft (went from null to having a draft)
-    if (currentDraftId && !prevDraftId && draftIdInputRef.current) {
+    // Only focus if we just created drafts (went from 0 to having drafts)
+    if (currentDraftCount > 0 && prevDraftCount === 0 && draftIdInputRef.current) {
       draftIdInputRef.current.focus()
     }
 
-    prevDraftIdRef.current = currentDraftId
-  }, [draftDocument?.id])
+    prevDraftCountRef.current = currentDraftCount
+  }, [draftDocuments.length])
 
   // Drag selection state
   const [isDragging, setIsDragging] = useState(false)
   const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
 
-  // Get all document IDs including draft at the top
+  // Get all document IDs including drafts at the top
   const allDocIds = useMemo(() => {
     const ids: string[] = []
-    if (draftDocument) {
-      ids.push(draftDocument.id)
-    }
+    // Add all draft document IDs first
+    ids.push(...draftDocuments.map(d => d.id))
     ids.push(...documents.map(d => d.id))
     return ids
-  }, [documents, draftDocument])
+  }, [documents, draftDocuments])
 
   // Handle row click with modifier keys (macOS-style)
   const handleRowClick = (e: React.MouseEvent, docId: string, rowIndex: number) => {
@@ -314,13 +313,14 @@ export default function DocumentsTable({
           ))}
         </thead>
         <tbody className="divide-y divide-border select-none">
-          {/* Draft row for creating new document */}
-          {draftDocument && onDraftChange && (
+          {/* Draft rows for creating/pasting documents */}
+          {draftDocuments.length > 0 && onDraftChange && draftDocuments.map((draft, draftIndex) => (
             <tr
-              className={`cursor-pointer ${selectedDocumentIds.has(draftDocument.id) ? 'bg-blue-50' : 'bg-blue-50/50'}`}
-              onClick={(e) => handleRowClick(e, draftDocument.id, 0)}
-              onMouseDown={(e) => handleMouseDown(e, 0)}
-              onMouseEnter={() => handleMouseEnter(0)}
+              key={`draft-${draftIndex}`}
+              className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-blue-50' : 'bg-blue-50/50'}`}
+              onClick={(e) => handleRowClick(e, draft.id, draftIndex)}
+              onMouseDown={(e) => handleMouseDown(e, draftIndex)}
+              onMouseEnter={() => handleMouseEnter(draftIndex)}
             >
               {/* ID cell - editable */}
               <td
@@ -328,10 +328,10 @@ export default function DocumentsTable({
                 style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
               >
                 <input
-                  ref={draftIdInputRef}
+                  ref={draftIndex === 0 ? draftIdInputRef : undefined}
                   type="text"
-                  value={draftDocument.id}
-                  onChange={(e) => onDraftChange({ ...draftDocument, id: e.target.value })}
+                  value={draft.id}
+                  onChange={(e) => onDraftChange({ ...draft, id: e.target.value }, draftIndex)}
                   placeholder="Enter document ID"
                   className="w-full text-xs font-mono bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
                 />
@@ -343,30 +343,30 @@ export default function DocumentsTable({
               >
                 <input
                   type="text"
-                  value={draftDocument.document}
-                  onChange={(e) => onDraftChange({ ...draftDocument, document: e.target.value })}
+                  value={draft.document}
+                  onChange={(e) => onDraftChange({ ...draft, document: e.target.value }, draftIndex)}
                   placeholder="Enter document text"
                   className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
                 />
               </td>
               {/* Editable metadata cells */}
               {metadataKeys.map(key => {
-                const field = draftDocument.metadata[key]
+                const field = draft.metadata[key]
                 return (
                   <td
-                    key={`draft-${key}`}
+                    key={`draft-${draftIndex}-${key}`}
                     className="pl-3 py-0.5 align-top border-r border-border"
                   >
                     <input
                       type="text"
                       value={field?.value || ''}
                       onChange={(e) => onDraftChange({
-                        ...draftDocument,
+                        ...draft,
                         metadata: {
-                          ...draftDocument.metadata,
+                          ...draft.metadata,
                           [key]: { ...field, value: e.target.value }
                         }
-                      })}
+                      }, draftIndex)}
                       placeholder="-"
                       className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
                     />
@@ -376,14 +376,15 @@ export default function DocumentsTable({
               {/* Filler cell */}
               <td className="border-r border-border"></td>
             </tr>
-          )}
+          ))}
           {table.getRowModel().rows.map((row, index) => {
             const isSelected = selectedDocumentIds.has(row.original.id)
             const isMarkedForDeletion = markedForDeletion.has(row.original.id)
-            // Adjust index for alternating colors when draft exists
-            const adjustedIndex = draftDocument ? index + 1 : index
-            // Row index in allDocIds (draft takes index 0 if exists)
-            const rowIndex = draftDocument ? index + 1 : index
+            // Adjust index for alternating colors when drafts exist
+            const draftCount = draftDocuments.length
+            const adjustedIndex = draftCount > 0 ? index + draftCount : index
+            // Row index in allDocIds (drafts take indices 0 to draftCount-1)
+            const rowIndex = draftCount > 0 ? index + draftCount : index
 
             // Determine row background
             let rowBgClass: string
