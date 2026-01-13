@@ -1,6 +1,7 @@
 import { useWindowInfo } from './hooks/useWindowInfo'
 import { SetupWindow } from './windows/SetupWindow'
 import { ConnectionWindow } from './windows/ConnectionWindow'
+import { SettingsWindow } from './windows/SettingsWindow'
 
 export default function App() {
   const { windowType, windowId, profileId } = useWindowInfo()
@@ -8,6 +9,10 @@ export default function App() {
   // Route based on window type
   if (windowType === 'setup') {
     return <SetupWindow />
+  }
+
+  if (windowType === 'settings') {
+    return <SettingsWindow />
   }
 
   if (windowType === 'connection' && windowId && profileId) {

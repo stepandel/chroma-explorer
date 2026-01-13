@@ -193,6 +193,10 @@ declare global {
       closeCurrent: () => Promise<void>
       getProfile: (profileId: string) => Promise<ConnectionProfile>
     }
+    settings: {
+      getApiKeys: () => Promise<Record<string, string>>
+      setApiKeys: (apiKeys: Record<string, string>) => Promise<void>
+    }
   }
 
   interface Window {

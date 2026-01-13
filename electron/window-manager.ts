@@ -34,12 +34,14 @@ function setupCSP(windowSession: Electron.Session): void {
 
 interface WindowRegistry {
   setup: BrowserWindow | null
+  settings: BrowserWindow | null
   connections: Map<string, { window: BrowserWindow; profileId: string }>
 }
 
 class WindowManager {
   private registry: WindowRegistry = {
     setup: null,
+    settings: null,
     connections: new Map(),
   }
 
@@ -107,6 +109,64 @@ class WindowManager {
 
     this.registry.setup = win
     return win
+  }
+
+  /**
+   * Create or focus the settings window
+   */
+  createSettingsWindow(): BrowserWindow {
+    // If settings window exists and is not destroyed, focus it
+    if (this.registry.settings && !this.registry.settings.isDestroyed()) {
+      this.registry.settings.focus()
+      this.registry.settings.show()
+      return this.registry.settings
+    }
+
+    // Create new settings window
+    const win = new BrowserWindow({
+      width: 500,
+      height: 600,
+      resizable: true,
+      minimizable: true,
+      maximizable: false,
+      titleBarStyle: 'hiddenInset',
+      title: 'Settings',
+      center: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.mjs'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    })
+
+    // Set up Content Security Policy
+    setupCSP(win.webContents.session)
+
+    // Load window content
+    if (process.env.VITE_DEV_SERVER_URL) {
+      win.loadURL(this.getWindowUrl({ type: 'settings' }))
+    } else {
+      win.loadFile(path.join(process.env.DIST!, 'index.html'), {
+        query: { type: 'settings' },
+      })
+    }
+
+    // Handle window close
+    win.on('closed', () => {
+      this.registry.settings = null
+    })
+
+    this.registry.settings = win
+    return win
+  }
+
+  /**
+   * Get settings window
+   */
+  getSettingsWindow(): BrowserWindow | null {
+    return this.registry.settings && !this.registry.settings.isDestroyed()
+      ? this.registry.settings
+      : null
   }
 
   /**

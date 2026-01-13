@@ -4,9 +4,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
+import { settingsStore, ApiKeys } from './settings-store'
 import { windowManager } from './window-manager'
 import { createApplicationMenu } from './menu'
 import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams, CopyCollectionParams } from './types'
+
+// Inject stored API keys into process.env at startup
+settingsStore.injectIntoProcessEnv()
 
 // Track active copy operations per profile for cancellation
 const activeCopyOperations: Map<string, AbortController> = new Map()
@@ -454,6 +458,27 @@ ipcMain.handle('window:get-profile', async (_event, profileId: string) => {
     return { success: true, data: profile }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to get profile'
+    return { success: false, error: message }
+  }
+})
+
+// Settings IPC handlers
+ipcMain.handle('settings:getApiKeys', async () => {
+  try {
+    const apiKeys = settingsStore.getApiKeys()
+    return { success: true, data: apiKeys }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get API keys'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('settings:setApiKeys', async (_event, apiKeys: ApiKeys) => {
+  try {
+    settingsStore.setApiKeys(apiKeys)
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save API keys'
     return { success: false, error: message }
   }
 })
