@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
-import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation } from '../../hooks/useChromaQueries'
+import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation, useCreateDocumentsBatchMutation, useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
+import { useClipboard } from '../../context/ClipboardContext'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
 import { TypedMetadataRecord, TypedMetadataField, typedMetadataToChromaFormat, validateMetadataValue } from '../../types/metadata'
@@ -34,7 +35,7 @@ interface DocumentsViewProps {
   onSetSelectionAnchor: (id: string | null) => void
   onSelectedDocumentChange: (document: DocumentRecord | null, isDraft: boolean) => void
   // Expose draft change handler for external updates (e.g., from detail panel)
-  onExposeDraftHandler?: (handler: ((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null) => void
+  onExposeDraftHandler?: (handler: ((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void) | null) => void
   // Callback to notify parent if current draft is for the first document (empty collection)
   onIsFirstDocumentChange?: (isFirst: boolean) => void
 }
@@ -66,11 +67,16 @@ export default function DocumentsView({
   const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
   const [nResults, setNResults] = useState(10)
 
-  // Draft document state for creating new documents
-  const [draftDocument, setDraftDocument] = useState<DraftDocument | null>(null)
+  // Draft documents state - supports single new document or multiple pasted documents
+  const [draftDocuments, setDraftDocuments] = useState<DraftDocument[]>([])
 
-  // Validation error for draft document
+  // Validation error for draft documents
   const [draftError, setDraftError] = useState<string | null>(null)
+
+  // Helper to check if we have drafts
+  const hasDrafts = draftDocuments.length > 0
+  // For backwards compatibility with single draft operations
+  const draftDocument = draftDocuments.length === 1 ? draftDocuments[0] : null
 
   // Marked for deletion state (set of document IDs)
   const [markedForDeletion, setMarkedForDeletion] = useState<Set<string>>(new Set())
@@ -86,6 +92,21 @@ export default function DocumentsView({
     currentProfile?.id || '',
     collectionName
   )
+
+  // Create documents batch mutation (for pasting)
+  const createBatchMutation = useCreateDocumentsBatchMutation(
+    currentProfile?.id || '',
+    collectionName
+  )
+
+  // Update document mutation (for inline editing)
+  const updateMutation = useUpdateDocumentMutation(
+    currentProfile?.id || '',
+    collectionName
+  )
+
+  // Clipboard context
+  const { clipboard, copyDocuments, hasCopiedDocuments } = useClipboard()
 
   // Fetch collections to get the current collection's info
   const { data: collections = [] } = useCollectionsQuery(currentProfile?.id || null)
@@ -135,7 +156,7 @@ export default function DocumentsView({
     setFilterRows([createDefaultFilterRow()])
     setNResults(10)
     setMarkedForDeletion(new Set())
-    setDraftDocument(null)
+    setDraftDocuments([])
     setDraftError(null)
   }, [collectionName])
 
@@ -285,103 +306,131 @@ export default function DocumentsView({
         initialMetadata[key] = { value: '', type: inferredType }
       })
     }
-    setDraftDocument({
+    setDraftDocuments([{
       id: newId,
       document: '',
       metadata: initialMetadata,
-    })
+    }])
     // Select the draft so it shows in the detail panel
     onSingleSelect(newId)
     // Notify parent about first document status
     onIsFirstDocumentChange?.(isFirstDocument)
   }, [onSingleSelect, metadataFields, documents.length, onIsFirstDocumentChange])
 
-  const handleDraftChange = useCallback((draft: DraftDocument) => {
-    setDraftDocument(draft)
-    setDraftError(null) // Clear error when user makes changes
-  }, [])
-
-  // Handler for external draft updates (from detail panel)
-  const handleExternalDraftUpdate = useCallback((updates: { document?: string; metadata?: Record<string, unknown> }) => {
-    setDraftDocument((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        document: updates.document !== undefined ? updates.document : prev.document,
-        metadata: updates.metadata !== undefined ? (updates.metadata as TypedMetadataRecord) : prev.metadata,
-      }
+  const handleDraftChange = useCallback((draft: DraftDocument, index: number = 0) => {
+    setDraftDocuments(prev => {
+      const next = [...prev]
+      next[index] = draft
+      return next
     })
     setDraftError(null) // Clear error when user makes changes
   }, [])
 
-  // Expose the draft update handler to parent
+  // Handler for external draft updates (from detail panel) - only works for single draft
+  const handleExternalDraftUpdate = useCallback((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => {
+    setDraftDocuments((prev) => {
+      if (prev.length !== 1) return prev
+      const newId = updates.id !== undefined ? updates.id : prev[0].id
+      return [{
+        ...prev[0],
+        id: newId,
+        document: updates.document !== undefined ? updates.document : prev[0].document,
+        metadata: updates.metadata !== undefined ? (updates.metadata as TypedMetadataRecord) : prev[0].metadata,
+      }]
+    })
+    // Also update the primary selected document ID if ID changed
+    if (updates.id !== undefined) {
+      onSingleSelect(updates.id)
+    }
+    setDraftError(null) // Clear error when user makes changes
+  }, [onSingleSelect])
+
+  // Expose the draft update handler to parent (only for single draft)
   useEffect(() => {
     if (onExposeDraftHandler) {
-      onExposeDraftHandler(draftDocument ? handleExternalDraftUpdate : null)
+      onExposeDraftHandler(draftDocuments.length === 1 ? handleExternalDraftUpdate : null)
     }
-  }, [onExposeDraftHandler, draftDocument, handleExternalDraftUpdate])
+  }, [onExposeDraftHandler, draftDocuments.length, handleExternalDraftUpdate])
 
   const handleCancelDraft = useCallback(() => {
-    setDraftDocument(null)
+    setDraftDocuments([])
     setDraftError(null)
     onClearSelection() // Deselect when cancelling
     onIsFirstDocumentChange?.(false) // Reset first document flag
   }, [onClearSelection, onIsFirstDocumentChange])
 
   const handleSaveDraft = useCallback(async () => {
-    if (!draftDocument) return
+    if (draftDocuments.length === 0) return
     setDraftError(null)
 
-    if (!draftDocument.id.trim()) {
-      setDraftError('Document ID is required')
-      return
-    }
+    // Validate all drafts
+    for (let i = 0; i < draftDocuments.length; i++) {
+      const draft = draftDocuments[i]
+      if (!draft.id.trim()) {
+        setDraftError(`Document ${i + 1}: ID is required`)
+        return
+      }
 
-    // Document text is required (ChromaDB needs either document or embeddings)
-    const documentText = draftDocument.document?.trim()
-    if (!documentText) {
-      setDraftError('Document text is required')
-      return
-    }
+      // Document text is required (ChromaDB needs either document or embeddings)
+      const documentText = draft.document?.trim()
+      if (!documentText) {
+        setDraftError(`Document ${i + 1}: Document text is required`)
+        return
+      }
 
-    // Validate metadata types before saving
-    for (const [key, field] of Object.entries(draftDocument.metadata)) {
-      if (field && typeof field === 'object' && 'value' in field && 'type' in field) {
-        const typedField = field as TypedMetadataField
-        const error = validateMetadataValue(typedField.value, typedField.type)
-        if (error) {
-          setDraftError(`Metadata "${key}": ${error}`)
-          return
+      // Validate metadata types before saving
+      for (const [key, field] of Object.entries(draft.metadata)) {
+        if (field && typeof field === 'object' && 'value' in field && 'type' in field) {
+          const typedField = field as TypedMetadataField
+          const error = validateMetadataValue(typedField.value, typedField.type)
+          if (error) {
+            setDraftError(`Document ${i + 1} - Metadata "${key}": ${error}`)
+            return
+          }
         }
       }
     }
 
     try {
-      // Convert typed metadata to ChromaDB format
-      const metadata = typedMetadataToChromaFormat(draftDocument.metadata)
-
-      await createMutation.mutateAsync({
-        id: draftDocument.id,
-        document: documentText,
-        metadata,
-        generateEmbedding: true,
-      })
-      setDraftDocument(null)
+      if (draftDocuments.length === 1) {
+        // Single document - use single create mutation
+        const draft = draftDocuments[0]
+        const metadata = typedMetadataToChromaFormat(draft.metadata)
+        await createMutation.mutateAsync({
+          id: draft.id,
+          document: draft.document.trim(),
+          metadata,
+          generateEmbedding: true,
+        })
+      } else {
+        // Multiple documents - use batch create mutation
+        const docsToCreate = draftDocuments.map(draft => ({
+          id: draft.id,
+          document: draft.document.trim(),
+          metadata: typedMetadataToChromaFormat(draft.metadata),
+        }))
+        await createBatchMutation.mutateAsync({
+          documents: docsToCreate,
+          generateEmbeddings: true,
+        })
+      }
+      setDraftDocuments([])
       setDraftError(null)
       onClearSelection() // Deselect after saving
       onIsFirstDocumentChange?.(false) // Reset first document flag
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create document'
+      const message = error instanceof Error ? error.message : 'Failed to create document(s)'
       setDraftError(message)
     }
-  }, [draftDocument, createMutation, onClearSelection, onIsFirstDocumentChange])
+  }, [draftDocuments, createMutation, createBatchMutation, onClearSelection, onIsFirstDocumentChange])
 
   // Toggle deletion mark for all selected documents
   const handleToggleDeletion = useCallback(() => {
     if (selectedDocumentIds.size === 0) return
-    // Filter out draft from selection
+    // Filter out drafts from selection
+    const draftIds = new Set(draftDocuments.map(d => d.id))
     const idsToMark = Array.from(selectedDocumentIds).filter(
-      id => !(draftDocument && id === draftDocument.id)
+      id => !draftIds.has(id)
     )
     if (idsToMark.length === 0) return
 
@@ -398,7 +447,7 @@ export default function DocumentsView({
       }
       return next
     })
-  }, [selectedDocumentIds, draftDocument])
+  }, [selectedDocumentIds, draftDocuments])
 
   // Commit deletions
   const handleCommitDeletions = useCallback(async () => {
@@ -417,61 +466,232 @@ export default function DocumentsView({
     }
   }, [markedForDeletion, deleteMutation, selectedDocumentIds, onClearSelection])
 
+  // Copy selected documents to clipboard
+  const handleCopyDocuments = useCallback(() => {
+    if (selectedDocumentIds.size === 0 || !currentProfile?.id) return
+    // Filter out drafts from selection and get document data
+    const draftIds = new Set(draftDocuments.map(d => d.id))
+    const docsToCopy = documents.filter(
+      doc => selectedDocumentIds.has(doc.id) && !draftIds.has(doc.id)
+    )
+    if (docsToCopy.length === 0) return
+    copyDocuments(docsToCopy, collectionName, currentProfile.id)
+  }, [selectedDocumentIds, documents, draftDocuments, collectionName, currentProfile?.id, copyDocuments])
+
+  // Resolve ID conflicts for pasting
+  const resolveConflictingIds = useCallback((
+    documentsToPaste: Array<{ id: string; document: string | null; metadata: Record<string, unknown> | null }>,
+    existingIds: Set<string>
+  ) => {
+    const usedIds = new Set(existingIds)
+    return documentsToPaste.map(doc => {
+      let newId = doc.id
+      let copyNum = 0
+
+      while (usedIds.has(newId)) {
+        copyNum++
+        newId = copyNum === 1
+          ? `${doc.id}-copy`
+          : `${doc.id}-copy-${copyNum}`
+      }
+
+      usedIds.add(newId)
+      return { ...doc, id: newId }
+    })
+  }, [])
+
+  // Infer metadata field types from existing documents
+  const inferMetadataTypes = useCallback((): Record<string, 'string' | 'number' | 'boolean'> => {
+    const types: Record<string, 'string' | 'number' | 'boolean'> = {}
+    documents.forEach(doc => {
+      if (doc.metadata) {
+        Object.entries(doc.metadata).forEach(([key, value]) => {
+          if (!(key in types)) {
+            if (typeof value === 'number') types[key] = 'number'
+            else if (typeof value === 'boolean') types[key] = 'boolean'
+            else types[key] = 'string'
+          }
+        })
+      }
+    })
+    return types
+  }, [documents])
+
+  // Paste documents from clipboard - creates draft documents for review
+  const handlePasteDocuments = useCallback(() => {
+    if (!clipboard || clipboard.type !== 'documents' || !currentProfile?.id) return
+    if (hasDrafts) return // Don't paste if there are already drafts
+
+    // Get existing document IDs (including any current drafts)
+    const existingIds = new Set(documents.map(d => d.id))
+
+    // Resolve any ID conflicts
+    const resolvedDocs = resolveConflictingIds(clipboard.documents, existingIds)
+
+    // Infer metadata types from existing documents
+    const existingTypes = inferMetadataTypes()
+
+    // Convert to draft documents with proper metadata typing
+    const drafts: DraftDocument[] = resolvedDocs.map(doc => {
+      const typedMetadata: TypedMetadataRecord = {}
+
+      // Process each metadata field from the pasted document
+      if (doc.metadata) {
+        Object.entries(doc.metadata).forEach(([key, value]) => {
+          const expectedType = existingTypes[key]
+          const actualType = typeof value
+
+          if (expectedType) {
+            // We have a type expectation from existing documents
+            if (
+              (expectedType === 'number' && actualType === 'number') ||
+              (expectedType === 'boolean' && actualType === 'boolean') ||
+              (expectedType === 'string' && actualType === 'string')
+            ) {
+              // Types match - use the value
+              typedMetadata[key] = { value: String(value), type: expectedType }
+            } else {
+              // Types don't match - leave blank
+              typedMetadata[key] = { value: '', type: expectedType }
+            }
+          } else {
+            // New metadata key not in existing documents - infer type from value
+            let inferredType: 'string' | 'number' | 'boolean' = 'string'
+            if (actualType === 'number') inferredType = 'number'
+            else if (actualType === 'boolean') inferredType = 'boolean'
+            typedMetadata[key] = { value: String(value), type: inferredType }
+          }
+        })
+      }
+
+      // Add any metadata fields that exist in the collection but not in the pasted document
+      Object.entries(existingTypes).forEach(([key, type]) => {
+        if (!(key in typedMetadata)) {
+          typedMetadata[key] = { value: '', type }
+        }
+      })
+
+      return {
+        id: doc.id,
+        document: doc.document || '',
+        metadata: typedMetadata,
+      }
+    })
+
+    setDraftDocuments(drafts)
+    // Select the first draft
+    if (drafts.length > 0) {
+      onSingleSelect(drafts[0].id)
+    }
+  }, [clipboard, currentProfile?.id, documents, hasDrafts, resolveConflictingIds, inferMetadataTypes, onSingleSelect])
+
+  // Context menu handler for document row
+  const handleDocumentContextMenu = useCallback((e: React.MouseEvent, documentId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    window.electronAPI.contextMenu.showDocumentMenu(documentId, { hasCopiedDocuments })
+  }, [hasCopiedDocuments])
+
+  // Context menu handler for empty space in table
+  const handleTableContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    window.electronAPI.contextMenu.showDocumentsPanelMenu({ hasCopiedDocuments })
+  }, [hasCopiedDocuments])
+
+  // Inline document update handler
+  const handleInlineDocumentUpdate = useCallback(async (
+    documentId: string,
+    updates: { document?: string; metadata?: Record<string, unknown> }
+  ) => {
+    await updateMutation.mutateAsync({
+      documentId,
+      document: updates.document,
+      metadata: updates.metadata as Record<string, string | number | boolean> | undefined,
+    })
+  }, [updateMutation])
+
+  // Context menu action listener
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.contextMenu.onDocumentAction((data) => {
+      if (data.action === 'copy') {
+        handleCopyDocuments()
+      } else if (data.action === 'paste') {
+        handlePasteDocuments()
+      } else if (data.action === 'delete' && data.documentId) {
+        // Select and mark for deletion
+        onSingleSelect(data.documentId)
+        setMarkedForDeletion(new Set([data.documentId]))
+      }
+    })
+    return unsubscribe
+  }, [handleCopyDocuments, handlePasteDocuments, onSingleSelect])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command+S or Command+Enter to save draft or commit deletions
+      // Don't trigger copy/paste if user is typing in an input
+      const target = e.target as HTMLElement
+      const isInputting = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+
+      // Command+S or Command+Enter to save drafts or commit deletions
       if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
         e.preventDefault()
-        if (draftDocument) {
+        if (hasDrafts) {
           handleSaveDraft()
         } else if (markedForDeletion.size > 0) {
           handleCommitDeletions()
         }
       }
-      // Escape or Command+Z to cancel draft
-      if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && draftDocument) {
+      // Escape or Command+Z to cancel drafts
+      if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && hasDrafts) {
         e.preventDefault()
         handleCancelDraft()
       }
       // Command+Delete/Backspace to toggle deletion mark
-      if (e.metaKey && (e.key === 'Delete' || e.key === 'Backspace') && !draftDocument) {
-        // Don't trigger if user is typing in an input
-        const target = e.target as HTMLElement
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-          return
-        }
+      if (e.metaKey && (e.key === 'Delete' || e.key === 'Backspace') && !hasDrafts) {
+        if (isInputting) return
         e.preventDefault()
         handleToggleDeletion()
+      }
+      // Command+C to copy selected documents
+      if (e.metaKey && e.key === 'c' && selectedDocumentIds.size > 0 && !hasDrafts && !isInputting) {
+        e.preventDefault()
+        handleCopyDocuments()
+      }
+      // Command+V to paste documents
+      if (e.metaKey && e.key === 'v' && hasCopiedDocuments && !hasDrafts && !isInputting) {
+        e.preventDefault()
+        handlePasteDocuments()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [draftDocument, handleSaveDraft, handleCancelDraft, handleToggleDeletion, handleCommitDeletions, markedForDeletion])
+  }, [hasDrafts, handleSaveDraft, handleCancelDraft, handleToggleDeletion, handleCommitDeletions, markedForDeletion, selectedDocumentIds, handleCopyDocuments, handlePasteDocuments, hasCopiedDocuments])
 
-  // Find primary selected document for drawer (check draft first, then existing documents)
+  // Find primary selected document for drawer (check drafts first, then existing documents)
   const selectedDocument: DocumentRecord | null = useMemo(() => {
     if (!primarySelectedDocumentId) return null
 
-    // Check if draft is selected
-    if (draftDocument && draftDocument.id === primarySelectedDocumentId) {
+    // Check if a draft is selected
+    const selectedDraft = draftDocuments.find(d => d.id === primarySelectedDocumentId)
+    if (selectedDraft) {
       // Include metadata if there are any keys, even with empty values
-      const hasMetadataKeys = Object.keys(draftDocument.metadata).length > 0
+      const hasMetadataKeys = Object.keys(selectedDraft.metadata).length > 0
       return {
-        id: draftDocument.id,
-        document: draftDocument.document || null,
-        metadata: hasMetadataKeys ? draftDocument.metadata : null,
+        id: selectedDraft.id,
+        document: selectedDraft.document || null,
+        metadata: hasMetadataKeys ? selectedDraft.metadata : null,
         embedding: null,
       }
     }
 
     // Check existing documents
     return documents.find(doc => doc.id === primarySelectedDocumentId) || null
-  }, [primarySelectedDocumentId, draftDocument, documents])
+  }, [primarySelectedDocumentId, draftDocuments, documents])
 
   // Check if selected document is a draft
-  const isDraft = !!(draftDocument && primarySelectedDocumentId === draftDocument.id)
+  const isDraft = draftDocuments.some(d => d.id === primarySelectedDocumentId)
 
   // Notify parent when selected document changes
   useEffect(() => {
@@ -530,10 +750,13 @@ export default function DocumentsView({
           onToggleSelect={onToggleSelect}
           onRangeSelect={onRangeSelect}
           onAddToSelection={onAddToSelection}
-          draftDocument={draftDocument}
+          draftDocuments={draftDocuments}
           onDraftChange={handleDraftChange}
           onDraftCancel={handleCancelDraft}
           markedForDeletion={markedForDeletion}
+          onDocumentUpdate={handleInlineDocumentUpdate}
+          onDocumentContextMenu={handleDocumentContextMenu}
+          onTableContextMenu={handleTableContextMenu}
         />
       </div>
 
@@ -541,22 +764,25 @@ export default function DocumentsView({
       <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
         <button
           onClick={handleStartCreate}
-          disabled={!!draftDocument || markedForDeletion.size > 0}
+          disabled={hasDrafts || markedForDeletion.size > 0}
           className="h-6 w-6 p-0 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
           title="Add document"
         >
           +
         </button>
-        {draftDocument && (
+        {hasDrafts && (
           <div className="flex items-center gap-3">
             {draftError && (
               <span className="text-[11px] text-destructive">{draftError}</span>
             )}
+            <span className="text-[11px] text-muted-foreground">
+              {draftDocuments.length} document{draftDocuments.length !== 1 ? 's' : ''} to add
+            </span>
             <div className="flex gap-2">
               <button
                 onClick={handleCancelDraft}
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || createBatchMutation.isPending}
                 className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
               >
@@ -564,15 +790,15 @@ export default function DocumentsView({
               </button>
               <button
                 onClick={handleSaveDraft}
-                disabled={createMutation.isPending || !draftDocument.id.trim()}
+                disabled={createMutation.isPending || createBatchMutation.isPending || draftDocuments.some(d => !d.id.trim())}
                 className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createMutation.isPending ? 'Saving...' : 'Save'}
+                {(createMutation.isPending || createBatchMutation.isPending) ? 'Saving...' : (draftDocuments.length === 1 ? 'Save' : 'Save All')}
               </button>
             </div>
           </div>
         )}
-        {!draftDocument && markedForDeletion.size > 0 && (
+        {!hasDrafts && markedForDeletion.size > 0 && (
           <div className="flex gap-2 items-center">
             <span className="text-[11px] text-muted-foreground">
               {markedForDeletion.size} marked for deletion

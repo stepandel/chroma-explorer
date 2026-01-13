@@ -94,6 +94,16 @@ export interface DeleteDocumentsParams {
   ids: string[]
 }
 
+export interface CreateDocumentsBatchParams {
+  collectionName: string
+  documents: Array<{
+    id: string
+    document?: string
+    metadata?: Record<string, unknown>
+  }>
+  generateEmbeddings?: boolean
+}
+
 export interface HNSWConfig {
   space?: 'l2' | 'cosine' | 'ip'
   efConstruction?: number

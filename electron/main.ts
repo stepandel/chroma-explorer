@@ -6,7 +6,7 @@ import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
 import { windowManager } from './window-manager'
 import { createApplicationMenu } from './menu'
-import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateCollectionParams, CopyCollectionParams } from './types'
+import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams, CopyCollectionParams } from './types'
 
 // Track active copy operations per profile for cancellation
 const activeCopyOperations: Map<string, AbortController> = new Map()
@@ -119,6 +119,22 @@ ipcMain.handle('chromadb:deleteDocuments', async (_event, profileId: string, par
   }
 })
 
+ipcMain.handle('chromadb:createDocumentsBatch', async (_event, profileId: string, params: CreateDocumentsBatchParams) => {
+  try {
+    const service = chromaDBConnectionPool.getConnection(profileId)
+    if (!service) {
+      return { success: false, error: 'Not connected to ChromaDB' }
+    }
+    // Check for user embedding override
+    const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
+    const result = await service.createDocumentsBatch(params, embeddingOverride)
+    return { success: true, data: result }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create documents'
+    return { success: false, error: message }
+  }
+})
+
 ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, params: CreateCollectionParams) => {
   try {
     const service = chromaDBConnectionPool.getConnection(profileId)
@@ -220,6 +236,46 @@ ipcMain.on('context-menu:show-collection-panel', (event, options?: { hasCopiedCo
       label: 'Paste Collection',
       enabled: options?.hasCopiedCollection ?? false,
       click: () => event.sender.send('context-menu:action', { action: 'paste', collectionName: '' })
+    }
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    menu.popup({ window: win })
+  }
+})
+
+// Document context menu handlers
+ipcMain.on('context-menu:show-document', (event, documentId: string, options?: { hasCopiedDocuments?: boolean }) => {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Copy',
+      click: () => event.sender.send('context-menu:document-action', { action: 'copy', documentId })
+    },
+    {
+      label: 'Paste',
+      enabled: options?.hasCopiedDocuments ?? false,
+      click: () => event.sender.send('context-menu:document-action', { action: 'paste', documentId })
+    },
+    { type: 'separator' },
+    {
+      label: 'Delete',
+      click: () => event.sender.send('context-menu:document-action', { action: 'delete', documentId })
+    }
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    menu.popup({ window: win })
+  }
+})
+
+ipcMain.on('context-menu:show-documents-panel', (event, options?: { hasCopiedDocuments?: boolean }) => {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Paste',
+      enabled: options?.hasCopiedDocuments ?? false,
+      click: () => event.sender.send('context-menu:document-action', { action: 'paste' })
     }
   ]
   const menu = Menu.buildFromTemplate(template)

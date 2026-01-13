@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateCollectionParams } from '../../electron/types'
+import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams } from '../../electron/types'
 
 // Query Keys
 export const chromaQueryKeys = {
@@ -169,6 +169,40 @@ export function useDeleteDocumentsMutation(profileId: string, collectionName: st
     },
     onSuccess: () => {
       // Invalidate all document queries for this collection to refetch after deletion
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey
+          return (
+            key[0] === 'chroma' &&
+            key[1] === 'documents' &&
+            key[2] === profileId &&
+            typeof key[3] === 'object' &&
+            key[3] !== null &&
+            (key[3] as SearchDocumentsParams).collectionName === collectionName
+          )
+        },
+      })
+      // Also invalidate collections to update document count
+      queryClient.invalidateQueries({
+        queryKey: chromaQueryKeys.collections(profileId),
+      })
+    },
+  })
+}
+
+// Create Documents Batch Mutation (for pasting copied documents)
+export function useCreateDocumentsBatchMutation(profileId: string, collectionName: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: Omit<CreateDocumentsBatchParams, 'collectionName'>) => {
+      return await window.electronAPI.chromadb.createDocumentsBatch(profileId, {
+        collectionName,
+        ...params,
+      })
+    },
+    onSuccess: () => {
+      // Invalidate all document queries for this collection to refetch with new documents
       queryClient.invalidateQueries({
         predicate: (query) => {
           const key = query.queryKey
