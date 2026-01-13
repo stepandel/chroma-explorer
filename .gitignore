@@ -4,4 +4,4 @@ dist-electron
 .vite
 *.log
 .DS_Store
-.env
+.env*
