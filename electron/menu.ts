@@ -1,4 +1,4 @@
-import { Menu, app, shell } from 'electron'
+import { BrowserWindow, Menu, app, shell } from 'electron'
 import { windowManager } from './window-manager'
 
 export function createApplicationMenu() {
@@ -66,8 +66,24 @@ export function createApplicationMenu() {
     {
       label: 'View',
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
+        {
+          label: 'Refresh Data',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            console.log('Refresh Data clicked, focusedWindow:', !!focusedWindow)
+            if (focusedWindow) {
+              focusedWindow.webContents.send('app:refresh')
+              console.log('Sent app:refresh event')
+            }
+          },
+        },
+        {
+          label: 'Reload Window',
+          accelerator: 'CmdOrCtrl+Shift+R',
+          role: 'reload',
+        },
+        { role: 'forceReload', accelerator: 'CmdOrCtrl+Alt+R' },
         { role: 'toggleDevTools' },
         { type: 'separator' },
         { role: 'resetZoom' },

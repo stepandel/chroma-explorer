@@ -201,6 +201,7 @@ declare global {
     shell: {
       openExternal: (url: string) => Promise<void>
     }
+    onRefresh: (callback: () => void) => () => void
   }
 
   interface Window {
