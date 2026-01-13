@@ -35,7 +35,7 @@ interface DocumentsViewProps {
   onSetSelectionAnchor: (id: string | null) => void
   onSelectedDocumentChange: (document: DocumentRecord | null, isDraft: boolean) => void
   // Expose draft change handler for external updates (e.g., from detail panel)
-  onExposeDraftHandler?: (handler: ((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null) => void
+  onExposeDraftHandler?: (handler: ((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void) | null) => void
   // Callback to notify parent if current draft is for the first document (empty collection)
   onIsFirstDocumentChange?: (isFirst: boolean) => void
 }
@@ -304,17 +304,23 @@ export default function DocumentsView({
   }, [])
 
   // Handler for external draft updates (from detail panel) - only works for single draft
-  const handleExternalDraftUpdate = useCallback((updates: { document?: string; metadata?: Record<string, unknown> }) => {
+  const handleExternalDraftUpdate = useCallback((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => {
     setDraftDocuments((prev) => {
       if (prev.length !== 1) return prev
+      const newId = updates.id !== undefined ? updates.id : prev[0].id
       return [{
         ...prev[0],
+        id: newId,
         document: updates.document !== undefined ? updates.document : prev[0].document,
         metadata: updates.metadata !== undefined ? (updates.metadata as TypedMetadataRecord) : prev[0].metadata,
       }]
     })
+    // Also update the primary selected document ID if ID changed
+    if (updates.id !== undefined) {
+      onSingleSelect(updates.id)
+    }
     setDraftError(null) // Clear error when user makes changes
-  }, [])
+  }, [onSingleSelect])
 
   // Expose the draft update handler to parent (only for single draft)
   useEffect(() => {

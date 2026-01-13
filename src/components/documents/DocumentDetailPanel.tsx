@@ -19,7 +19,7 @@ interface DocumentDetailPanelProps {
   profileId: string
   isDraft?: boolean
   isFirstDocument?: boolean
-  onDraftChange?: (updates: { document?: string; metadata?: Record<string, unknown> }) => void
+  onDraftChange?: (updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void
 }
 
 export default function DocumentDetailPanel({
@@ -345,12 +345,26 @@ export default function DocumentDetailPanel({
 
   return (
     <div className="h-full overflow-auto space-y-3 p-3">
-      {/* ID Section - Not editable */}
+      {/* ID Section - Editable for drafts */}
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
-        <div className="p-2 bg-secondary/50 rounded border border-border">
-          <code className="text-xs font-mono break-all">{document.id}</code>
-        </div>
+        {isDraft ? (
+          <input
+            type="text"
+            value={document.id}
+            onChange={(e) => {
+              if (onDraftChange) {
+                onDraftChange({ id: e.target.value })
+              }
+            }}
+            placeholder="Enter document ID"
+            className={`w-full text-xs font-mono p-2 bg-secondary/50 rounded border border-blue-500/30 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30`}
+          />
+        ) : (
+          <div className="p-2 bg-secondary/50 rounded border border-border">
+            <code className="text-xs font-mono break-all">{document.id}</code>
+          </div>
+        )}
       </section>
 
       {/* Document Text Section */}

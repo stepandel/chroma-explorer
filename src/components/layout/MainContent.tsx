@@ -38,14 +38,14 @@ export function MainContent() {
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
   const [isSelectedDraft, setIsSelectedDraft] = useState(false)
   const [isFirstDocument, setIsFirstDocument] = useState(false)
-  const [draftUpdateHandler, setDraftUpdateHandler] = useState<((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null>(null)
+  const [draftUpdateHandler, setDraftUpdateHandler] = useState<((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void) | null>(null)
 
   const handleSelectedDocumentChange = (document: DocumentRecord | null, isDraft: boolean) => {
     setSelectedDocument(document)
     setIsSelectedDraft(isDraft)
   }
 
-  const handleExposeDraftHandler = (handler: ((updates: { document?: string; metadata?: Record<string, unknown> }) => void) | null) => {
+  const handleExposeDraftHandler = (handler: ((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void) | null) => {
     setDraftUpdateHandler(() => handler)
   }
 
