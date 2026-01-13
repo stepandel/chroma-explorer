@@ -9,8 +9,8 @@ import { useDeleteCollectionMutation } from '../../hooks/useChromaQueries'
 import { Button } from '../ui/button'
 import { DeleteCollectionDialog } from './DeleteCollectionDialog'
 
-const inputClassName = "w-full h-6 text-[11px] py-0 px-1.5 pr-5 rounded-md border border-sidebar-border bg-black/[0.05] dark:bg-white/[0.08] placeholder:text-sidebar-foreground/50 text-sidebar-foreground focus:outline-none focus:ring-1 focus:ring-sidebar-ring focus:border-sidebar-ring/50 transition-colors"
-const inputStyle = { boxShadow: 'inset 0 0.5px 1px 0 rgb(0 0 0 / 0.06)' }
+const inputClassName = "w-full h-6 text-[11px] py-0 px-1.5 pr-5 rounded-md bg-black/[0.04] dark:bg-white/[0.06] placeholder:text-sidebar-foreground/50 text-sidebar-foreground focus:outline-none focus:ring-1 focus:ring-sidebar-ring/50 transition-colors"
+const inputStyle = { boxShadow: 'inset 0 0.5px 1px 0 rgb(0 0 0 / 0.04)' }
 
 export function CollectionPanel() {
   const { collections, collectionsLoading, collectionsError, refreshCollections, currentProfile } = useChromaDB()
@@ -234,7 +234,7 @@ export function CollectionPanel() {
           <button
             onClick={handleCreateClick}
             disabled={!!draftCollection}
-            className="h-6 w-6 flex-shrink-0 flex items-center justify-center rounded-md border border-sidebar-border bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] disabled:opacity-50 disabled:cursor-not-allowed transition-colors translate-y-px"
+            className="h-6 w-6 flex-shrink-0 flex items-center justify-center rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed transition-colors translate-y-px"
             style={inputStyle}
             title="Create new collection"
           >
@@ -326,7 +326,7 @@ export function CollectionPanel() {
 
       {/* Footer - only shown when in deletion mode */}
       {markedForDeletion && !draftCollection && (
-        <div className="px-4 py-2 border-t border-sidebar-border">
+        <div className="px-4 py-2 bg-black/[0.02] dark:bg-white/[0.02]">
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setMarkedForDeletion(null)}

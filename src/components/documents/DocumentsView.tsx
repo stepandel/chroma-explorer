@@ -706,7 +706,7 @@ export default function DocumentsView({
   return (
     <div className="flex flex-col h-full">
             {/* Row 1: Collection name and count */}
-            <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+            <div className="px-4 py-2 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
                 <EmbeddingFunctionSelector
@@ -723,7 +723,7 @@ export default function DocumentsView({
             </div>
 
             {/* Row 2: Filters */}
-            <div className="px-4 py-2 border-b border-border space-y-2">
+            <div className="px-4 py-2 pb-3 space-y-2">
               {/* Filter rows */}
               {filterRows.map((row, index) => (
                 <FilterRow
@@ -766,12 +766,11 @@ export default function DocumentsView({
       </div>
 
       {/* Bottom Toolbar */}
-      <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
+      <div className="px-4 py-2 flex items-center justify-between bg-black/[0.02] dark:bg-white/[0.02]">
         <button
           onClick={handleStartCreate}
           disabled={hasDrafts || markedForDeletion.size > 0}
-          className="h-6 w-6 p-0 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+          className="h-6 w-6 p-0 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
           title="Add document"
         >
           +
@@ -788,8 +787,7 @@ export default function DocumentsView({
               <button
                 onClick={handleCancelDraft}
                 disabled={createMutation.isPending || createBatchMutation.isPending}
-                className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                className="h-6 px-2 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -811,8 +809,7 @@ export default function DocumentsView({
             <button
               onClick={() => setMarkedForDeletion(new Set())}
               disabled={deleteMutation.isPending}
-              className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+              className="h-6 px-2 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>

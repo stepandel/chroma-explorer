@@ -331,21 +331,21 @@ export default function DocumentDetailPanel({
 
   const isPending = updateMutation.isPending
 
-  // Common field styling
-  const fieldBaseStyle = 'p-2 bg-secondary/50 rounded border transition-colors'
+  // Common field styling - soft material separation instead of hard borders
+  const fieldBaseStyle = 'p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md transition-colors'
   const getFieldStyle = (isDirty: boolean, isFocused?: boolean) => {
     if (isFocused) {
-      return `${fieldBaseStyle} border-blue-500/50 ring-1 ring-blue-500/30`
+      return `${fieldBaseStyle} ring-1 ring-blue-500/30`
     }
     if (isDirty) {
-      return `${fieldBaseStyle} border-blue-500/30`
+      return `${fieldBaseStyle} ring-1 ring-blue-500/20`
     }
-    return `${fieldBaseStyle} border-border focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/30`
+    return `${fieldBaseStyle} focus-within:ring-1 focus-within:ring-blue-500/30`
   }
 
   return (
     <div
-      className="h-full border-l border-glass-border"
+      className="h-full"
       style={{
         background: 'var(--panel-detail)',
         backdropFilter: 'blur(24px) saturate(1.5)',
@@ -367,10 +367,10 @@ export default function DocumentDetailPanel({
               }
             }}
             placeholder="Enter document ID"
-            className={`w-full text-xs font-mono p-2 bg-secondary/50 rounded border border-blue-500/30 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30`}
+            className="w-full text-xs font-mono p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md ring-1 ring-blue-500/20 focus:outline-none focus:ring-blue-500/30"
           />
         ) : (
-          <div className="p-2 bg-secondary/50 rounded border border-border">
+          <div className="p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md">
             <code className="text-xs font-mono break-all">{document.id}</code>
           </div>
         )}
@@ -436,7 +436,7 @@ export default function DocumentDetailPanel({
                       <select
                         value={typedField.type}
                         onChange={(e) => handleMetadataTypeChange(key, e.target.value as MetadataValueType)}
-                        className="h-5 pl-1.5 pr-5 appearance-none rounded border border-input bg-background text-[10px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                        className="h-5 pl-1.5 pr-5 appearance-none rounded-md bg-black/[0.05] dark:bg-white/[0.08] text-[10px] focus:outline-none focus:ring-1 focus:ring-ring/50 cursor-pointer"
                       >
                         <option value="string">str</option>
                         <option value="number">num</option>

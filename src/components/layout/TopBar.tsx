@@ -21,12 +21,13 @@ export function TopBar() {
 
   return (
     <header
-      className="h-14 border-b border-glass-border flex items-center justify-between"
+      className="h-14 flex items-center justify-between"
       style={{
         WebkitAppRegion: 'drag',
         background: 'oklch(1 0 0 / 70%)',
         backdropFilter: 'blur(24px) saturate(1.5)',
         WebkitBackdropFilter: 'blur(24px) saturate(1.5)',
+        boxShadow: '0 1px 0 oklch(0 0 0 / 0.04)',
       } as React.CSSProperties}
     >
       {/* Left side - Connection info with spacing for traffic lights */}

@@ -168,7 +168,7 @@ export function MainContent() {
           />
         ) : (
           <div
-            className="flex items-center justify-center h-full border-l border-glass-border"
+            className="flex items-center justify-center h-full"
             style={{
               background: 'var(--panel-detail)',
               backdropFilter: 'blur(24px) saturate(1.5)',
