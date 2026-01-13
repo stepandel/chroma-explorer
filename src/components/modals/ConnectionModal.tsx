@@ -1,13 +1,13 @@
 import { useState, FormEvent, useEffect } from 'react'
 import { ConnectionProfile } from '../../../electron/types'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Trash2 } from 'lucide-react'
 
 interface ConnectionModalProps {
   isOpen: boolean
   onConnect: (profile: ConnectionProfile) => void
 }
+
+const inputClassName = "w-full h-7 text-[13px] px-2 rounded-md bg-black/[0.04] dark:bg-white/[0.06] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-colors"
 
 export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalProps) {
   const [profiles, setProfiles] = useState<ConnectionProfile[]>([])
@@ -149,150 +149,193 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-card/95 backdrop-blur-xl shadow-2xl border border-border w-full h-full flex overflow-hidden">
-        {/* Left side - Connection Form */}
-        <div className="flex-1 flex flex-col">
-          <div className="p-3 border-b border-border">
-            <h2 className="text-sm font-semibold text-foreground text-center">
-              {selectedProfileId ? 'Edit Connection' : 'New Connection'}
-            </h2>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4">
-            <form onSubmit={handleSubmit} className="space-y-2">
-              {/* Profile Name */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="profileName" className="text-xs w-20 text-right">Name</Label>
-                <Input
-                  type="text"
-                  id="profileName"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="My Connection"
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* URL */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="url" className="text-xs w-20 text-right">URL *</Label>
-                <Input
-                  type="text"
-                  id="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="http://localhost:8000"
-                  required
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* Tenant */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="tenant" className="text-xs w-20 text-right">Tenant</Label>
-                <Input
-                  type="text"
-                  id="tenant"
-                  value={tenant}
-                  onChange={(e) => setTenant(e.target.value)}
-                  placeholder="Optional"
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* Database */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="database" className="text-xs w-20 text-right">Database</Label>
-                <Input
-                  type="text"
-                  id="database"
-                  value={database}
-                  onChange={(e) => setDatabase(e.target.value)}
-                  placeholder="Optional"
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* API Key */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="apiKey" className="text-xs w-20 text-right">API Key</Label>
-                <Input
-                  type="password"
-                  id="apiKey"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Optional"
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="p-2 bg-destructive/10 border border-destructive/30 rounded ml-[92px]">
-                  <p className="text-xs text-destructive">{error}</p>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-3 ml-[92px]">
-                <Button
-                  type="submit"
-                  disabled={isConnecting}
-                  className="flex-1 h-7 text-xs"
-                >
-                  {isConnecting ? 'Connecting...' : 'Connect'}
-                </Button>
-                {selectedProfileId && (
-                  <Button
-                    type="button"
-                    onClick={handleDeleteProfile}
-                    variant="destructive"
-                    className="h-7 text-xs"
-                  >
-                    Delete
-                  </Button>
-                )}
-              </div>
-            </form>
-          </div>
+    <div
+      className="fixed inset-0 flex"
+      style={{
+        background: 'oklch(0.96 0 0 / 85%)',
+        backdropFilter: 'blur(20px) saturate(1.2)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
+      }}
+    >
+      {/* Left side - Connection Form */}
+      <div className="flex-1 flex flex-col">
+        {/* Window chrome area */}
+        <div
+          className="h-11 flex items-center justify-center"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        >
+          <span className="text-[13px] font-medium text-foreground/60">
+            {selectedProfileId ? 'Edit Connection' : 'New Connection'}
+          </span>
         </div>
 
-        {/* Right sidebar - Saved Connections */}
-        <div className="w-64 bg-sidebar/70 backdrop-blur-xl border-l border-sidebar-border flex flex-col">
-          <div className="p-4 border-b border-sidebar-border">
-            <h3 className="text-sm font-semibold text-foreground">Saved Connections</h3>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {profiles.length === 0 ? (
-              <div className="p-4 text-xs text-muted-foreground text-center">
-                No saved connections
+        {/* Form content */}
+        <div className="flex-1 flex items-start justify-center pt-8 px-8">
+          <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
+            {/* Connection Settings */}
+            <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <label htmlFor="profileName" className="text-[13px] text-foreground/70 w-20 text-right">Name</label>
+                  <input
+                    type="text"
+                    id="profileName"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="My Connection"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="url" className="text-[13px] text-foreground/70 w-20 text-right">URL</label>
+                  <input
+                    type="text"
+                    id="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="http://localhost:8000"
+                    required
+                    className={inputClassName}
+                  />
+                </div>
+            </div>
+
+            {/* Advanced Settings Group */}
+            <div className="space-y-3">
+              <h3 className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wide">Advanced</h3>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <label htmlFor="tenant" className="text-[13px] text-foreground/70 w-20 text-right">Tenant</label>
+                  <input
+                    type="text"
+                    id="tenant"
+                    value={tenant}
+                    onChange={(e) => setTenant(e.target.value)}
+                    placeholder="Optional"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="database" className="text-[13px] text-foreground/70 w-20 text-right">Database</label>
+                  <input
+                    type="text"
+                    id="database"
+                    value={database}
+                    onChange={(e) => setDatabase(e.target.value)}
+                    placeholder="Optional"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="apiKey" className="text-[13px] text-foreground/70 w-20 text-right">API Key</label>
+                  <input
+                    type="password"
+                    id="apiKey"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Optional"
+                    className={inputClassName}
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="py-1">
-                {profiles.map((profile) => (
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="ml-[92px] text-[12px] text-destructive">
+                {error}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 ml-[92px]">
+              <button
+                type="submit"
+                disabled={isConnecting}
+                className="h-7 px-4 text-[13px] font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isConnecting ? 'Connecting...' : 'Connect'}
+              </button>
+              {selectedProfileId && (
+                <button
+                  type="button"
+                  onClick={handleDeleteProfile}
+                  className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  title="Delete profile"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Right sidebar - Saved Connections */}
+      <div
+        className="w-52 flex flex-col"
+        style={{
+          background: 'oklch(0 0 0 / 3%)',
+        }}
+      >
+        {/* Header with drag region */}
+        <div
+          className="h-11 flex items-center px-4"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        >
+          <span className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wide">Saved</span>
+        </div>
+
+        {/* Connection list */}
+        <div className="flex-1 overflow-y-auto">
+          {profiles.length === 0 ? (
+            <div className="px-4 py-6 text-[12px] text-muted-foreground/50 text-center">
+              No saved connections
+            </div>
+          ) : (
+            <div className="py-1">
+              {profiles.map((profile) => {
+                const isSelected = selectedProfileId === profile.id
+                return (
                   <button
                     key={profile.id}
                     onClick={() => handleProfileSelect(profile.id)}
-                    className={`w-full px-4 py-2 text-left transition-colors ${
-                      selectedProfileId === profile.id
-                        ? 'bg-sidebar-accent border-r-2 border-sidebar-primary'
-                        : 'hover:bg-sidebar-accent/50 border-r-2 border-transparent'
+                    className={`w-full px-4 py-1.5 text-left transition-colors ${
+                      isSelected
+                        ? 'bg-primary/10'
+                        : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'
                     }`}
                   >
-                    <div className={`text-sm font-medium truncate ${
-                      selectedProfileId === profile.id ? 'text-sidebar-primary' : 'text-sidebar-foreground'
+                    <div className={`text-[13px] truncate ${
+                      isSelected ? 'text-foreground font-medium' : 'text-foreground/70'
                     }`}>
                       {profile.name}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate mt-0.5">
+                    <div className="text-[11px] text-muted-foreground/50 truncate">
                       {profile.url}
                     </div>
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* New connection button */}
+        <div className="p-3">
+          <button
+            onClick={() => handleProfileSelect('')}
+            className={`w-full h-7 text-[12px] rounded-md transition-colors ${
+              !selectedProfileId
+                ? 'bg-primary/10 text-foreground'
+                : 'bg-black/[0.03] dark:bg-white/[0.03] text-muted-foreground hover:bg-black/[0.06] dark:hover:bg-white/[0.06]'
+            }`}
+          >
+            + New Connection
+          </button>
         </div>
       </div>
     </div>
