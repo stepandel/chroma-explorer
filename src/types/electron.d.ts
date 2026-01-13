@@ -68,6 +68,16 @@ declare global {
     ids: string[]
   }
 
+  interface CreateDocumentsBatchParams {
+    collectionName: string
+    documents: Array<{
+      id: string
+      document?: string
+      metadata?: Record<string, unknown>
+    }>
+    generateEmbeddings?: boolean
+  }
+
   interface HNSWConfig {
     space?: 'l2' | 'cosine' | 'ip'
     efConstruction?: number
@@ -130,6 +140,7 @@ declare global {
       updateDocument: (profileId: string, params: UpdateDocumentParams) => Promise<void>
       createDocument: (profileId: string, params: CreateDocumentParams) => Promise<void>
       deleteDocuments: (profileId: string, params: DeleteDocumentsParams) => Promise<void>
+      createDocumentsBatch: (profileId: string, params: CreateDocumentsBatchParams) => Promise<{ createdIds: string[]; errors: string[] }>
       createCollection: (profileId: string, params: CreateCollectionParams) => Promise<CollectionInfo>
       deleteCollection: (profileId: string, collectionName: string) => Promise<void>
       copyCollection: (profileId: string, params: CopyCollectionParams) => Promise<CopyCollectionResult>
@@ -140,6 +151,9 @@ declare global {
       showCollectionMenu: (collectionName: string, options?: { hasCopiedCollection?: boolean }) => void
       showCollectionPanelMenu: (options?: { hasCopiedCollection?: boolean }) => void
       onAction: (callback: (action: { action: string; collectionName: string }) => void) => () => void
+      showDocumentMenu: (documentId: string, options?: { hasCopiedDocuments?: boolean }) => void
+      showDocumentsPanelMenu: (options?: { hasCopiedDocuments?: boolean }) => void
+      onDocumentAction: (callback: (action: { action: string; documentId?: string }) => void) => () => void
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>

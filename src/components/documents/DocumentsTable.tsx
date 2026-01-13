@@ -22,6 +22,12 @@ interface DraftDocument {
   metadata: TypedMetadataRecord
 }
 
+interface EditingState {
+  documentId: string
+  document: string
+  metadata: Record<string, unknown>
+}
+
 interface DocumentsTableProps {
   documents: DocumentRecord[]
   loading: boolean
@@ -34,11 +40,16 @@ interface DocumentsTableProps {
   onToggleSelect: (id: string) => void
   onRangeSelect: (ids: string[], newAnchor?: string) => void
   onAddToSelection: (ids: string[]) => void
-  // Draft props
-  draftDocument?: DraftDocument | null
-  onDraftChange?: (draft: DraftDocument) => void
+  // Draft props - supports multiple drafts for paste operations
+  draftDocuments?: DraftDocument[]
+  onDraftChange?: (draft: DraftDocument, index: number) => void
   onDraftCancel?: () => void
   markedForDeletion?: Set<string>
+  // Inline editing props
+  onDocumentUpdate?: (documentId: string, updates: { document?: string; metadata?: Record<string, unknown> }) => Promise<void>
+  // Context menu props
+  onDocumentContextMenu?: (e: React.MouseEvent, documentId: string) => void
+  onTableContextMenu?: (e: React.MouseEvent) => void
 }
 
 export default function DocumentsTable({
@@ -52,41 +63,130 @@ export default function DocumentsTable({
   onToggleSelect,
   onRangeSelect,
   onAddToSelection,
-  draftDocument,
+  draftDocuments = [],
   onDraftChange,
   onDraftCancel,
   markedForDeletion = new Set(),
+  onDocumentUpdate,
+  onDocumentContextMenu,
+  onTableContextMenu,
 }: DocumentsTableProps) {
   // Ref for auto-focusing the id input when draft starts
   const draftIdInputRef = useRef<HTMLInputElement>(null)
-  const prevDraftIdRef = useRef<string | null>(null)
+  const prevDraftCountRef = useRef<number>(0)
 
-  // Auto-focus only when draft is first created (not on every change)
+  // Auto-focus only when drafts are first created (not on every change)
   useEffect(() => {
-    const currentDraftId = draftDocument?.id ?? null
-    const prevDraftId = prevDraftIdRef.current
+    const currentDraftCount = draftDocuments.length
+    const prevDraftCount = prevDraftCountRef.current
 
-    // Only focus if we just created a new draft (went from null to having a draft)
-    if (currentDraftId && !prevDraftId && draftIdInputRef.current) {
+    // Only focus if we just created drafts (went from 0 to having drafts)
+    if (currentDraftCount > 0 && prevDraftCount === 0 && draftIdInputRef.current) {
       draftIdInputRef.current.focus()
     }
 
-    prevDraftIdRef.current = currentDraftId
-  }, [draftDocument?.id])
+    prevDraftCountRef.current = currentDraftCount
+  }, [draftDocuments.length])
+
+  // Inline editing state
+  const [editingState, setEditingState] = useState<EditingState | null>(null)
+  const editingInputRef = useRef<HTMLInputElement>(null)
+
+  // Start editing a document
+  const startEditing = (doc: DocumentRecord) => {
+    if (!onDocumentUpdate) return
+    setEditingState({
+      documentId: doc.id,
+      document: doc.document || '',
+      metadata: doc.metadata ? { ...doc.metadata } : {},
+    })
+  }
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingState(null)
+  }
+
+  // Save editing changes
+  const saveEditing = async () => {
+    if (!editingState || !onDocumentUpdate) return
+    const originalDoc = documents.find(d => d.id === editingState.documentId)
+    if (!originalDoc) return
+
+    // Check if there are actual changes
+    const hasDocChanges = editingState.document !== (originalDoc.document || '')
+    const hasMetaChanges = JSON.stringify(editingState.metadata) !== JSON.stringify(originalDoc.metadata || {})
+
+    if (hasDocChanges || hasMetaChanges) {
+      try {
+        await onDocumentUpdate(editingState.documentId, {
+          document: hasDocChanges ? editingState.document : undefined,
+          metadata: hasMetaChanges ? editingState.metadata : undefined,
+        })
+      } catch (error) {
+        console.error('Failed to update document:', error)
+      }
+    }
+    setEditingState(null)
+  }
+
+  // Handle editing field change
+  const handleEditChange = (field: 'document' | string, value: string) => {
+    if (!editingState) return
+    if (field === 'document') {
+      setEditingState({ ...editingState, document: value })
+    } else {
+      // Metadata field - try to preserve original type
+      const originalDoc = documents.find(d => d.id === editingState.documentId)
+      const originalValue = originalDoc?.metadata?.[field]
+      let parsedValue: unknown = value
+
+      if (typeof originalValue === 'number') {
+        const num = Number(value)
+        if (!isNaN(num)) parsedValue = num
+      } else if (typeof originalValue === 'boolean') {
+        if (value.toLowerCase() === 'true') parsedValue = true
+        else if (value.toLowerCase() === 'false') parsedValue = false
+      }
+
+      setEditingState({
+        ...editingState,
+        metadata: { ...editingState.metadata, [field]: parsedValue },
+      })
+    }
+  }
+
+  // Handle keyboard events in editing mode
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      cancelEditing()
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      saveEditing()
+    }
+  }
+
+  // Focus the first input when editing starts
+  useEffect(() => {
+    if (editingState && editingInputRef.current) {
+      editingInputRef.current.focus()
+      editingInputRef.current.select()
+    }
+  }, [editingState?.documentId])
 
   // Drag selection state
   const [isDragging, setIsDragging] = useState(false)
   const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
 
-  // Get all document IDs including draft at the top
+  // Get all document IDs including drafts at the top
   const allDocIds = useMemo(() => {
     const ids: string[] = []
-    if (draftDocument) {
-      ids.push(draftDocument.id)
-    }
+    // Add all draft document IDs first
+    ids.push(...draftDocuments.map(d => d.id))
     ids.push(...documents.map(d => d.id))
     return ids
-  }, [documents, draftDocument])
+  }, [documents, draftDocuments])
 
   // Handle row click with modifier keys (macOS-style)
   const handleRowClick = (e: React.MouseEvent, docId: string, rowIndex: number) => {
@@ -125,9 +225,27 @@ export default function DocumentsTable({
       // ⌘+Click: Toggle this row in selection
       onToggleSelect(docId)
     } else {
-      // Plain click: Select only this row
-      onSingleSelect(docId)
+      // Plain click: Select only this row, or deselect if already the only selected
+      if (selectedDocumentIds.has(docId) && selectedDocumentIds.size === 1) {
+        // Already selected and it's the only one - deselect
+        onToggleSelect(docId)
+      } else {
+        onSingleSelect(docId)
+      }
     }
+  }
+
+  // Handle double-click to start inline editing
+  const handleRowDoubleClick = (e: React.MouseEvent, docId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Find the document and start editing
+    const doc = documents.find(d => d.id === docId)
+    if (doc && onDocumentUpdate) {
+      startEditing(doc)
+    }
+    // Also select the row
+    onSingleSelect(docId)
   }
 
   // Drag selection handlers
@@ -277,7 +395,7 @@ export default function DocumentsTable({
   }
 
   return (
-    <div className="overflow-auto h-full">
+    <div className="overflow-auto h-full" onContextMenu={onTableContextMenu}>
       <table style={{ minWidth: '100%', width: table.getCenterTotalSize() }}>
         <thead className="bg-muted sticky top-0 z-10 border-b border-border">
           {table.getHeaderGroups().map(headerGroup => (
@@ -309,13 +427,15 @@ export default function DocumentsTable({
           ))}
         </thead>
         <tbody className="divide-y divide-border select-none">
-          {/* Draft row for creating new document */}
-          {draftDocument && onDraftChange && (
+          {/* Draft rows for creating/pasting documents */}
+          {draftDocuments.length > 0 && onDraftChange && draftDocuments.map((draft, draftIndex) => (
             <tr
-              className={`cursor-pointer ${selectedDocumentIds.has(draftDocument.id) ? 'bg-blue-50' : 'bg-blue-50/50'}`}
-              onClick={(e) => handleRowClick(e, draftDocument.id, 0)}
-              onMouseDown={(e) => handleMouseDown(e, 0)}
-              onMouseEnter={() => handleMouseEnter(0)}
+              key={`draft-${draftIndex}`}
+              className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-blue-50' : 'bg-blue-50/50'}`}
+              onClick={(e) => handleRowClick(e, draft.id, draftIndex)}
+              onDoubleClick={(e) => handleRowDoubleClick(e, draft.id)}
+              onMouseDown={(e) => handleMouseDown(e, draftIndex)}
+              onMouseEnter={() => handleMouseEnter(draftIndex)}
             >
               {/* ID cell - editable */}
               <td
@@ -323,10 +443,10 @@ export default function DocumentsTable({
                 style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
               >
                 <input
-                  ref={draftIdInputRef}
+                  ref={draftIndex === 0 ? draftIdInputRef : undefined}
                   type="text"
-                  value={draftDocument.id}
-                  onChange={(e) => onDraftChange({ ...draftDocument, id: e.target.value })}
+                  value={draft.id}
+                  onChange={(e) => onDraftChange({ ...draft, id: e.target.value }, draftIndex)}
                   placeholder="Enter document ID"
                   className="w-full text-xs font-mono bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
                 />
@@ -338,30 +458,30 @@ export default function DocumentsTable({
               >
                 <input
                   type="text"
-                  value={draftDocument.document}
-                  onChange={(e) => onDraftChange({ ...draftDocument, document: e.target.value })}
+                  value={draft.document}
+                  onChange={(e) => onDraftChange({ ...draft, document: e.target.value }, draftIndex)}
                   placeholder="Enter document text"
                   className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
                 />
               </td>
               {/* Editable metadata cells */}
               {metadataKeys.map(key => {
-                const field = draftDocument.metadata[key]
+                const field = draft.metadata[key]
                 return (
                   <td
-                    key={`draft-${key}`}
+                    key={`draft-${draftIndex}-${key}`}
                     className="pl-3 py-0.5 align-top border-r border-border"
                   >
                     <input
                       type="text"
                       value={field?.value || ''}
                       onChange={(e) => onDraftChange({
-                        ...draftDocument,
+                        ...draft,
                         metadata: {
-                          ...draftDocument.metadata,
+                          ...draft.metadata,
                           [key]: { ...field, value: e.target.value }
                         }
-                      })}
+                      }, draftIndex)}
                       placeholder="-"
                       className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
                     />
@@ -371,18 +491,22 @@ export default function DocumentsTable({
               {/* Filler cell */}
               <td className="border-r border-border"></td>
             </tr>
-          )}
+          ))}
           {table.getRowModel().rows.map((row, index) => {
             const isSelected = selectedDocumentIds.has(row.original.id)
             const isMarkedForDeletion = markedForDeletion.has(row.original.id)
-            // Adjust index for alternating colors when draft exists
-            const adjustedIndex = draftDocument ? index + 1 : index
-            // Row index in allDocIds (draft takes index 0 if exists)
-            const rowIndex = draftDocument ? index + 1 : index
+            const isEditing = editingState?.documentId === row.original.id
+            // Adjust index for alternating colors when drafts exist
+            const draftCount = draftDocuments.length
+            const adjustedIndex = draftCount > 0 ? index + draftCount : index
+            // Row index in allDocIds (drafts take indices 0 to draftCount-1)
+            const rowIndex = draftCount > 0 ? index + draftCount : index
 
             // Determine row background
             let rowBgClass: string
-            if (isMarkedForDeletion) {
+            if (isEditing) {
+              rowBgClass = 'bg-blue-50'
+            } else if (isMarkedForDeletion) {
               rowBgClass = isSelected ? 'bg-red-200' : 'bg-red-100'
             } else if (isSelected) {
               rowBgClass = 'bg-blue-100'
@@ -390,13 +514,75 @@ export default function DocumentsTable({
               rowBgClass = adjustedIndex % 2 === 0 ? 'bg-background' : 'bg-muted/100'
             }
 
+            // Render editing row
+            if (isEditing && editingState) {
+              return (
+                <tr
+                  key={row.id}
+                  className={`transition-colors cursor-pointer ${rowBgClass}`}
+                  onContextMenu={(e) => onDocumentContextMenu?.(e, row.original.id)}
+                >
+                  {/* ID cell - not editable */}
+                  <td
+                    className="pl-3 py-0.5 align-top border-r border-border"
+                    style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
+                  >
+                    <div className="text-xs font-mono text-foreground">
+                      {row.original.id}
+                    </div>
+                  </td>
+                  {/* Document cell - editable */}
+                  <td
+                    className="pl-3 py-0.5 align-top border-r border-border"
+                    style={{ width: table.getHeaderGroups()[0]?.headers[1]?.getSize() }}
+                  >
+                    <input
+                      ref={editingInputRef}
+                      type="text"
+                      value={editingState.document}
+                      onChange={(e) => handleEditChange('document', e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      onBlur={saveEditing}
+                      className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground"
+                    />
+                  </td>
+                  {/* Editable metadata cells */}
+                  {metadataKeys.map(key => {
+                    const value = editingState.metadata[key]
+                    const displayValue = value !== undefined && value !== null ? String(value) : ''
+                    return (
+                      <td
+                        key={`edit-${key}`}
+                        className="pl-3 py-0.5 align-top border-r border-border"
+                      >
+                        <input
+                          type="text"
+                          value={displayValue}
+                          onChange={(e) => handleEditChange(key, e.target.value)}
+                          onKeyDown={handleEditKeyDown}
+                          onBlur={saveEditing}
+                          placeholder="-"
+                          className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
+                        />
+                      </td>
+                    )
+                  })}
+                  {/* Filler cell */}
+                  <td className="border-r border-border"></td>
+                </tr>
+              )
+            }
+
+            // Render normal row
             return (
               <tr
                 key={row.id}
                 className={`transition-colors cursor-pointer ${rowBgClass}`}
                 onClick={(e) => handleRowClick(e, row.original.id, rowIndex)}
+                onDoubleClick={(e) => handleRowDoubleClick(e, row.original.id)}
                 onMouseDown={(e) => handleMouseDown(e, rowIndex)}
                 onMouseEnter={() => handleMouseEnter(rowIndex)}
+                onContextMenu={(e) => onDocumentContextMenu?.(e, row.original.id)}
               >
                 {row.getVisibleCells().map(cell => (
                   <td
