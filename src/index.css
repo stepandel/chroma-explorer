@@ -153,6 +153,17 @@ body {
   }
 }
 
+/* Electron window drag regions */
+.draggable-region {
+  -webkit-app-region: drag;
+}
+
+.draggable-region button,
+.draggable-region a,
+.draggable-region input {
+  -webkit-app-region: no-drag;
+}
+
 @keyframes accordion-down {
   from {
     height: 0;

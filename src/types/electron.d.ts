@@ -59,6 +59,7 @@ declare global {
     queryText?: string
     nResults?: number
     metadataFilter?: Record<string, any>
+    ids?: string[] // Filter by specific IDs (no embedding function needed)
     limit?: number
     offset?: number
   }
@@ -192,6 +193,13 @@ declare global {
       getInfo: () => Promise<{ type: string; windowId?: string; profileId?: string }>
       closeCurrent: () => Promise<void>
       getProfile: (profileId: string) => Promise<ConnectionProfile>
+    }
+    settings: {
+      getApiKeys: () => Promise<Record<string, string>>
+      setApiKeys: (apiKeys: Record<string, string>) => Promise<void>
+    }
+    shell: {
+      openExternal: (url: string) => Promise<void>
     }
   }
 

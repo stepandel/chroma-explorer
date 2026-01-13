@@ -209,6 +209,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return result.data
     },
   },
+  settings: {
+    getApiKeys: async (): Promise<Record<string, string>> => {
+      const result = await ipcRenderer.invoke('settings:getApiKeys')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    setApiKeys: async (apiKeys: Record<string, string>): Promise<void> => {
+      const result = await ipcRenderer.invoke('settings:setApiKeys', apiKeys)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+  },
+  shell: {
+    openExternal: async (url: string): Promise<void> => {
+      const result = await ipcRenderer.invoke('shell:openExternal', url)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+  },
 })
 
 console.log('Preload script finished, electronAPI exposed:', typeof window !== 'undefined' ? !!(window as any).electronAPI : 'window not defined')

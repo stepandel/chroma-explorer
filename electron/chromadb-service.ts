@@ -191,27 +191,26 @@ class ChromaDBService {
       throw new Error('ChromaDB client not connected. Please connect first.')
     }
 
-    // Find the collection's embedding function config from cache
-    const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
-
-    // Use override if provided, otherwise fall back to server config
-    const efConfig: CollectionInfo['embeddingFunction'] = embeddingOverride
-      ? buildEfConfigFromOverride(embeddingOverride)
-      : collectionInfo?.embeddingFunction ?? null
-
-    // Get the appropriate embedding function for this collection
-    const embeddingFunction = await this.efFactory?.getEmbeddingFunction(
-      params.collectionName,
-      efConfig
-    )
-
-    const collection = await this.client.getCollection({
-      name: params.collectionName,
-      embeddingFunction,
-    })
-
-    // If queryText is provided, use semantic search (query method)
+    // If queryText is provided, use semantic search (query method) - requires embedding function
     if (params.queryText && params.queryText.trim() !== '') {
+      // Find the collection's embedding function config from cache
+      const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
+
+      // Use override if provided, otherwise fall back to server config
+      const efConfig: CollectionInfo['embeddingFunction'] = embeddingOverride
+        ? buildEfConfigFromOverride(embeddingOverride)
+        : collectionInfo?.embeddingFunction ?? null
+
+      // Get the appropriate embedding function for this collection
+      const embeddingFunction = await this.efFactory?.getEmbeddingFunction(
+        params.collectionName,
+        efConfig
+      )
+
+      const collection = await this.client.getCollection({
+        name: params.collectionName,
+        embeddingFunction,
+      })
       // Use queryTexts parameter - ChromaDB will handle embedding on the server side
       // nResults: 0 means no limit - omit to use ChromaDB's default behavior
       const queryOptions: {
@@ -240,35 +239,45 @@ class ChromaDBService {
       }));
 
       return documents
-    } else {
-      // Use get method for metadata filtering only
-      // nResults: 0 means no limit, omit the limit parameter
-      const getOptions: {
-        where?: Record<string, any>
-        limit?: number
-        offset?: number
-        include: ('documents' | 'metadatas' | 'embeddings')[]
-      } = {
-        where: params.metadataFilter,
-        offset: params.offset || 0,
-        include: ['documents', 'metadatas', 'embeddings'],
-      }
-      // Only specify limit if not "no limit" (0)
-      if (params.nResults !== 0) {
-        getOptions.limit = params.limit || 300
-      }
-      const getResults = await collection.get(getOptions)
-
-      // Transform get results to DocumentRecord format
-      const documents: DocumentRecord[] = (getResults.ids || []).map((id, i) => ({
-        id,
-        document: getResults.documents?.[i] || null,
-        metadata: getResults.metadatas?.[i] || null,
-        embedding: getResults.embeddings?.[i] || null,
-      }));
-
-      return documents
     }
+
+    // Use get method for metadata/ID filtering - no embedding function needed
+    const collection = await this.client.getCollection({
+      name: params.collectionName,
+    })
+
+    const getOptions: {
+      ids?: string[]
+      where?: Record<string, any>
+      limit?: number
+      offset?: number
+      include: ('documents' | 'metadatas' | 'embeddings')[]
+    } = {
+      where: params.metadataFilter,
+      offset: params.offset || 0,
+      include: ['documents', 'metadatas', 'embeddings'],
+    }
+
+    // Add ID filter if provided
+    if (params.ids && params.ids.length > 0) {
+      getOptions.ids = params.ids
+    }
+
+    // Only specify limit if not "no limit" (0)
+    if (params.nResults !== 0) {
+      getOptions.limit = params.limit || 300
+    }
+    const getResults = await collection.get(getOptions)
+
+    // Transform get results to DocumentRecord format
+    const documents: DocumentRecord[] = (getResults.ids || []).map((id, i) => ({
+      id,
+      document: getResults.documents?.[i] || null,
+      metadata: getResults.metadatas?.[i] || null,
+      embedding: getResults.embeddings?.[i] || null,
+    }));
+
+    return documents
   }
 
   async updateDocument(
