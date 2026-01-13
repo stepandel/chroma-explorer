@@ -167,6 +167,28 @@ class ChromaDBService {
       throw new Error('ChromaDB client not connected. Please connect first.')
     }
 
+    // If IDs are provided, fetch directly by IDs (ignores all other filters)
+    if (params.ids && params.ids.length > 0) {
+      const collection = await this.client.getCollection({
+        name: params.collectionName,
+      })
+
+      const getResults = await collection.get({
+        ids: params.ids,
+        include: ['documents', 'metadatas', 'embeddings'],
+      })
+
+      // Transform get results to DocumentRecord format
+      const documents: DocumentRecord[] = (getResults.ids || []).map((id, i) => ({
+        id,
+        document: getResults.documents?.[i] || null,
+        metadata: getResults.metadatas?.[i] || null,
+        embedding: getResults.embeddings?.[i] || null,
+      }));
+
+      return documents
+    }
+
     // Find the collection's embedding function config from cache
     const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
 

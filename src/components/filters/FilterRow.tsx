@@ -49,6 +49,18 @@ export function FilterRow({
         metadataKey: undefined,
         operator: undefined,
         metadataValue: undefined,
+        selectField: undefined,
+        selectValue: undefined,
+      })
+    } else if (value === 'select:id') {
+      onChange(row.id, {
+        type: 'select',
+        searchValue: undefined,
+        metadataKey: undefined,
+        operator: undefined,
+        metadataValue: undefined,
+        selectField: 'id',
+        selectValue: '',
       })
     } else {
       // value is a metadata field name
@@ -58,12 +70,18 @@ export function FilterRow({
         metadataKey: value,
         operator: '$eq',
         metadataValue: '',
+        selectField: undefined,
+        selectValue: undefined,
       })
     }
   }
 
-  // Get current select value: 'search' or the metadata key
-  const selectValue = row.type === 'search' ? 'search' : (row.metadataKey || '')
+  // Get current select value: 'search', 'select:id', or the metadata key
+  const selectValue = row.type === 'search'
+    ? 'search'
+    : row.type === 'select'
+      ? `select:${row.selectField || 'id'}`
+      : (row.metadataKey || '')
 
   // Ensure current metadataKey is always in the options (in case filtered docs don't have it)
   const allFields = row.metadataKey && !metadataFields.includes(row.metadataKey)
@@ -82,6 +100,9 @@ export function FilterRow({
         <optgroup label="Search">
           <option value="search">Query</option>
         </optgroup>
+        <optgroup label="Select">
+          <option value="select:id">ID</option>
+        </optgroup>
         {allFields.length > 0 && (
           <optgroup label="Filter">
             {allFields.map(field => (
@@ -98,6 +119,15 @@ export function FilterRow({
           value={row.searchValue || ''}
           onChange={(e) => onChange(row.id, { searchValue: e.target.value })}
           placeholder="Search query..."
+          className={`flex-1 ${inputClassName}`}
+          style={inputStyle}
+        />
+      ) : row.type === 'select' ? (
+        <input
+          type="text"
+          value={row.selectValue || ''}
+          onChange={(e) => onChange(row.id, { selectValue: e.target.value })}
+          placeholder="Document ID..."
           className={`flex-1 ${inputClassName}`}
           style={inputStyle}
         />

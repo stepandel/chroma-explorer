@@ -51,6 +51,7 @@ export interface SearchDocumentsParams {
   metadataFilter?: Record<string, any> // Where clause
   limit?: number // For get() pagination
   offset?: number // For get() pagination
+  ids?: string[] // Fetch specific documents by ID (ignores other filters when set)
 }
 
 export interface UpdateDocumentParams {

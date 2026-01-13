@@ -141,6 +141,21 @@ export default function DocumentsView({
 
   // Build search params from filter rows
   const searchParams = useMemo(() => {
+    // Check for select filter (ID lookup) - when present, ignore all other filters
+    const selectRow = filterRows.find(r => r.type === 'select' && r.selectValue?.trim())
+    if (selectRow) {
+      // Parse the ID value - support comma-separated list for multiple IDs
+      const ids = selectRow.selectValue!
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+
+      return {
+        collectionName,
+        ids,
+      }
+    }
+
     // Extract search query from search-type rows
     const searchRow = filterRows.find(r => r.type === 'search' && r.searchValue?.trim())
     const queryText = searchRow?.searchValue?.trim() || undefined
@@ -245,7 +260,8 @@ export default function DocumentsView({
 
   const hasActiveFilters = filterRows.some(row =>
     (row.type === 'search' && row.searchValue?.trim()) ||
-    (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim())
+    (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim()) ||
+    (row.type === 'select' && row.selectValue?.trim())
   )
 
   // Draft document handlers
