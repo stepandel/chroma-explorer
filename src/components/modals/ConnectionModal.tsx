@@ -193,7 +193,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     <div
       className="fixed inset-0 flex"
       style={{
-        background: 'oklch(0.97 0.005 260 / 65%)',
+        background: 'oklch(0.96 0 0 / 75%)',
       }}
     >
       {/* Left side - Form area */}
@@ -307,10 +307,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
 
       {/* Right sidebar - Saved Connections (full height) */}
       <div
-        className="w-44 flex flex-col border-l border-white/[0.06]"
-        style={{
-          background: 'oklch(0 0 0 / 4%)',
-        }}
+        className="w-44 flex flex-col border-l border-black/[0.08]"
+        style={{ background: 'oklch(0 0 0 / 8%)' }}
       >
         {/* Sidebar header with drag region */}
         <div
