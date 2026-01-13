@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
 import { useDraftCollection, DraftHNSWConfig } from '../../context/DraftCollectionContext'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useCollection } from '../../context/CollectionContext'
-import { EMBEDDING_FUNCTIONS, getEmbeddingFunctionById } from '../../constants/embedding-functions'
+import { EMBEDDING_FUNCTIONS, EMBEDDING_FUNCTION_GROUPS, getEmbeddingFunctionById } from '../../constants/embedding-functions'
 import { MetadataValueType, validateMetadataValue } from '../../types/metadata'
 import { CopyProgressDialog } from './CopyProgressDialog'
 
@@ -268,10 +268,14 @@ export function CollectionConfigView() {
               className="w-full h-6 appearance-none rounded-md border border-input bg-background pl-1.5 pr-6 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
               style={inputStyle}
             >
-              {EMBEDDING_FUNCTIONS.map((ef) => (
-                <option key={ef.id} value={ef.id}>
-                  {ef.label} ({ef.dimensions}d)
-                </option>
+              {EMBEDDING_FUNCTION_GROUPS.map((group) => (
+                <optgroup key={group} label={group}>
+                  {EMBEDDING_FUNCTIONS.filter(ef => ef.group === group).map((ef) => (
+                    <option key={ef.id} value={ef.id}>
+                      {ef.label} {ef.dimensions ? `(${ef.dimensions}d)` : ''}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
@@ -289,12 +293,12 @@ export function CollectionConfigView() {
             type="number"
             value={draftCollection.dimensionOverride || ''}
             onChange={(e) => handleDimensionChange(e.target.value)}
-            placeholder={selectedEf?.dimensions.toString() || '384'}
+            placeholder={selectedEf?.dimensions?.toString() || 'auto'}
             className={inputClassName}
             style={inputStyle}
           />
           <p className="text-[10px] text-muted-foreground">
-            Default: {selectedEf?.dimensions || 384}
+            Default: {selectedEf?.dimensions ?? 'auto'}
           </p>
         </div>
 

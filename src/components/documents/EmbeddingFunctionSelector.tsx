@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Button } from '../ui/button'
 import { Label } from '../ui/label'
-import { EMBEDDING_FUNCTIONS } from '../../constants/embedding-functions'
+import { EMBEDDING_FUNCTIONS, EMBEDDING_FUNCTION_GROUPS } from '../../constants/embedding-functions'
 
 interface EmbeddingFunctionSelectorProps {
   collectionName: string
@@ -48,6 +48,8 @@ export function EmbeddingFunctionSelector({
       await onSave({
         type: selectedEF.type,
         modelName: selectedEF.modelName,
+        url: selectedEF.url,
+        accountId: selectedEF.accountId,
       })
       setOpen(false)
     } finally {
@@ -108,10 +110,14 @@ export function EmbeddingFunctionSelector({
                 className="w-full h-[22px] appearance-none rounded-[5px] border-none bg-white/10 dark:bg-white/5 pl-2 pr-6 text-[13px] text-foreground shadow-[0_0.5px_1px_rgba(0,0,0,0.1),inset_0_0.5px_0.5px_rgba(255,255,255,0.1)] ring-1 ring-black/10 dark:ring-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-default"
               >
                 <option value="">Select...</option>
-                {EMBEDDING_FUNCTIONS.map(ef => (
-                  <option key={ef.id} value={ef.id}>
-                    {ef.label} ({ef.dimensions}d)
-                  </option>
+                {EMBEDDING_FUNCTION_GROUPS.map(group => (
+                  <optgroup key={group} label={group}>
+                    {EMBEDDING_FUNCTIONS.filter(ef => ef.group === group).map(ef => (
+                      <option key={ef.id} value={ef.id}>
+                        {ef.label} {ef.dimensions ? `(${ef.dimensions}d)` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/70" />
@@ -135,7 +141,7 @@ export function EmbeddingFunctionSelector({
                 )}
                 <p className="text-muted-foreground"><span className="text-foreground/60">Type:</span> {displayEF.type}</p>
                 <p className="text-muted-foreground"><span className="text-foreground/60">Model:</span> {displayEF.modelName}</p>
-                <p className="text-muted-foreground"><span className="text-foreground/60">Dimensions:</span> {displayEF.dimensions}</p>
+                <p className="text-muted-foreground"><span className="text-foreground/60">Dimensions:</span> {displayEF.dimensions ?? 'variable'}</p>
               </div>
             )
           })()}
