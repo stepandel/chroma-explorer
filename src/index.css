@@ -56,6 +56,10 @@ body {
   --color-panel-detail: var(--panel-detail);
   --color-content: var(--content-background);
 
+  /* Inspector sections */
+  --color-inspector-section: var(--inspector-section-bg);
+  --color-inspector-section-border: var(--inspector-section-border);
+
   /* Animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -121,9 +125,18 @@ body {
 
   /* Glass system */
   --glass-border: oklch(0 0 0 / 8%);
-  --panel-detail: oklch(1 0 0 / 60%);
+  --panel-detail: oklch(0.96 0 0 / 70%);
+  --panel-detail-shadow:
+    inset 1px 0 0 oklch(0 0 0 / 6%),
+    inset -1px 0 0 oklch(1 0 0 / 40%),
+    0 0 1px oklch(0 0 0 / 12%),
+    -8px 0 24px oklch(0 0 0 / 10%);
   --content-background: oklch(0.92 0 0);
   --shadow-panel: 0 0 1px oklch(0 0 0 / 15%), 0 12px 32px oklch(0 0 0 / 12%);
+
+  /* Inspector inset sections */
+  --inspector-section-bg: oklch(0 0 0 / 4%);
+  --inspector-section-border: oklch(0 0 0 / 6%);
 }
 
 .dark {
@@ -167,8 +180,17 @@ body {
   /* Glass system - dark */
   --glass-border: oklch(1 0 0 / 8%);
   --panel-detail: oklch(0.2 0 0 / 60%);
+  --panel-detail-shadow:
+    inset 1px 0 0 oklch(1 0 0 / 4%),
+    inset -1px 0 0 oklch(1 0 0 / 8%),
+    0 0 1px oklch(0 0 0 / 50%),
+    -8px 0 24px oklch(0 0 0 / 30%);
   --content-background: oklch(0.1 0 0);
   --shadow-panel: 0 0 1px oklch(0 0 0 / 40%), 0 12px 32px oklch(0 0 0 / 35%);
+
+  /* Inspector inset sections - dark */
+  --inspector-section-bg: oklch(1 0 0 / 4%);
+  --inspector-section-border: oklch(1 0 0 / 6%);
 }
 
 @layer base {

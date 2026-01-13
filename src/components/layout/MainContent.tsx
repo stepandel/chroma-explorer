@@ -173,7 +173,7 @@ export function MainContent() {
               background: 'var(--panel-detail)',
               backdropFilter: 'blur(24px) saturate(1.5)',
               WebkitBackdropFilter: 'blur(24px) saturate(1.5)',
-              boxShadow: 'var(--shadow-panel)',
+              boxShadow: 'var(--panel-detail-shadow)',
             }}
           >
             <div className="text-center text-muted-foreground">

@@ -350,7 +350,7 @@ export default function DocumentDetailPanel({
         background: 'var(--panel-detail)',
         backdropFilter: 'blur(24px) saturate(1.5)',
         WebkitBackdropFilter: 'blur(24px) saturate(1.5)',
-        boxShadow: 'var(--shadow-panel)',
+        boxShadow: 'var(--panel-detail-shadow)',
       }}
     >
       <div className="h-full overflow-auto space-y-3 p-3">
