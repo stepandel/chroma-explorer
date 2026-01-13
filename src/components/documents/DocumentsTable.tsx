@@ -129,9 +129,21 @@ export default function DocumentsTable({
       // ⌘+Click: Toggle this row in selection
       onToggleSelect(docId)
     } else {
-      // Plain click: Select only this row
-      onSingleSelect(docId)
+      // Plain click: Select only this row, or deselect if already the only selected
+      if (selectedDocumentIds.has(docId) && selectedDocumentIds.size === 1) {
+        // Already selected and it's the only one - deselect
+        onToggleSelect(docId)
+      } else {
+        onSingleSelect(docId)
+      }
     }
+  }
+
+  // Handle double-click to open detail panel for editing
+  const handleRowDoubleClick = (e: React.MouseEvent, docId: string) => {
+    e.preventDefault()
+    // Select and open detail panel (onSingleSelect opens the panel)
+    onSingleSelect(docId)
   }
 
   // Drag selection handlers
@@ -319,6 +331,7 @@ export default function DocumentsTable({
               key={`draft-${draftIndex}`}
               className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-blue-50' : 'bg-blue-50/50'}`}
               onClick={(e) => handleRowClick(e, draft.id, draftIndex)}
+              onDoubleClick={(e) => handleRowDoubleClick(e, draft.id)}
               onMouseDown={(e) => handleMouseDown(e, draftIndex)}
               onMouseEnter={() => handleMouseEnter(draftIndex)}
             >
@@ -401,6 +414,7 @@ export default function DocumentsTable({
                 key={row.id}
                 className={`transition-colors cursor-pointer ${rowBgClass}`}
                 onClick={(e) => handleRowClick(e, row.original.id, rowIndex)}
+                onDoubleClick={(e) => handleRowDoubleClick(e, row.original.id)}
                 onMouseDown={(e) => handleMouseDown(e, rowIndex)}
                 onMouseEnter={() => handleMouseEnter(rowIndex)}
                 onContextMenu={(e) => onDocumentContextMenu?.(e, row.original.id)}
