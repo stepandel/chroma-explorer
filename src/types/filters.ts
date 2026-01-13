@@ -22,7 +22,7 @@ export interface DocumentFilters {
 }
 
 // New filter row types
-export type FilterRowType = 'search' | 'metadata'
+export type FilterRowType = 'search' | 'metadata' | 'select'
 
 export interface FilterRow {
   id: string
@@ -33,4 +33,7 @@ export interface FilterRow {
   metadataKey?: string
   operator?: MetadataOperator
   metadataValue?: string
+  // For select type
+  selectField?: 'id'
+  selectValue?: string
 }

@@ -202,10 +202,26 @@ export default function DocumentsView({
 
   // Use React Query for documents with debouncing via staleTime
   const {
-    data: documents = [],
+    data: rawDocuments = [],
     isLoading: loading,
     error,
   } = useDocumentsQuery(currentProfile?.id || null, searchParams)
+
+  // Extract ID filter value for client-side filtering
+  const idFilterValue = useMemo(() => {
+    const selectRow = filterRows.find(r => r.type === 'select' && r.selectValue?.trim())
+    return selectRow?.selectValue?.trim().toLowerCase() || ''
+  }, [filterRows])
+
+  // Apply client-side ID filter (case-insensitive "includes" match)
+  const documents = useMemo(() => {
+    if (!idFilterValue) {
+      return rawDocuments
+    }
+    return rawDocuments.filter(doc =>
+      doc.id.toLowerCase().includes(idFilterValue)
+    )
+  }, [rawDocuments, idFilterValue])
 
   // Extract unique metadata fields from documents (needed for draft creation)
   const metadataFields = useMemo(() => {
@@ -245,7 +261,8 @@ export default function DocumentsView({
 
   const hasActiveFilters = filterRows.some(row =>
     (row.type === 'search' && row.searchValue?.trim()) ||
-    (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim())
+    (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim()) ||
+    (row.type === 'select' && row.selectValue?.trim())
   )
 
   // Draft document handlers
