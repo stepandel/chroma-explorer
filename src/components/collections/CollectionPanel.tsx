@@ -165,6 +165,14 @@ export function CollectionPanel() {
       if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && markedForDeletion) {
         e.preventDefault()
         setMarkedForDeletion(null)
+        return
+      }
+
+      // Command+Z to cancel copy mode (draft collection)
+      if (e.metaKey && e.key === 'z' && draftCollection) {
+        e.preventDefault()
+        cancelCreation()
+        return
       }
 
       // Command+C to copy active collection
@@ -182,7 +190,7 @@ export function CollectionPanel() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleToggleDeletion, handleCommitDeletion, handleCopyCollection, handlePasteCollection, markedForDeletion, draftCollection, activeCollection, hasCopiedCollection])
+  }, [handleToggleDeletion, handleCommitDeletion, handleCopyCollection, handlePasteCollection, cancelCreation, markedForDeletion, draftCollection, activeCollection, hasCopiedCollection])
 
   const filteredCollections = collections.filter(collection =>
     collection.name.toLowerCase().includes(searchTerm.toLowerCase())
