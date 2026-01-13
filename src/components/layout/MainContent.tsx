@@ -135,10 +135,7 @@ export function MainContent() {
         className={`absolute top-0 left-0 h-full transition-transform duration-200 ${
           leftPanelOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{
-          width: `${leftPanelWidth}px`,
-          boxShadow: leftPanelOpen ? 'var(--shadow-panel)' : 'none',
-        }}
+        style={{ width: `${leftPanelWidth}px` }}
       >
         <CollectionPanel />
         {/* Resize handle */}
