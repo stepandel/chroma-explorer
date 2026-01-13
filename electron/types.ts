@@ -1,8 +1,26 @@
 import { Metadata } from "chromadb"
 
+export type EmbeddingFunctionType =
+  | 'default'
+  | 'openai'
+  | 'ollama'
+  | 'cohere'
+  | 'google-gemini'
+  | 'jina'
+  | 'mistral'
+  | 'voyageai'
+  | 'together-ai'
+  | 'huggingface-server'
+  | 'cloudflare-worker-ai'
+  | 'morph'
+  | 'chroma-cloud-qwen'
+  | 'sentence-transformer'
+
 export interface EmbeddingFunctionOverride {
-  type: 'default' | 'openai'
+  type: EmbeddingFunctionType
   modelName?: string // e.g., 'text-embedding-3-large', 'Xenova/all-MiniLM-L6-v2'
+  url?: string // For Ollama, HuggingFace Server
+  accountId?: string // For Cloudflare Workers AI
 }
 
 export interface ConnectionProfile {
@@ -100,8 +118,10 @@ export interface HNSWConfig {
 export interface CreateCollectionParams {
   name: string
   embeddingFunction?: {
-    type: 'default' | 'openai'
+    type: EmbeddingFunctionType
     modelName?: string
+    url?: string // For Ollama, HuggingFace Server
+    accountId?: string // For Cloudflare Workers AI
   }
   metadata?: Record<string, unknown>
   hnsw?: HNSWConfig
@@ -117,8 +137,10 @@ export interface CopyCollectionParams {
   sourceCollectionName: string
   targetName: string
   embeddingFunction?: {
-    type: 'default' | 'openai'
+    type: EmbeddingFunctionType
     modelName?: string
+    url?: string // For Ollama, HuggingFace Server
+    accountId?: string // For Cloudflare Workers AI
   }
   hnsw?: HNSWConfig
   metadata?: Record<string, unknown>

@@ -16,6 +16,29 @@ import {
 } from './types'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
 
+// Helper to convert EmbeddingFunctionOverride to the format expected by the factory
+function buildEfConfigFromOverride(override: EmbeddingFunctionOverride): CollectionInfo['embeddingFunction'] {
+  const config: Record<string, unknown> = {}
+
+  if (override.modelName) {
+    config.model_name = override.modelName
+  }
+
+  if (override.url) {
+    config.url = override.url
+  }
+
+  if (override.accountId) {
+    config.account_id = override.accountId
+  }
+
+  return {
+    name: override.type,
+    type: 'known',
+    config,
+  }
+}
+
 class ChromaDBService {
   private client: ChromaClient | CloudClient | null = null
   private efFactory: EmbeddingFunctionFactory | null = null
@@ -172,19 +195,9 @@ class ChromaDBService {
     const collectionInfo = this.collectionsCache.find(c => c.name === params.collectionName)
 
     // Use override if provided, otherwise fall back to server config
-    let efConfig: CollectionInfo['embeddingFunction'] = null
-    if (embeddingOverride) {
-      // Convert override to the format expected by the factory
-      efConfig = {
-        name: embeddingOverride.type === 'default' ? 'default' : 'openai',
-        type: 'known',
-        config: embeddingOverride.type === 'openai'
-          ? { model_name: embeddingOverride.modelName }
-          : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
-      }
-    } else {
-      efConfig = collectionInfo?.embeddingFunction
-    }
+    const efConfig: CollectionInfo['embeddingFunction'] = embeddingOverride
+      ? buildEfConfigFromOverride(embeddingOverride)
+      : collectionInfo?.embeddingFunction ?? null
 
     // Get the appropriate embedding function for this collection
     const embeddingFunction = await this.efFactory?.getEmbeddingFunction(
@@ -251,17 +264,9 @@ class ChromaDBService {
     // Build embedding function if regeneration is requested
     let efConfig: CollectionInfo['embeddingFunction'] = null
     if (params.regenerateEmbedding && params.document !== undefined) {
-      if (embeddingOverride) {
-        efConfig = {
-          name: embeddingOverride.type === 'default' ? 'default' : 'openai',
-          type: 'known',
-          config: embeddingOverride.type === 'openai'
-            ? { model_name: embeddingOverride.modelName }
-            : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
-        }
-      } else {
-        efConfig = collectionInfo?.embeddingFunction
-      }
+      efConfig = embeddingOverride
+        ? buildEfConfigFromOverride(embeddingOverride)
+        : collectionInfo?.embeddingFunction ?? null
     }
 
     // Get embedding function only if regenerating
@@ -317,17 +322,9 @@ class ChromaDBService {
     // Build embedding function if generation is requested
     let efConfig: CollectionInfo['embeddingFunction'] = null
     if (params.generateEmbedding && params.document) {
-      if (embeddingOverride) {
-        efConfig = {
-          name: embeddingOverride.type === 'default' ? 'default' : 'openai',
-          type: 'known',
-          config: embeddingOverride.type === 'openai'
-            ? { model_name: embeddingOverride.modelName }
-            : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
-        }
-      } else {
-        efConfig = collectionInfo?.embeddingFunction
-      }
+      efConfig = embeddingOverride
+        ? buildEfConfigFromOverride(embeddingOverride)
+        : collectionInfo?.embeddingFunction ?? null
     }
 
     // Get embedding function only if generating
@@ -473,12 +470,27 @@ class ChromaDBService {
     // Build embedding function config for the factory
     let efConfig: CollectionInfo['embeddingFunction'] = null
     if (params.embeddingFunction) {
+      const config: Record<string, unknown> = {}
+
+      // Set model name
+      if (params.embeddingFunction.modelName) {
+        config.model_name = params.embeddingFunction.modelName
+      }
+
+      // Set URL for providers that need it (Ollama, HuggingFace Server)
+      if (params.embeddingFunction.url) {
+        config.url = params.embeddingFunction.url
+      }
+
+      // Set account ID for Cloudflare
+      if (params.embeddingFunction.accountId) {
+        config.account_id = params.embeddingFunction.accountId
+      }
+
       efConfig = {
-        name: params.embeddingFunction.type === 'default' ? 'default' : 'openai',
+        name: params.embeddingFunction.type,
         type: 'known',
-        config: params.embeddingFunction.type === 'openai'
-          ? { model_name: params.embeddingFunction.modelName }
-          : { model_name: params.embeddingFunction.modelName || 'Xenova/all-MiniLM-L6-v2' }
+        config,
       }
     }
 
@@ -566,7 +578,8 @@ class ChromaDBService {
       throw new Error('ChromaDB client not connected. Please connect first.')
     }
 
-    const BATCH_SIZE = 100
+    // Reduced from 100 to accommodate provider limits (e.g., Cohere max 96)
+    const BATCH_SIZE = 50
 
     try {
       // Phase 1: Creating target collection
@@ -590,21 +603,9 @@ class ChromaDBService {
       // Build embedding function config
       let efConfig: CollectionInfo['embeddingFunction'] = null
       if (params.embeddingFunction) {
-        efConfig = {
-          name: params.embeddingFunction.type === 'default' ? 'default' : 'openai',
-          type: 'known',
-          config: params.embeddingFunction.type === 'openai'
-            ? { model_name: params.embeddingFunction.modelName }
-            : { model_name: params.embeddingFunction.modelName || 'Xenova/all-MiniLM-L6-v2' }
-        }
+        efConfig = buildEfConfigFromOverride(params.embeddingFunction as EmbeddingFunctionOverride)
       } else if (embeddingOverride) {
-        efConfig = {
-          name: embeddingOverride.type === 'default' ? 'default' : 'openai',
-          type: 'known',
-          config: embeddingOverride.type === 'openai'
-            ? { model_name: embeddingOverride.modelName }
-            : { model_name: embeddingOverride.modelName || 'Xenova/all-MiniLM-L6-v2' }
-        }
+        efConfig = buildEfConfigFromOverride(embeddingOverride)
       }
 
       // Get embedding function for the new collection
