@@ -423,14 +423,14 @@ export default function DocumentsTable({
   return (
     <div className="overflow-auto h-full" onContextMenu={onTableContextMenu}>
       <table style={{ minWidth: '100%', width: table.getCenterTotalSize() }}>
-        <thead className="bg-muted sticky top-0 z-10 border-b border-border">
+        <thead className="sticky top-0 z-10" style={{ background: 'var(--canvas-background)', boxShadow: '0 1px 0 var(--border)' }}>
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map(header => (
                 <th
                   key={header.id}
-                  className="px-3 py-1 text-center text-xs font-medium text-muted-foreground border-r border-border relative bg-muted"
-                  style={{ width: header.getSize() }}
+                  className="px-3 py-1.5 text-left text-[11px] font-medium text-muted-foreground/70 relative"
+                  style={{ width: header.getSize(), background: 'var(--canvas-background)' }}
                 >
                   {header.isPlaceholder
                     ? null
@@ -441,18 +441,18 @@ export default function DocumentsTable({
                   <div
                     onMouseDown={header.getResizeHandler()}
                     onTouchStart={header.getResizeHandler()}
-                    className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-blue-500 ${
-                      header.column.getIsResizing() ? 'bg-blue-500' : ''
+                    className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-primary/40 ${
+                      header.column.getIsResizing() ? 'bg-primary/50' : ''
                     }`}
                   />
                 </th>
               ))}
               {/* Filler column to extend table structure */}
-              <th className="bg-blue-50"></th>
+              <th style={{ background: 'var(--canvas-background)' }}></th>
             </tr>
           ))}
         </thead>
-        <tbody className="divide-y divide-border select-none">
+        <tbody className="select-none">
           {/* Draft rows for creating/pasting documents */}
           {draftDocuments.length > 0 && onDraftChange && draftDocuments.map((draft, draftIndex) => {
             // Column indices depend on whether distance column is shown
@@ -461,7 +461,7 @@ export default function DocumentsTable({
             return (
             <tr
               key={`draft-${draftIndex}`}
-              className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-blue-50' : 'bg-blue-50/50'}`}
+              className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-primary/10' : 'bg-primary/5'}`}
               onClick={(e) => handleRowClick(e, draft.id, draftIndex)}
               onDoubleClick={(e) => handleRowDoubleClick(e, draft.id)}
               onMouseDown={(e) => handleMouseDown(e, draftIndex)}
@@ -470,7 +470,7 @@ export default function DocumentsTable({
               {/* Distance cell - empty placeholder when distance column is visible */}
               {hasDistances && (
                 <td
-                  className="pl-3 py-0.5 align-top border-r border-border"
+                  className="pl-3 py-0.5 align-top "
                   style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
                 >
                   <div className="text-xs font-mono text-muted-foreground text-center">-</div>
@@ -478,7 +478,7 @@ export default function DocumentsTable({
               )}
               {/* ID cell - editable */}
               <td
-                className="pl-3 py-0.5 align-top border-r border-border"
+                className="pl-3 py-0.5 align-top "
                 style={{ width: table.getHeaderGroups()[0]?.headers[idColIndex]?.getSize() }}
               >
                 <input
@@ -492,7 +492,7 @@ export default function DocumentsTable({
               </td>
               {/* Document cell - editable */}
               <td
-                className="pl-3 py-0.5 align-top border-r border-border"
+                className="pl-3 py-0.5 align-top "
                 style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
               >
                 <input
@@ -509,7 +509,7 @@ export default function DocumentsTable({
                 return (
                   <td
                     key={`draft-${draftIndex}-${key}`}
-                    className="pl-3 py-0.5 align-top border-r border-border"
+                    className="pl-3 py-0.5 align-top "
                   >
                     <input
                       type="text"
@@ -528,7 +528,7 @@ export default function DocumentsTable({
                 )
               })}
               {/* Filler cell */}
-              <td className="border-r border-border"></td>
+              <td className=""></td>
             </tr>
           )})}
           {table.getRowModel().rows.map((row, index) => {
@@ -541,16 +541,16 @@ export default function DocumentsTable({
             // Row index in allDocIds (drafts take indices 0 to draftCount-1)
             const rowIndex = draftCount > 0 ? index + draftCount : index
 
-            // Determine row background
+            // Determine row background - calmer, macOS-style selection with subtle zebra
             let rowBgClass: string
             if (isEditing) {
-              rowBgClass = 'bg-blue-50'
+              rowBgClass = 'bg-primary/8'
             } else if (isMarkedForDeletion) {
-              rowBgClass = isSelected ? 'bg-red-200' : 'bg-red-100'
+              rowBgClass = isSelected ? 'bg-destructive/15' : 'bg-destructive/10'
             } else if (isSelected) {
-              rowBgClass = 'bg-blue-100'
+              rowBgClass = 'bg-primary/10'
             } else {
-              rowBgClass = adjustedIndex % 2 === 0 ? 'bg-background' : 'bg-muted/100'
+              rowBgClass = adjustedIndex % 2 === 1 ? 'bg-black/[0.04] dark:bg-white/[0.04]' : ''
             }
 
             // Column indices depend on whether distance column is shown
@@ -568,7 +568,7 @@ export default function DocumentsTable({
                   {/* Distance cell - display only when distance column is visible */}
                   {hasDistances && (
                     <td
-                      className="pl-3 py-0.5 align-top border-r border-border"
+                      className="pl-3 py-0.5 align-top "
                       style={{ width: table.getHeaderGroups()[0]?.headers[0]?.getSize() }}
                     >
                       <div className="text-xs font-mono text-muted-foreground text-center">
@@ -580,7 +580,7 @@ export default function DocumentsTable({
                   )}
                   {/* ID cell - not editable */}
                   <td
-                    className="pl-3 py-0.5 align-top border-r border-border"
+                    className="pl-3 py-0.5 align-top "
                     style={{ width: table.getHeaderGroups()[0]?.headers[idColIndex]?.getSize() }}
                   >
                     <div className="text-xs font-mono text-foreground">
@@ -589,7 +589,7 @@ export default function DocumentsTable({
                   </td>
                   {/* Document cell - editable */}
                   <td
-                    className="pl-3 py-0.5 align-top border-r border-border"
+                    className="pl-3 py-0.5 align-top "
                     style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
                   >
                     <input
@@ -609,7 +609,7 @@ export default function DocumentsTable({
                     return (
                       <td
                         key={`edit-${key}`}
-                        className="pl-3 py-0.5 align-top border-r border-border"
+                        className="pl-3 py-0.5 align-top "
                       >
                         <input
                           type="text"
@@ -624,7 +624,7 @@ export default function DocumentsTable({
                     )
                   })}
                   {/* Filler cell */}
-                  <td className="border-r border-border"></td>
+                  <td className=""></td>
                 </tr>
               )
             }
@@ -643,14 +643,14 @@ export default function DocumentsTable({
                 {row.getVisibleCells().map(cell => (
                   <td
                     key={cell.id}
-                    className="pl-3 py-0.5 align-top border-r border-border"
+                    className="pl-3 py-0.5 align-top "
                     style={{ width: cell.column.getSize() }}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
                 {/* Filler cell to extend table structure */}
-                <td className="border-r border-border"></td>
+                <td className=""></td>
               </tr>
             )
           })}

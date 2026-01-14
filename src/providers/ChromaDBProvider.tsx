@@ -101,6 +101,17 @@ export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProvid
     }
   }, [profile, currentProfile, isConnected, connect])
 
+  // Listen for Cmd+R refresh (via custom window event) - only refresh documents
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (currentProfile) {
+        queryClient.resetQueries({ queryKey: ['chroma', 'documents', currentProfile.id] })
+      }
+    }
+    window.addEventListener('chroma:refresh', handleRefresh)
+    return () => window.removeEventListener('chroma:refresh', handleRefresh)
+  }, [currentProfile, queryClient])
+
   const value: ChromaDBContextValue = {
     currentProfile,
     isConnected,

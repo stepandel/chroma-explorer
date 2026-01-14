@@ -126,6 +126,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('context-menu:document-action', handler)
       return () => ipcRenderer.removeListener('context-menu:document-action', handler)
     },
+    showProfileMenu: (profileId: string): void => {
+      ipcRenderer.send('context-menu:show-profile', profileId)
+    },
+    onProfileAction: (callback: (action: { action: string; profileId: string }) => void): (() => void) => {
+      const handler = (_event: any, data: { action: string; profileId: string }) => callback(data)
+      ipcRenderer.on('context-menu:profile-action', handler)
+      return () => ipcRenderer.removeListener('context-menu:profile-action', handler)
+    },
   },
   profiles: {
     getAll: async (): Promise<ConnectionProfile[]> => {
@@ -232,6 +240,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
     },
   },
+  onRefresh: (callback: () => void): (() => void) => {
+    const handler = () => {
+      console.log('Preload received app:refresh event')
+      callback()
+    }
+    ipcRenderer.on('app:refresh', handler)
+    return () => ipcRenderer.removeListener('app:refresh', handler)
+  },
+})
+
+// Auto-dispatch window event when app:refresh IPC is received
+ipcRenderer.on('app:refresh', () => {
+  console.log('Preload: app:refresh received, dispatching chroma:refresh window event')
+  window.dispatchEvent(new CustomEvent('chroma:refresh'))
 })
 
 console.log('Preload script finished, electronAPI exposed:', typeof window !== 'undefined' ? !!(window as any).electronAPI : 'window not defined')

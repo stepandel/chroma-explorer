@@ -12,8 +12,6 @@ const operatorLabels: Record<MetadataOperator, string> = {
   $gte: '≥ (greater or equal)',
   $lt: '< (less than)',
   $lte: '≤ (less or equal)',
-  $in: 'in (comma-separated)',
-  $nin: 'not in (comma-separated)',
 }
 
 const inputClassName = "flex-1 h-6 text-[11px] py-0 px-1.5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"

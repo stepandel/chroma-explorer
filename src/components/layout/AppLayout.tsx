@@ -5,7 +5,7 @@ import { MainContent } from './MainContent'
 export function AppLayout() {
   return (
     <PanelProvider>
-      <div className="flex flex-col h-screen bg-gray-100">
+      <div className="flex flex-col h-screen" style={{ background: 'var(--content-background)' }}>
         <TopBar />
         <MainContent />
       </div>

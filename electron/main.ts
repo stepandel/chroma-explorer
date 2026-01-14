@@ -1,5 +1,8 @@
 import 'dotenv/config'
 import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions, shell } from 'electron'
+
+// Set app name before anything else (affects menu bar, about dialog, etc.)
+app.name = 'Chroma Explorer'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'
@@ -280,6 +283,30 @@ ipcMain.on('context-menu:show-documents-panel', (event, options?: { hasCopiedDoc
       label: 'Paste',
       enabled: options?.hasCopiedDocuments ?? false,
       click: () => event.sender.send('context-menu:document-action', { action: 'paste' })
+    }
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    menu.popup({ window: win })
+  }
+})
+
+// Profile context menu handler
+ipcMain.on('context-menu:show-profile', (event, profileId: string) => {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Connect',
+      click: () => event.sender.send('context-menu:profile-action', { action: 'connect', profileId })
+    },
+    {
+      label: 'Edit',
+      click: () => event.sender.send('context-menu:profile-action', { action: 'edit', profileId })
+    },
+    { type: 'separator' },
+    {
+      label: 'Delete',
+      click: () => event.sender.send('context-menu:profile-action', { action: 'delete', profileId })
     }
   ]
   const menu = Menu.buildFromTemplate(template)

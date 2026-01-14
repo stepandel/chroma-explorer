@@ -76,13 +76,16 @@ class WindowManager {
     // Create new setup window
     const win = new BrowserWindow({
       width: 800,
-      height: 340,
+      height: 400,
       resizable: false,
       minimizable: false,
       maximizable: false,
       titleBarStyle: 'hiddenInset',
       title: 'Chroma Explorer - Setup',
       center: true,
+      transparent: true,
+      vibrancy: 'under-window',
+      visualEffectState: 'active',
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
@@ -125,13 +128,16 @@ class WindowManager {
     // Create new settings window
     const win = new BrowserWindow({
       width: 500,
-      height: 600,
+      height: 550,
       resizable: true,
       minimizable: true,
       maximizable: false,
       titleBarStyle: 'hiddenInset',
       title: 'Settings',
       center: true,
+      transparent: true,
+      vibrancy: 'under-window',
+      visualEffectState: 'active',
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
