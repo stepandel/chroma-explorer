@@ -11,6 +11,7 @@ import { settingsStore, ApiKeys } from './settings-store'
 import { windowManager } from './window-manager'
 import { createApplicationMenu } from './menu'
 import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams, CopyCollectionParams } from './types'
+import { initAutoUpdater, checkForUpdates } from './auto-updater'
 
 // Inject stored API keys into process.env at startup
 settingsStore.injectIntoProcessEnv()
@@ -525,8 +526,18 @@ app.whenReady().then(() => {
   // Create application menu
   createApplicationMenu()
 
+  // Initialize auto-updater
+  initAutoUpdater()
+
   // Create setup window
   windowManager.createSetupWindow()
+
+  // Check for updates after a short delay (only in production)
+  if (app.isPackaged) {
+    setTimeout(() => {
+      checkForUpdates()
+    }, 3000)
+  }
 })
 
 app.on('window-all-closed', () => {

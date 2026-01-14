@@ -5,3 +5,18 @@ dist-electron
 *.log
 .DS_Store
 .env*
+
+# Distribution / Release builds
+release/
+*.dmg
+*.zip
+*.app
+*.pkg
+
+# Code signing
+*.p12
+*.cer
+*.provisionprofile
+
+# Build cache
+.electron-builder-cache/
