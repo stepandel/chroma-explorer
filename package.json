@@ -4,6 +4,22 @@
   "description": "A ChromaDB explorer built with Electron and Vite",
   "main": "dist-electron/main.js",
   "type": "module",
+  "build": {
+    "appId": "com.chroma.explorer",
+    "productName": "Chroma Explorer",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png",
+      "target": ["dmg", "zip"]
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "dist/**/*"
+    ]
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build && electron-builder",
