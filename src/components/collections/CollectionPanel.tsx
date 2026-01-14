@@ -9,8 +9,8 @@ import { useDeleteCollectionMutation } from '../../hooks/useChromaQueries'
 import { Button } from '../ui/button'
 import { DeleteCollectionDialog } from './DeleteCollectionDialog'
 
-const inputClassName = "w-full h-6 text-[11px] py-0 px-1.5 pr-5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
+const inputClassName = "w-full h-6 text-[11px] py-0 px-1.5 pr-5 rounded-md bg-black/[0.04] dark:bg-white/[0.06] placeholder:text-sidebar-foreground/50 text-sidebar-foreground focus:outline-none focus:ring-1 focus:ring-sidebar-ring/50 transition-colors"
+const inputStyle = { boxShadow: 'inset 0 0.5px 1px 0 rgb(0 0 0 / 0.04)' }
 
 export function CollectionPanel() {
   const { collections, collectionsLoading, collectionsError, refreshCollections, currentProfile } = useChromaDB()
@@ -200,27 +200,46 @@ export function CollectionPanel() {
   )
 
   return (
-    <aside className="w-full h-full bg-sidebar/70 backdrop-blur-xl flex flex-col">
+    <aside
+      className="w-full h-full flex flex-col"
+      style={{
+        background: 'var(--sidebar)',
+        backdropFilter: 'blur(20px) saturate(1.1)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.1)',
+        boxShadow: 'var(--sidebar-shadow)',
+      }}
+    >
       {/* Header */}
       <div className="px-4 py-2">
-        {/* Search input */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search collections..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={inputClassName}
+        {/* Search input and add button */}
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search collections..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={inputClassName}
+              style={inputStyle}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs w-4 h-4 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleCreateClick}
+            disabled={!!draftCollection}
+            className="h-6 w-6 flex-shrink-0 flex items-center justify-center rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed transition-colors translate-y-px"
             style={inputStyle}
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs w-4 h-4 flex items-center justify-center"
-            >
-              ✕
-            </button>
-          )}
+            title="Create new collection"
+          >
+            <Plus className="h-2 w-2" />
+          </button>
         </div>
       </div>
 
@@ -253,14 +272,14 @@ export function CollectionPanel() {
 
         {/* Draft collection row */}
         {draftCollection && (
-          <div className="py-2">
-            <div className="w-full px-4 py-1 bg-primary/10 border-l-2 border-primary">
+          <div className="py-1 px-2">
+            <div className="w-full px-3 py-1.5 bg-black/[0.08] dark:bg-white/[0.10] rounded-md">
               <input
                 type="text"
                 value={draftCollection.name}
                 onChange={(e) => updateDraft({ name: e.target.value })}
                 placeholder="Collection name..."
-                className="w-full text-xs font-medium bg-transparent border-none outline-none text-primary placeholder:text-primary/50"
+                className="w-full text-[12px] font-medium bg-transparent border-none outline-none text-sidebar-foreground placeholder:text-sidebar-foreground/40"
                 autoFocus
               />
             </div>
@@ -273,19 +292,19 @@ export function CollectionPanel() {
               const isActive = collection.name === activeCollection && !draftCollection
               const isMarkedForDeletion = collection.name === markedForDeletion
 
-              // Determine row styling
-              let bgClass = ''
-              let borderClass = 'border-l-2 border-transparent'
+              // Determine row styling - macOS source list style
+              let bgClass = 'rounded-md mx-2'
               let textClass = 'text-sidebar-foreground'
+              let hoverClass = 'hover:bg-black/[0.05] dark:hover:bg-white/[0.06]'
 
               if (isMarkedForDeletion) {
-                bgClass = 'bg-destructive/20'
-                borderClass = 'border-l-2 border-destructive'
+                bgClass = 'bg-destructive/12 rounded-md mx-2'
                 textClass = 'text-destructive'
+                hoverClass = ''
               } else if (isActive) {
-                bgClass = 'bg-sidebar-accent'
-                borderClass = 'border-l-2 border-sidebar-primary'
-                textClass = 'text-sidebar-primary'
+                bgClass = 'bg-black/[0.08] dark:bg-white/[0.10] rounded-md mx-2'
+                textClass = 'text-sidebar-foreground font-medium'
+                hoverClass = ''
               }
 
               return (
@@ -293,9 +312,9 @@ export function CollectionPanel() {
                   key={collection.id}
                   onClick={() => handleCollectionClick(collection.name)}
                   onContextMenu={(e) => handleContextMenu(e, collection.name)}
-                  className={`w-full px-4 py-1 text-left transition-all duration-150 ${bgClass} ${borderClass} ${!isActive && !isMarkedForDeletion ? 'hover:bg-sidebar-accent/50' : ''}`}
+                  className={`w-full px-3 py-1.5 text-left transition-colors duration-100 ${bgClass} ${hoverClass}`}
                 >
-                  <div className={`text-xs font-medium truncate ${textClass}`}>
+                  <div className={`text-[12px] truncate ${textClass}`}>
                     {collection.name}
                   </div>
                 </button>
@@ -305,42 +324,27 @@ export function CollectionPanel() {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="px-4 py-2 border-t border-sidebar-border">
-        {markedForDeletion && !draftCollection ? (
-          // Deletion mode footer
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setMarkedForDeletion(null)}
-                disabled={deleteMutation.isPending}
-                className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-                style={inputStyle}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCommitDeletion}
-                disabled={deleteMutation.isPending}
-                className="h-6 px-2 text-[11px] rounded-md bg-destructive hover:bg-destructive/90 text-destructive-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {deleteMutation.isPending ? '...' : 'Delete'}
-              </button>
-            </div>
+      {/* Footer - only shown when in deletion mode */}
+      {markedForDeletion && !draftCollection && (
+        <div className="px-4 py-2 bg-black/[0.02] dark:bg-white/[0.02]">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setMarkedForDeletion(null)}
+              disabled={deleteMutation.isPending}
+              className="h-6 px-2.5 text-[11px] rounded-md bg-black/[0.06] dark:bg-white/[0.10] hover:bg-black/[0.10] dark:hover:bg-white/[0.15] text-sidebar-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCommitDeletion}
+              disabled={deleteMutation.isPending}
+              className="h-6 px-2.5 text-[11px] rounded-md bg-destructive/75 hover:bg-destructive/90 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {deleteMutation.isPending ? '...' : 'Delete'}
+            </button>
           </div>
-        ) : (
-          // Normal footer with add button
-          <button
-            onClick={handleCreateClick}
-            disabled={!!draftCollection}
-            className="h-6 w-6 flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
-            title="Create new collection"
-          >
-            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Delete confirmation dialog for non-empty collections */}
       {markedCollection && (

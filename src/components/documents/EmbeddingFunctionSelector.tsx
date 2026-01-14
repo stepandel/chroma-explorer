@@ -148,7 +148,7 @@ export function EmbeddingFunctionSelector({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-border/50">
+        <div className="flex justify-end gap-2 mt-3 pt-3">
           {currentOverride && (
             <Button
               variant="ghost"

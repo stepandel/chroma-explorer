@@ -705,45 +705,53 @@ export default function DocumentsView({
 
   return (
     <div className="flex flex-col h-full">
-            {/* Row 1: Collection name and count */}
-            <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
-                <EmbeddingFunctionSelector
-                  collectionName={collectionName}
-                  currentOverride={embeddingOverride}
-                  serverConfig={currentCollection?.embeddingFunction || null}
-                  onSave={handleSaveOverride}
-                  onClear={handleClearOverride}
-                />
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
-              </span>
-            </div>
+      {/* Toolbar area - calm floating control surface */}
+      <div className="flex-shrink-0 bg-white/60 dark:bg-white/[0.03]">
+        {/* Row 1: Collection name and count */}
+        <div className="px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
+            <EmbeddingFunctionSelector
+              collectionName={collectionName}
+              currentOverride={embeddingOverride}
+              serverConfig={currentCollection?.embeddingFunction || null}
+              onSave={handleSaveOverride}
+              onClear={handleClearOverride}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
+          </span>
+        </div>
 
-            {/* Row 2: Filters */}
-            <div className="px-4 py-2 border-b border-border space-y-2">
-              {/* Filter rows */}
-              {filterRows.map((row, index) => (
-                <FilterRow
-                  key={row.id}
-                  row={row}
-                  isFirst={index === 0}
-                  isLast={index === filterRows.length - 1}
-                  canRemove={filterRows.length > 1}
-                  onChange={handleFilterRowChange}
-                  onAdd={handleAddFilterRow}
-                  onRemove={handleRemoveFilterRow}
-                  nResults={nResults}
-                  onNResultsChange={setNResults}
-                  metadataFields={metadataFields}
-                />
-              ))}
-            </div>
+        {/* Row 2: Filters */}
+        <div className="px-4 py-2 pb-3 space-y-2">
+          {/* Filter rows */}
+          {filterRows.map((row, index) => (
+            <FilterRow
+              key={row.id}
+              row={row}
+              isFirst={index === 0}
+              isLast={index === filterRows.length - 1}
+              canRemove={filterRows.length > 1}
+              onChange={handleFilterRowChange}
+              onAdd={handleAddFilterRow}
+              onRemove={handleRemoveFilterRow}
+              nResults={nResults}
+              onNResultsChange={setNResults}
+              metadataFields={metadataFields}
+            />
+          ))}
+        </div>
+      </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
+      {/* Table - primary content canvas */}
+      <div
+        className="flex-1 overflow-auto"
+        style={{
+          background: 'var(--canvas-background)',
+        }}
+      >
         <DocumentsTable
           documents={documents}
           loading={loading}
@@ -766,12 +774,11 @@ export default function DocumentsView({
       </div>
 
       {/* Bottom Toolbar */}
-      <div className="px-4 py-2 border-t border-border flex items-center justify-between bg-background">
+      <div className="px-4 py-1.5 flex items-center justify-between">
         <button
           onClick={handleStartCreate}
           disabled={hasDrafts || markedForDeletion.size > 0}
-          className="h-6 w-6 p-0 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+          className="h-6 w-6 p-0 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
           title="Add document"
         >
           +
@@ -788,8 +795,7 @@ export default function DocumentsView({
               <button
                 onClick={handleCancelDraft}
                 disabled={createMutation.isPending || createBatchMutation.isPending}
-                className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                className="h-6 px-2 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -811,8 +817,7 @@ export default function DocumentsView({
             <button
               onClick={() => setMarkedForDeletion(new Set())}
               disabled={deleteMutation.isPending}
-              className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+              className="h-6 px-2 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>

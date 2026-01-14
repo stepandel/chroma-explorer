@@ -1,13 +1,12 @@
-import { useState, FormEvent, useEffect } from 'react'
+import { useState, FormEvent, useEffect, useCallback } from 'react'
 import { ConnectionProfile } from '../../../electron/types'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 interface ConnectionModalProps {
   isOpen: boolean
   onConnect: (profile: ConnectionProfile) => void
 }
+
+const inputClassName = "w-full h-7 text-[13px] px-2.5 rounded bg-black/[0.06] dark:bg-white/[0.08] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/[0.12] transition-colors border-0"
 
 export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalProps) {
   const [profiles, setProfiles] = useState<ConnectionProfile[]>([])
@@ -26,6 +25,26 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       loadProfiles()
     }
   }, [isOpen])
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, profileId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    window.electronAPI.contextMenu.showProfileMenu(profileId)
+  }, [])
+
+  // Handle context menu actions
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.contextMenu.onProfileAction((data) => {
+      if (data.action === 'connect') {
+        handleQuickConnect(data.profileId)
+      } else if (data.action === 'edit') {
+        handleProfileSelect(data.profileId)
+      } else if (data.action === 'delete') {
+        handleDeleteProfile(data.profileId)
+      }
+    })
+    return unsubscribe
+  }, [profiles]) // Re-subscribe when profiles change so handlers have latest data
 
   const loadProfiles = async () => {
     try {
@@ -64,18 +83,40 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     setApiKey('')
   }
 
-  const handleDeleteProfile = async () => {
-    if (!selectedProfileId) return
+  const handleDeleteProfile = async (profileId: string) => {
+    if (!profileId) return
 
-    if (confirm('Are you sure you want to delete this profile?')) {
+    const profile = profiles.find(p => p.id === profileId)
+    if (!profile) return
+
+    if (confirm(`Are you sure you want to delete "${profile.name}"?`)) {
       try {
-        await window.electronAPI.profiles.delete(selectedProfileId)
+        await window.electronAPI.profiles.delete(profileId)
         await loadProfiles()
-        setSelectedProfileId('')
-        resetForm()
+        if (selectedProfileId === profileId) {
+          setSelectedProfileId('')
+          resetForm()
+        }
       } catch (err) {
         setError('Failed to delete profile')
       }
+    }
+  }
+
+  const handleQuickConnect = async (profileId: string) => {
+    const profile = profiles.find(p => p.id === profileId)
+    if (!profile) return
+
+    setError('')
+    setIsConnecting(true)
+
+    try {
+      await window.electronAPI.chromadb.connect(profile.id, profile)
+      onConnect(profile)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect')
+    } finally {
+      setIsConnecting(false)
     }
   }
 
@@ -149,150 +190,182 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-card/95 backdrop-blur-xl shadow-2xl border border-border w-full h-full flex overflow-hidden">
-        {/* Left side - Connection Form */}
-        <div className="flex-1 flex flex-col">
-          <div className="p-3 border-b border-border">
-            <h2 className="text-sm font-semibold text-foreground text-center">
-              {selectedProfileId ? 'Edit Connection' : 'New Connection'}
-            </h2>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4">
-            <form onSubmit={handleSubmit} className="space-y-2">
-              {/* Profile Name */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="profileName" className="text-xs w-20 text-right">Name</Label>
-                <Input
-                  type="text"
-                  id="profileName"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="My Connection"
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* URL */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="url" className="text-xs w-20 text-right">URL *</Label>
-                <Input
-                  type="text"
-                  id="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="http://localhost:8000"
-                  required
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* Tenant */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="tenant" className="text-xs w-20 text-right">Tenant</Label>
-                <Input
-                  type="text"
-                  id="tenant"
-                  value={tenant}
-                  onChange={(e) => setTenant(e.target.value)}
-                  placeholder="Optional"
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* Database */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="database" className="text-xs w-20 text-right">Database</Label>
-                <Input
-                  type="text"
-                  id="database"
-                  value={database}
-                  onChange={(e) => setDatabase(e.target.value)}
-                  placeholder="Optional"
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* API Key */}
-              <div className="flex items-center gap-3">
-                <Label htmlFor="apiKey" className="text-xs w-20 text-right">API Key</Label>
-                <Input
-                  type="password"
-                  id="apiKey"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Optional"
-                  className="h-7 text-xs flex-1"
-                />
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="p-2 bg-destructive/10 border border-destructive/30 rounded ml-[92px]">
-                  <p className="text-xs text-destructive">{error}</p>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-3 ml-[92px]">
-                <Button
-                  type="submit"
-                  disabled={isConnecting}
-                  className="flex-1 h-7 text-xs"
-                >
-                  {isConnecting ? 'Connecting...' : 'Connect'}
-                </Button>
-                {selectedProfileId && (
-                  <Button
-                    type="button"
-                    onClick={handleDeleteProfile}
-                    variant="destructive"
-                    className="h-7 text-xs"
-                  >
-                    Delete
-                  </Button>
-                )}
-              </div>
-            </form>
-          </div>
+    <div
+      className="fixed inset-0 flex"
+      style={{
+        background: 'oklch(0.96 0 0 / 75%)',
+      }}
+    >
+      {/* Left side - Form area */}
+      <div className="flex-1 flex flex-col">
+        {/* Window drag region - title bar */}
+        <div
+          className="h-12 flex items-center justify-center flex-shrink-0"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        >
+          <span className="text-[13px] font-medium text-foreground/50">
+            {selectedProfileId ? 'Edit Connection' : 'New Connection'}
+          </span>
         </div>
 
-        {/* Right sidebar - Saved Connections */}
-        <div className="w-64 bg-sidebar/70 backdrop-blur-xl border-l border-sidebar-border flex flex-col">
-          <div className="p-4 border-b border-sidebar-border">
-            <h3 className="text-sm font-semibold text-foreground">Saved Connections</h3>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {profiles.length === 0 ? (
-              <div className="p-4 text-xs text-muted-foreground text-center">
-                No saved connections
+        {/* Form content */}
+        <div className="flex-1 flex flex-col px-10 pb-5">
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col max-w-sm mx-auto w-full">
+            {/* Form fields */}
+            <div className="flex-1 space-y-4">
+              {/* Primary fields */}
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <label htmlFor="profileName" className="text-[12px] text-foreground/50 w-16 text-right">Name</label>
+                  <input
+                    type="text"
+                    id="profileName"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="My Connection"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="url" className="text-[12px] text-foreground/50 w-16 text-right">URL</label>
+                  <input
+                    type="text"
+                    id="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="http://localhost:8000"
+                    required
+                    className={inputClassName}
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="py-1">
-                {profiles.map((profile) => (
+
+              {/* Advanced fields */}
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Cloud</span>
+                  <div className="flex-1 h-px bg-foreground/10" />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="tenant" className="text-[12px] text-foreground/50 w-16 text-right">Tenant</label>
+                  <input
+                    type="text"
+                    id="tenant"
+                    value={tenant}
+                    onChange={(e) => setTenant(e.target.value)}
+                    placeholder="default_tenant"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="database" className="text-[12px] text-foreground/50 w-16 text-right">Database</label>
+                  <input
+                    type="text"
+                    id="database"
+                    value={database}
+                    onChange={(e) => setDatabase(e.target.value)}
+                    placeholder="default_database"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="apiKey" className="text-[12px] text-foreground/50 w-16 text-right">API Key</label>
+                  <input
+                    type="password"
+                    id="apiKey"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="••••••••"
+                    className={inputClassName}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Error + Action anchored to bottom */}
+            <div className="pt-4 flex items-center justify-end gap-3">
+              {error && (
+                <div className="flex-1 text-[11px] text-destructive truncate">
+                  {error}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={isConnecting}
+                className="h-7 px-5 text-[12px] font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isConnecting ? 'Connecting...' : 'Connect'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Right sidebar - Saved Connections (full height) */}
+      <div
+        className="w-44 flex flex-col border-l border-black/[0.08]"
+        style={{ background: 'oklch(0 0 0 / 8%)' }}
+      >
+        {/* Sidebar header with drag region */}
+        <div
+          className="h-12 flex items-center px-3"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        >
+          <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Saved</span>
+        </div>
+
+        {/* Connection list */}
+        <div className="flex-1 overflow-y-auto">
+          {profiles.length === 0 ? (
+            <div className="px-3 py-4 text-[11px] text-foreground/30 text-center">
+              No saved connections
+            </div>
+          ) : (
+            <div>
+              {profiles.map((profile) => {
+                const isSelected = selectedProfileId === profile.id
+                return (
                   <button
                     key={profile.id}
                     onClick={() => handleProfileSelect(profile.id)}
-                    className={`w-full px-4 py-2 text-left transition-colors ${
-                      selectedProfileId === profile.id
-                        ? 'bg-sidebar-accent border-r-2 border-sidebar-primary'
-                        : 'hover:bg-sidebar-accent/50 border-r-2 border-transparent'
+                    onContextMenu={(e) => handleContextMenu(e, profile.id)}
+                    className={`w-full px-3 py-1.5 text-left transition-colors ${
+                      isSelected
+                        ? 'bg-white/[0.08]'
+                        : 'hover:bg-white/[0.04]'
                     }`}
                   >
-                    <div className={`text-sm font-medium truncate ${
-                      selectedProfileId === profile.id ? 'text-sidebar-primary' : 'text-sidebar-foreground'
+                    <div className={`text-[12px] truncate ${
+                      isSelected ? 'text-foreground' : 'text-foreground/60'
                     }`}>
                       {profile.name}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate mt-0.5">
-                      {profile.url}
+                    <div className="text-[10px] text-foreground/30 truncate">
+                      {profile.url.replace(/^https?:\/\//, '')}
                     </div>
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* New connection button */}
+        <div className="p-2">
+          <button
+            onClick={() => handleProfileSelect('')}
+            className={`w-full h-6 text-[11px] rounded transition-colors ${
+              !selectedProfileId
+                ? 'bg-white/[0.08] text-foreground/70'
+                : 'text-foreground/40 hover:bg-white/[0.04] hover:text-foreground/60'
+            }`}
+          >
+            + New
+          </button>
         </div>
       </div>
     </div>

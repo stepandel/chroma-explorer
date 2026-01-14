@@ -177,6 +177,8 @@ declare global {
       showDocumentMenu: (documentId: string, options?: { hasCopiedDocuments?: boolean }) => void
       showDocumentsPanelMenu: (options?: { hasCopiedDocuments?: boolean }) => void
       onDocumentAction: (callback: (action: { action: string; documentId?: string }) => void) => () => void
+      showProfileMenu: (profileId: string) => void
+      onProfileAction: (callback: (action: { action: string; profileId: string }) => void) => () => void
     }
     profiles: {
       getAll: () => Promise<ConnectionProfile[]>
