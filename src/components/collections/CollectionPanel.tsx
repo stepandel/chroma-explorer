@@ -4,7 +4,6 @@ import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useCollection } from '../../context/CollectionContext'
 import { useDraftCollection } from '../../context/DraftCollectionContext'
 import { useClipboard } from '../../context/ClipboardContext'
-import { usePanel } from '../../context/PanelContext'
 import { useDeleteCollectionMutation } from '../../hooks/useChromaQueries'
 import { Button } from '../ui/button'
 import { DeleteCollectionDialog } from './DeleteCollectionDialog'
@@ -17,7 +16,6 @@ export function CollectionPanel() {
   const { activeCollection, setActiveCollection } = useCollection()
   const { draftCollection, startCreation, startCopyFromCollection, updateDraft, cancelCreation } = useDraftCollection()
   const { clipboard, copyCollection, hasCopiedCollection } = useClipboard()
-  const { selectedDocumentIds } = usePanel()
   const [searchTerm, setSearchTerm] = useState('')
 
   // Deletion state
@@ -144,19 +142,11 @@ export function CollectionPanel() {
     return unsubscribe
   }, [handleCopyCollection, handlePasteCollection, setActiveCollection])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (copy/delete initiation removed to avoid conflicts with document shortcuts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input or has text selected
       const target = e.target as HTMLElement
       const isInputting = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
-      const hasTextSelection = (window.getSelection()?.toString() || '').length > 0
-
-      // Delete/Backspace (with or without Command) to toggle deletion mark
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !draftCollection && !isInputting) {
-        e.preventDefault()
-        handleToggleDeletion()
-      }
 
       // Command+S or Command+Enter to confirm deletion
       if (e.metaKey && (e.key === 's' || e.key === 'Enter') && markedForDeletion && !draftCollection) {
@@ -178,10 +168,10 @@ export function CollectionPanel() {
         return
       }
 
-      // Command+C to copy active collection (only if no documents are selected and no text selected)
-      if (e.metaKey && e.key === 'c' && activeCollection && !draftCollection && !isInputting && !hasTextSelection && selectedDocumentIds.size === 0) {
+      // Escape to cancel draft collection
+      if (e.key === 'Escape' && draftCollection) {
         e.preventDefault()
-        handleCopyCollection(activeCollection)
+        cancelCreation()
       }
 
       // Command+V to paste (start copy mode)
@@ -193,7 +183,7 @@ export function CollectionPanel() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleToggleDeletion, handleCommitDeletion, handleCopyCollection, handlePasteCollection, cancelCreation, markedForDeletion, draftCollection, activeCollection, hasCopiedCollection, selectedDocumentIds])
+  }, [handleCommitDeletion, handlePasteCollection, cancelCreation, markedForDeletion, draftCollection, hasCopiedCollection])
 
   const filteredCollections = collections.filter(collection =>
     collection.name.toLowerCase().includes(searchTerm.toLowerCase())
