@@ -12,6 +12,7 @@ files:
   - "!**/*.map"
 
 mac:
+  artifactName: "Chroma-Explorer-${version}-${arch}-mac.${ext}"
   category: public.app-category.developer-tools
   target:
     - target: dmg
@@ -28,6 +29,7 @@ mac:
   notarize: true
 
 dmg:
+  artifactName: "Chroma-Explorer-${version}-${arch}.${ext}"
   sign: false
   contents:
     - x: 130
