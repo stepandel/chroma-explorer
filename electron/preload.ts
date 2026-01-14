@@ -231,6 +231,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error)
       }
     },
+    openWindow: async (): Promise<void> => {
+      const result = await ipcRenderer.invoke('settings:openWindow')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
   },
   shell: {
     openExternal: async (url: string): Promise<void> => {

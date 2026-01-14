@@ -511,6 +511,16 @@ ipcMain.handle('settings:setApiKeys', async (_event, apiKeys: ApiKeys) => {
   }
 })
 
+ipcMain.handle('settings:openWindow', async () => {
+  try {
+    windowManager.createSettingsWindow()
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to open settings'
+    return { success: false, error: message }
+  }
+})
+
 // Shell IPC handlers
 ipcMain.handle('shell:openExternal', async (_event, url: string) => {
   try {

@@ -395,11 +395,27 @@ export default function DocumentsTable({
   }
 
   if (error) {
+    // Check if this is an API key error
+    const isApiKeyError = error.includes('API key not configured') ||
+      (error.includes('not configured') && error.includes('environment variable'))
+
+    const handleOpenSettings = () => {
+      window.electronAPI.settings.openWindow()
+    }
+
     return (
       <div className="p-8">
         <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
           <h3 className="text-destructive font-semibold mb-2">Error</h3>
           <p className="text-destructive">{error}</p>
+          {isApiKeyError && (
+            <button
+              onClick={handleOpenSettings}
+              className="mt-3 h-7 px-3 text-[12px] font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Open Settings
+            </button>
+          )}
         </div>
       </div>
     )

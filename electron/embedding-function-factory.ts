@@ -22,7 +22,7 @@ export class EmbeddingCredentialsError extends Error {
     public envVar: string,
     message?: string
   ) {
-    super(message || `${provider} API key not configured. Set the ${envVar} environment variable.`)
+    super(message || `${provider} API key not configured. Set the ${envVar} in the connection settings.`)
     this.name = 'EmbeddingCredentialsError'
   }
 }

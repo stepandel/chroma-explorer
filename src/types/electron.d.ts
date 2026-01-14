@@ -217,6 +217,7 @@ declare global {
     settings: {
       getApiKeys: () => Promise<Record<string, string>>
       setApiKeys: (apiKeys: Record<string, string>) => Promise<void>
+      openWindow: () => Promise<void>
     }
     shell: {
       openExternal: (url: string) => Promise<void>
