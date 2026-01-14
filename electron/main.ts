@@ -1,5 +1,8 @@
 import 'dotenv/config'
 import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions, shell } from 'electron'
+
+// Set app name before anything else (affects menu bar, about dialog, etc.)
+app.name = 'Chroma Explorer'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'

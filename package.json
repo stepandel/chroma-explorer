@@ -1,7 +1,7 @@
 {
   "name": "chroma-explorer",
   "version": "0.1.0",
-  "description": "A ChromaDB explorer built with Electron and Vite",
+  "description": "A desktop application for exploring and managing ChromaDB vector databases",
   "main": "dist-electron/main.js",
   "type": "module",
   "build": {
