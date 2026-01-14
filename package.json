@@ -10,7 +10,10 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.png",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "directories": {
       "output": "dist"
@@ -18,7 +21,12 @@
     "files": [
       "dist-electron/**/*",
       "dist/**/*"
-    ]
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "stepandel",
+      "repo": "chroma-explorer"
+    }
   },
   "scripts": {
     "dev": "vite",
@@ -78,7 +86,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
+    "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.7.3",
     "lucide-react": "^0.562.0",
     "onnxruntime-node": "^1.23.2",
     "react": "^19.2.3",

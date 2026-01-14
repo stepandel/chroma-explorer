@@ -240,6 +240,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
     },
   },
+  updater: {
+    checkForUpdates: async (): Promise<any> => {
+      const result = await ipcRenderer.invoke('updater:check')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    downloadUpdate: async (): Promise<void> => {
+      const result = await ipcRenderer.invoke('updater:download')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    installUpdate: async (): Promise<void> => {
+      const result = await ipcRenderer.invoke('updater:install')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    onStatus: (callback: (status: any) => void): (() => void) => {
+      const handler = (_event: any, status: any) => callback(status)
+      ipcRenderer.on('updater:status', handler)
+      return () => ipcRenderer.removeListener('updater:status', handler)
+    },
+  },
   onRefresh: (callback: () => void): (() => void) => {
     const handler = () => {
       console.log('Preload received app:refresh event')

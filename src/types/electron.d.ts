@@ -154,6 +154,24 @@ declare global {
     message: string
   }
 
+  interface UpdateInfo {
+    version: string
+    releaseDate?: string
+    releaseNotes?: string | null
+  }
+
+  interface UpdateStatus {
+    status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
+    info?: UpdateInfo
+    progress?: {
+      percent: number
+      bytesPerSecond: number
+      transferred: number
+      total: number
+    }
+    error?: string
+  }
+
   interface ElectronAPI {
     chromadb: {
       connect: (profileId: string, profile: ConnectionProfile) => Promise<void>
@@ -202,6 +220,12 @@ declare global {
     }
     shell: {
       openExternal: (url: string) => Promise<void>
+    }
+    updater: {
+      checkForUpdates: () => Promise<UpdateInfo | undefined>
+      downloadUpdate: () => Promise<void>
+      installUpdate: () => Promise<void>
+      onStatus: (callback: (status: UpdateStatus) => void) => () => void
     }
     onRefresh: (callback: () => void) => () => void
   }
