@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && electron-builder",
+    "build": "vite build && electron-builder --dir",
+    "build:release": "vite build && electron-builder",
     "preview": "vite preview",
     "postinstall": "electron-builder install-app-deps"
   },

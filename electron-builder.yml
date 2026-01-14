@@ -1,0 +1,49 @@
+appId: com.chromaexplorer.app
+productName: Chroma Explorer
+copyright: Copyright © 2025
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - "!**/*.map"
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch:
+        - universal
+    - target: zip
+      arch:
+        - universal
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
+
+dmg:
+  sign: false
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# Notarization credentials from environment variables
+# Set these in your shell or CI environment:
+#   APPLE_ID - Your Apple ID email
+#   APPLE_APP_SPECIFIC_PASSWORD - App-specific password from appleid.apple.com
+#   APPLE_TEAM_ID - Your 10-character Team ID
+
+# Code signing identity (auto-detected from keychain)
+# Uses "Developer ID Application" certificate for distribution outside App Store
+
+publish: null
