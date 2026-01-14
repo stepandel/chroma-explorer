@@ -46,4 +46,7 @@ dmg:
 # Code signing identity (auto-detected from keychain)
 # Uses "Developer ID Application" certificate for distribution outside App Store
 
-publish: null
+publish:
+  provider: github
+  owner: stepandel
+  repo: chroma-explorer
