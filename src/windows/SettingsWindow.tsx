@@ -1,58 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { API_KEY_PROVIDERS } from '../constants/api-key-providers'
+import { getShortcutsByCategory } from '../constants/keyboard-shortcuts'
 import { ExternalLink, Check, Eye, EyeOff, KeyRound, Keyboard } from 'lucide-react'
 
 const inputClassName = "flex-1 h-7 text-[12px] px-2.5 rounded bg-black/[0.06] dark:bg-white/[0.08] text-foreground placeholder:text-foreground/30 focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/[0.12] transition-colors border-0 font-mono"
-
-// Keyboard shortcuts organized by category
-const KEYBOARD_SHORTCUTS = [
-  {
-    category: 'General',
-    shortcuts: [
-      { keys: '⌘N', action: 'New Connection' },
-      { keys: '⌘,', action: 'Settings' },
-      { keys: '⌘R', action: 'Refresh Data' },
-      { keys: '⌘W', action: 'Close Window' },
-    ],
-  },
-  {
-    category: 'Collections',
-    shortcuts: [
-      { keys: '⌘⇧N', action: 'New Collection' },
-      { keys: '⌘C', action: 'Copy Collection' },
-      { keys: '⌘V', action: 'Paste Collection' },
-      { keys: '⌘⌫', action: 'Delete Collection' },
-    ],
-  },
-  {
-    category: 'Documents',
-    shortcuts: [
-      { keys: '⌘D', action: 'New Document' },
-      { keys: '⌘C', action: 'Copy Documents' },
-      { keys: '⌘V', action: 'Paste Documents' },
-      { keys: '⌘⌫', action: 'Delete Selected' },
-      { keys: '⌘⇧A', action: 'Select All Documents' },
-    ],
-  },
-  {
-    category: 'View',
-    shortcuts: [
-      { keys: '⌘1', action: 'Toggle Collections Panel' },
-      { keys: '⌘2', action: 'Toggle Details Panel' },
-      { keys: '⌘F', action: 'Focus Search' },
-      { keys: '⌘⇧F', action: 'Clear Filters' },
-    ],
-  },
-  {
-    category: 'Editing',
-    shortcuts: [
-      { keys: '⌘S', action: 'Save / Confirm' },
-      { keys: '⌘↵', action: 'Save / Confirm' },
-      { keys: 'Esc', action: 'Cancel' },
-      { keys: '⌘Z', action: 'Undo / Cancel' },
-    ],
-  },
-]
 
 type TabId = 'api-keys' | 'shortcuts'
 
@@ -271,19 +222,19 @@ export function SettingsWindow() {
         {activeTab === 'shortcuts' && (
           <>
             <div className="rounded-lg overflow-hidden" style={{ background: 'oklch(0 0 0 / 4%)' }}>
-              {KEYBOARD_SHORTCUTS.map((group, groupIndex) => (
+              {getShortcutsByCategory().map((group, groupIndex) => (
                 <div key={group.category}>
                   {groupIndex > 0 && <div className="h-px bg-black/[0.06] mx-3" />}
                   <div className="px-3 py-2.5">
                     {/* Category header */}
                     <div className="mb-2">
-                      <span className="text-[12px] font-medium text-foreground">{group.category}</span>
+                      <span className="text-[12px] font-medium text-foreground">{group.label}</span>
                     </div>
 
                     {/* Shortcut rows */}
                     <div className="space-y-1">
-                      {group.shortcuts.map((shortcut, index) => (
-                        <div key={index} className="flex items-center justify-between">
+                      {group.shortcuts.map((shortcut) => (
+                        <div key={shortcut.id} className="flex items-center justify-between">
                           <span className="text-[11px] text-foreground/60">{shortcut.action}</span>
                           <kbd className="text-[11px] font-mono text-foreground/70 bg-black/[0.04] dark:bg-white/[0.06] px-1.5 py-0.5 rounded min-w-[2rem] text-center">
                             {shortcut.keys}
