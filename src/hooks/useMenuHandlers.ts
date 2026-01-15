@@ -114,8 +114,8 @@ export function useMenuHandlers() {
 
   // Help menu handlers
   const handleShowShortcuts = useCallback(() => {
-    // Dispatch event to show keyboard shortcuts dialog
-    window.dispatchEvent(new CustomEvent('menu:show-shortcuts'))
+    // Open settings window which contains the keyboard shortcuts section
+    window.electronAPI.settings.openWindow()
   }, [])
 
   // Subscribe to menu events from main process
