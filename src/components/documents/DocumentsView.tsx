@@ -765,6 +765,11 @@ export default function DocumentsView({
         e.preventDefault()
         handleCancelDraft()
       }
+      // Escape or Command+Z to cancel deletion marks (when no drafts)
+      if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && markedForDeletion.size > 0 && !hasDrafts) {
+        e.preventDefault()
+        setMarkedForDeletion(new Set())
+      }
       // Command+Delete/Backspace to toggle deletion mark
       if (e.metaKey && (e.key === 'Delete' || e.key === 'Backspace') && !hasDrafts) {
         if (isInputting) return
