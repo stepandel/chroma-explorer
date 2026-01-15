@@ -116,12 +116,17 @@ class WindowManager {
 
   /**
    * Create or focus the settings window
+   * @param tab - Optional tab to open ('api-keys' | 'shortcuts')
    */
-  createSettingsWindow(): BrowserWindow {
-    // If settings window exists and is not destroyed, focus it
+  createSettingsWindow(tab?: string): BrowserWindow {
+    // If settings window exists and is not destroyed, focus it and switch tab if needed
     if (this.registry.settings && !this.registry.settings.isDestroyed()) {
       this.registry.settings.focus()
       this.registry.settings.show()
+      // Send message to switch tab if specified
+      if (tab) {
+        this.registry.settings.webContents.send('settings:switch-tab', tab)
+      }
       return this.registry.settings
     }
 
@@ -148,13 +153,17 @@ class WindowManager {
     // Set up Content Security Policy
     setupCSP(win.webContents.session)
 
+    // Build query params
+    const query: Record<string, string> = { type: 'settings' }
+    if (tab) {
+      query.tab = tab
+    }
+
     // Load window content
     if (process.env.VITE_DEV_SERVER_URL) {
-      win.loadURL(this.getWindowUrl({ type: 'settings' }))
+      win.loadURL(this.getWindowUrl(query))
     } else {
-      win.loadFile(path.join(process.env.DIST!, 'index.html'), {
-        query: { type: 'settings' },
-      })
+      win.loadFile(path.join(process.env.DIST!, 'index.html'), { query })
     }
 
     // Handle window close

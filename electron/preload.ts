@@ -237,6 +237,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error)
       }
     },
+    onSwitchTab: (callback: (tab: string) => void): (() => void) => {
+      const handler = (_event: any, tab: string) => callback(tab)
+      ipcRenderer.on('settings:switch-tab', handler)
+      return () => ipcRenderer.removeListener('settings:switch-tab', handler)
+    },
   },
   shell: {
     openExternal: async (url: string): Promise<void> => {

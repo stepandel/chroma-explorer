@@ -61,8 +61,18 @@ const TABS: { id: TabId; label: string; icon: typeof KeyRound }[] = [
   { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
 ]
 
+// Get initial tab from URL params
+function getInitialTab(): TabId {
+  const params = new URLSearchParams(window.location.search)
+  const tab = params.get('tab')
+  if (tab === 'shortcuts' || tab === 'api-keys') {
+    return tab
+  }
+  return 'api-keys'
+}
+
 export function SettingsWindow() {
-  const [activeTab, setActiveTab] = useState<TabId>('api-keys')
+  const [activeTab, setActiveTab] = useState<TabId>(getInitialTab)
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -76,6 +86,16 @@ export function SettingsWindow() {
       document.body.style.background = ''
       document.documentElement.style.background = ''
     }
+  }, [])
+
+  // Listen for tab switch messages from main process
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.settings.onSwitchTab((tab) => {
+      if (tab === 'shortcuts' || tab === 'api-keys') {
+        setActiveTab(tab)
+      }
+    })
+    return unsubscribe
   }, [])
 
   useEffect(() => {

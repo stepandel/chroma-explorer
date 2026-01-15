@@ -218,6 +218,7 @@ declare global {
       getApiKeys: () => Promise<Record<string, string>>
       setApiKeys: (apiKeys: Record<string, string>) => Promise<void>
       openWindow: () => Promise<void>
+      onSwitchTab: (callback: (tab: string) => void) => () => void
     }
     shell: {
       openExternal: (url: string) => Promise<void>

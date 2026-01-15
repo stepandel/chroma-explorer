@@ -332,7 +332,7 @@ export function createApplicationMenu() {
           label: 'Keyboard Shortcuts',
           accelerator: 'CmdOrCtrl+/',
           click: () => {
-            windowManager.createSettingsWindow()
+            windowManager.createSettingsWindow('shortcuts')
           },
         },
       ],
@@ -691,7 +691,7 @@ export function updateRecentConnectionsMenu() {
           label: 'Keyboard Shortcuts',
           accelerator: 'CmdOrCtrl+/',
           click: () => {
-            windowManager.createSettingsWindow()
+            windowManager.createSettingsWindow('shortcuts')
           },
         },
       ],
