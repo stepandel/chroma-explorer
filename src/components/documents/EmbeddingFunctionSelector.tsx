@@ -71,6 +71,7 @@ export function EmbeddingFunctionSelector({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          data-embedding-selector
           className={`text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity ${
             currentOverride
               ? 'bg-primary/20 text-primary border border-primary/30'

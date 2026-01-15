@@ -237,6 +237,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error)
       }
     },
+    onSwitchTab: (callback: (tab: string) => void): (() => void) => {
+      const handler = (_event: any, tab: string) => callback(tab)
+      ipcRenderer.on('settings:switch-tab', handler)
+      return () => ipcRenderer.removeListener('settings:switch-tab', handler)
+    },
   },
   shell: {
     openExternal: async (url: string): Promise<void> => {
@@ -270,6 +275,108 @@ contextBridge.exposeInMainWorld('electronAPI', {
       const handler = (_event: any, status: any) => callback(status)
       ipcRenderer.on('updater:status', handler)
       return () => ipcRenderer.removeListener('updater:status', handler)
+    },
+  },
+  menu: {
+    // Collection menu events
+    onNewCollection: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:new-collection', handler)
+      return () => ipcRenderer.removeListener('menu:new-collection', handler)
+    },
+    onDuplicateCollection: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:duplicate-collection', handler)
+      return () => ipcRenderer.removeListener('menu:duplicate-collection', handler)
+    },
+    onRenameCollection: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:rename-collection', handler)
+      return () => ipcRenderer.removeListener('menu:rename-collection', handler)
+    },
+    onDeleteCollection: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:delete-collection', handler)
+      return () => ipcRenderer.removeListener('menu:delete-collection', handler)
+    },
+    onCopyCollection: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:copy-collection', handler)
+      return () => ipcRenderer.removeListener('menu:copy-collection', handler)
+    },
+    onPasteCollection: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:paste-collection', handler)
+      return () => ipcRenderer.removeListener('menu:paste-collection', handler)
+    },
+    // Document menu events
+    onNewDocument: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:new-document', handler)
+      return () => ipcRenderer.removeListener('menu:new-document', handler)
+    },
+    onEditDocument: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:edit-document', handler)
+      return () => ipcRenderer.removeListener('menu:edit-document', handler)
+    },
+    onDeleteSelected: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:delete-selected', handler)
+      return () => ipcRenderer.removeListener('menu:delete-selected', handler)
+    },
+    onCopyDocuments: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:copy-documents', handler)
+      return () => ipcRenderer.removeListener('menu:copy-documents', handler)
+    },
+    onPasteDocuments: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:paste-documents', handler)
+      return () => ipcRenderer.removeListener('menu:paste-documents', handler)
+    },
+    onSelectAllDocuments: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:select-all-documents', handler)
+      return () => ipcRenderer.removeListener('menu:select-all-documents', handler)
+    },
+    onConfigureEmbedding: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:configure-embedding', handler)
+      return () => ipcRenderer.removeListener('menu:configure-embedding', handler)
+    },
+    // View menu events
+    onToggleLeftPanel: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:toggle-left-panel', handler)
+      return () => ipcRenderer.removeListener('menu:toggle-left-panel', handler)
+    },
+    onToggleRightPanel: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:toggle-right-panel', handler)
+      return () => ipcRenderer.removeListener('menu:toggle-right-panel', handler)
+    },
+    onFocusSearch: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:focus-search', handler)
+      return () => ipcRenderer.removeListener('menu:focus-search', handler)
+    },
+    onClearFilters: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:clear-filters', handler)
+      return () => ipcRenderer.removeListener('menu:clear-filters', handler)
+    },
+    // Window menu events
+    onDisconnect: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:disconnect', handler)
+      return () => ipcRenderer.removeListener('menu:disconnect', handler)
+    },
+    // Help menu events
+    onShowShortcuts: (callback: () => void): (() => void) => {
+      const handler = () => callback()
+      ipcRenderer.on('menu:show-shortcuts', handler)
+      return () => ipcRenderer.removeListener('menu:show-shortcuts', handler)
     },
   },
   onRefresh: (callback: () => void): (() => void) => {
