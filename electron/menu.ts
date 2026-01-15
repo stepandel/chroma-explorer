@@ -310,9 +310,21 @@ export function createApplicationMenu() {
         },
         { type: 'separator' },
         {
+          label: 'Chroma Explorer Website',
+          click: async () => {
+            await shell.openExternal('https://chroma-explorer.com/')
+          },
+        },
+        {
           label: 'Report an Issue...',
           click: async () => {
-            await shell.openExternal('https://github.com/anthropics/chroma-explorer/issues')
+            await shell.openExternal('https://github.com/stepandel/chroma-explorer/issues')
+          },
+        },
+        {
+          label: 'Propose a Feature...',
+          click: async () => {
+            await shell.openExternal('https://github.com/stepandel/chroma-explorer/issues')
           },
         },
         { type: 'separator' },
