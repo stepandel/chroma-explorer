@@ -142,6 +142,55 @@ export function CollectionPanel() {
     return unsubscribe
   }, [handleCopyCollection, handlePasteCollection, setActiveCollection])
 
+  // Menu event listeners (from native app menu)
+  useEffect(() => {
+    // Duplicate collection = copy + paste in one action
+    const handleMenuDuplicate = () => {
+      if (activeCollection && currentProfile) {
+        const collection = collections.find(c => c.name === activeCollection)
+        if (collection) {
+          copyCollection(collection, currentProfile.id)
+          // Small delay to ensure clipboard is set
+          setTimeout(() => {
+            startCopyFromCollection(collection)
+          }, 0)
+        }
+      }
+    }
+
+    // Copy collection to clipboard
+    const handleMenuCopy = () => {
+      if (activeCollection) {
+        handleCopyCollection(activeCollection)
+      }
+    }
+
+    // Paste collection from clipboard
+    const handleMenuPaste = () => {
+      handlePasteCollection()
+    }
+
+    // Delete collection
+    const handleMenuDelete = () => {
+      if (activeCollection) {
+        handleToggleDeletion()
+      }
+    }
+
+    // Listen for menu events dispatched from useMenuHandlers
+    window.addEventListener('menu:duplicate-collection', handleMenuDuplicate)
+    window.addEventListener('menu:copy-collection', handleMenuCopy)
+    window.addEventListener('menu:paste-collection', handleMenuPaste)
+    window.addEventListener('menu:delete-collection', handleMenuDelete)
+
+    return () => {
+      window.removeEventListener('menu:duplicate-collection', handleMenuDuplicate)
+      window.removeEventListener('menu:copy-collection', handleMenuCopy)
+      window.removeEventListener('menu:paste-collection', handleMenuPaste)
+      window.removeEventListener('menu:delete-collection', handleMenuDelete)
+    }
+  }, [activeCollection, collections, currentProfile, copyCollection, startCopyFromCollection, handleCopyCollection, handlePasteCollection, handleToggleDeletion])
+
   // Keyboard shortcuts (copy/delete initiation removed to avoid conflicts with document shortcuts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

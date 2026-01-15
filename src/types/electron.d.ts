@@ -228,6 +228,32 @@ declare global {
       installUpdate: () => Promise<void>
       onStatus: (callback: (status: UpdateStatus) => void) => () => void
     }
+    menu: {
+      // Collection menu events
+      onNewCollection: (callback: () => void) => () => void
+      onDuplicateCollection: (callback: () => void) => () => void
+      onRenameCollection: (callback: () => void) => () => void
+      onDeleteCollection: (callback: () => void) => () => void
+      onCopyCollection: (callback: () => void) => () => void
+      onPasteCollection: (callback: () => void) => () => void
+      // Document menu events
+      onNewDocument: (callback: () => void) => () => void
+      onEditDocument: (callback: () => void) => () => void
+      onDeleteSelected: (callback: () => void) => () => void
+      onCopyDocuments: (callback: () => void) => () => void
+      onPasteDocuments: (callback: () => void) => () => void
+      onSelectAllDocuments: (callback: () => void) => () => void
+      onConfigureEmbedding: (callback: () => void) => () => void
+      // View menu events
+      onToggleLeftPanel: (callback: () => void) => () => void
+      onToggleRightPanel: (callback: () => void) => () => void
+      onFocusSearch: (callback: () => void) => () => void
+      onClearFilters: (callback: () => void) => () => void
+      // Window menu events
+      onDisconnect: (callback: () => void) => () => void
+      // Help menu events
+      onShowShortcuts: (callback: () => void) => () => void
+    }
     onRefresh: (callback: () => void) => () => void
   }
 

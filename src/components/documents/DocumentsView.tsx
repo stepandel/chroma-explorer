@@ -630,6 +630,119 @@ export default function DocumentsView({
     return unsubscribe
   }, [handleCopyDocuments, handlePasteDocuments, onSingleSelect])
 
+  // Select all documents handler
+  const handleSelectAllDocuments = useCallback(() => {
+    if (documents.length > 0) {
+      const allIds = documents.map(d => d.id)
+      onRangeSelect(allIds, allIds[0])
+    }
+  }, [documents, onRangeSelect])
+
+  // Clear all filters handler
+  const handleClearAllFilters = useCallback(() => {
+    setFilterRows([createDefaultFilterRow()])
+    setNResults(10)
+  }, [])
+
+  // Ref for focusing search input
+  const searchInputRef = { current: null as HTMLInputElement | null }
+
+  // Menu event listeners (from native app menu)
+  useEffect(() => {
+    // New document
+    const handleMenuNewDocument = () => {
+      handleStartCreate()
+    }
+
+    // Delete selected
+    const handleMenuDeleteSelected = () => {
+      if (selectedDocumentIds.size > 0 && !hasDrafts) {
+        handleToggleDeletion()
+      }
+    }
+
+    // Copy documents
+    const handleMenuCopyDocuments = () => {
+      handleCopyDocuments()
+    }
+
+    // Paste documents
+    const handleMenuPasteDocuments = () => {
+      handlePasteDocuments()
+    }
+
+    // Select all documents
+    const handleMenuSelectAll = () => {
+      handleSelectAllDocuments()
+    }
+
+    // Focus search
+    const handleMenuFocusSearch = () => {
+      // Focus the first search input in the filter rows
+      const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement
+      if (searchInput) {
+        searchInput.focus()
+        searchInput.select()
+      }
+    }
+
+    // Clear filters
+    const handleMenuClearFilters = () => {
+      handleClearAllFilters()
+    }
+
+    // Configure embedding
+    const handleMenuConfigureEmbedding = () => {
+      // Click the embedding function selector button
+      const embeddingButton = document.querySelector('[data-embedding-selector]') as HTMLButtonElement
+      if (embeddingButton) {
+        embeddingButton.click()
+      }
+    }
+
+    // Edit document
+    const handleMenuEditDocument = () => {
+      // This triggers inline editing - implementation depends on your table structure
+      // For now, we'll dispatch a custom event that DocumentsTable can listen to
+      if (primarySelectedDocumentId) {
+        window.dispatchEvent(new CustomEvent('menu:trigger-edit', { detail: { documentId: primarySelectedDocumentId } }))
+      }
+    }
+
+    // Listen for menu events dispatched from useMenuHandlers
+    window.addEventListener('menu:new-document', handleMenuNewDocument)
+    window.addEventListener('menu:delete-selected', handleMenuDeleteSelected)
+    window.addEventListener('menu:copy-documents', handleMenuCopyDocuments)
+    window.addEventListener('menu:paste-documents', handleMenuPasteDocuments)
+    window.addEventListener('menu:select-all-documents', handleMenuSelectAll)
+    window.addEventListener('menu:focus-search', handleMenuFocusSearch)
+    window.addEventListener('menu:clear-filters', handleMenuClearFilters)
+    window.addEventListener('menu:configure-embedding', handleMenuConfigureEmbedding)
+    window.addEventListener('menu:edit-document', handleMenuEditDocument)
+
+    return () => {
+      window.removeEventListener('menu:new-document', handleMenuNewDocument)
+      window.removeEventListener('menu:delete-selected', handleMenuDeleteSelected)
+      window.removeEventListener('menu:copy-documents', handleMenuCopyDocuments)
+      window.removeEventListener('menu:paste-documents', handleMenuPasteDocuments)
+      window.removeEventListener('menu:select-all-documents', handleMenuSelectAll)
+      window.removeEventListener('menu:focus-search', handleMenuFocusSearch)
+      window.removeEventListener('menu:clear-filters', handleMenuClearFilters)
+      window.removeEventListener('menu:configure-embedding', handleMenuConfigureEmbedding)
+      window.removeEventListener('menu:edit-document', handleMenuEditDocument)
+    }
+  }, [
+    handleStartCreate,
+    selectedDocumentIds,
+    hasDrafts,
+    handleToggleDeletion,
+    handleCopyDocuments,
+    handlePasteDocuments,
+    handleSelectAllDocuments,
+    handleClearAllFilters,
+    primarySelectedDocumentId,
+  ])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
