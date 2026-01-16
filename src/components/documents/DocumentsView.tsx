@@ -827,19 +827,21 @@ export default function DocumentsView({
       {/* Toolbar area - calm floating control surface */}
       <div className="flex-shrink-0 bg-white/60 dark:bg-white/[0.03]">
         {/* Row 1: Collection name and count */}
-        <div className="px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-foreground">{collectionName}</h1>
-            <EmbeddingFunctionSelector
-              collectionName={collectionName}
-              currentOverride={embeddingOverride}
-              serverConfig={currentCollection?.embeddingFunction || null}
-              onSave={handleSaveOverride}
-              onClear={handleClearOverride}
-              embeddingDimension={documents[0]?.embedding?.length ?? null}
-            />
+        <div className="px-4 py-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+            <h1 className="text-lg font-semibold text-foreground truncate">{collectionName}</h1>
+            <div className="flex-shrink-0">
+              <EmbeddingFunctionSelector
+                collectionName={collectionName}
+                currentOverride={embeddingOverride}
+                serverConfig={currentCollection?.embeddingFunction || null}
+                onSave={handleSaveOverride}
+                onClear={handleClearOverride}
+                embeddingDimension={documents[0]?.embedding?.length ?? null}
+              />
+            </div>
           </div>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground flex-shrink-0">
             {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
           </span>
         </div>
