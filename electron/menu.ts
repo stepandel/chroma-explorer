@@ -82,7 +82,7 @@ function buildMenuTemplate(): Electron.MenuItemConstructorOptions[] {
       submenu: [
         {
           label: 'New Connection',
-          accelerator: 'CmdOrCtrl+N',
+          accelerator: 'CmdOrCtrl+Shift+O',
           click: () => {
             windowManager.createSetupWindow()
           },
@@ -259,7 +259,7 @@ function buildMenuTemplate(): Electron.MenuItemConstructorOptions[] {
       submenu: [
         {
           label: 'New Document',
-          accelerator: 'CmdOrCtrl+D',
+          accelerator: 'CmdOrCtrl+N',
           click: () => {
             sendToFocusedWindow('menu:new-document')
           },

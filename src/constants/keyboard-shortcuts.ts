@@ -61,8 +61,8 @@ export const SHORTCUTS: Record<string, KeyboardShortcut> = {
   // General
   NEW_CONNECTION: {
     id: 'new-connection',
-    keys: '⌘N',
-    accelerator: 'CmdOrCtrl+N',
+    keys: '⌘⇧O',
+    accelerator: 'CmdOrCtrl+Shift+O',
     action: 'New Connection',
     category: 'general',
   },
@@ -107,8 +107,8 @@ export const SHORTCUTS: Record<string, KeyboardShortcut> = {
   // Documents
   NEW_DOCUMENT: {
     id: 'new-document',
-    keys: '⌘D',
-    accelerator: 'CmdOrCtrl+D',
+    keys: '⌘N',
+    accelerator: 'CmdOrCtrl+N',
     action: 'New Document',
     category: 'documents',
   },
