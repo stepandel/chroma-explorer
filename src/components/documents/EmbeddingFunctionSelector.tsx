@@ -130,16 +130,32 @@ export function EmbeddingFunctionSelector({
           {/* Selected info */}
           {(() => {
             const displayEF = selectedEF || serverFunction || EMBEDDING_FUNCTIONS.find(ef => ef.id === 'default')!
+            const hasDimensionMismatch = selectedEF && embeddingDimension && selectedEF.dimensions && selectedEF.dimensions !== embeddingDimension
+
+            // Determine container styling based on state
+            let containerClass = 'bg-black/[0.03] dark:bg-white/[0.04] ring-1 ring-black/[0.04] dark:ring-white/[0.06] shadow-[inset_0_0.5px_0_rgba(255,255,255,0.05)]'
+            let accentColor = ''
+
+            if (selectedEF) {
+              if (hasDimensionMismatch) {
+                // Red for dimension mismatch
+                containerClass = 'bg-[#FF3B30]/8 dark:bg-[#FF453A]/10 ring-1 ring-[#FF3B30]/20 dark:ring-[#FF453A]/25 shadow-[inset_0_0.5px_0_rgba(255,255,255,0.1)]'
+                accentColor = 'text-[#FF3B30] dark:text-[#FF453A]'
+              } else {
+                // Blue for valid override
+                containerClass = 'bg-[#007AFF]/8 dark:bg-[#0A84FF]/10 ring-1 ring-[#007AFF]/20 dark:ring-[#0A84FF]/25 shadow-[inset_0_0.5px_0_rgba(255,255,255,0.1)]'
+                accentColor = 'text-[#007AFF] dark:text-[#0A84FF]'
+              }
+            }
+
             return (
-              <div className={`mx-1 text-[11px] px-2.5 py-2 rounded-[5px] space-y-0.5 ${
-                selectedEF
-                  ? 'bg-[#007AFF]/8 dark:bg-[#0A84FF]/10 ring-1 ring-[#007AFF]/20 dark:ring-[#0A84FF]/25 shadow-[inset_0_0.5px_0_rgba(255,255,255,0.1)]'
-                  : 'bg-black/[0.03] dark:bg-white/[0.04] ring-1 ring-black/[0.04] dark:ring-white/[0.06] shadow-[inset_0_0.5px_0_rgba(255,255,255,0.05)]'
-              }`}>
+              <div className={`mx-1 text-[11px] px-2.5 py-2 rounded-[5px] space-y-0.5 ${containerClass}`}>
                 {selectedEF && (
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#007AFF] dark:bg-[#0A84FF]" />
-                    <span className="text-[#007AFF] dark:text-[#0A84FF] font-medium text-[10px]">Client Override</span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${hasDimensionMismatch ? 'bg-[#FF3B30] dark:bg-[#FF453A]' : 'bg-[#007AFF] dark:bg-[#0A84FF]'}`} />
+                    <span className={`font-medium text-[10px] ${accentColor}`}>
+                      {hasDimensionMismatch ? 'Dimension Mismatch' : 'Client Override'}
+                    </span>
                   </div>
                 )}
                 <p className="text-muted-foreground"><span className="text-foreground/60">Type:</span> {displayEF.type}</p>
