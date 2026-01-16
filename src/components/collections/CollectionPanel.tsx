@@ -5,6 +5,7 @@ import { useCollection } from '../../context/CollectionContext'
 import { useDraftCollection } from '../../context/DraftCollectionContext'
 import { useClipboard } from '../../context/ClipboardContext'
 import { useDeleteCollectionMutation } from '../../hooks/useChromaQueries'
+import { SHORTCUTS, matchesShortcut } from '../../constants/keyboard-shortcuts'
 import { Button } from '../ui/button'
 import { DeleteCollectionDialog } from './DeleteCollectionDialog'
 
@@ -191,40 +192,40 @@ export function CollectionPanel() {
     }
   }, [activeCollection, collections, currentProfile, copyCollection, startCopyFromCollection, handleCopyCollection, handlePasteCollection, handleToggleDeletion])
 
-  // Keyboard shortcuts (copy/delete initiation removed to avoid conflicts with document shortcuts)
+  // Keyboard shortcuts - using centralized SHORTCUTS definitions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       const isInputting = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
 
       // Command+S or Command+Enter to confirm deletion
-      if (e.metaKey && (e.key === 's' || e.key === 'Enter') && markedForDeletion && !draftCollection) {
+      if ((matchesShortcut(e, SHORTCUTS.SAVE) || matchesShortcut(e, SHORTCUTS.SAVE_ENTER)) && markedForDeletion && !draftCollection) {
         e.preventDefault()
         handleCommitDeletion()
       }
 
       // Escape or Command+Z to cancel deletion mark
-      if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && markedForDeletion) {
+      if ((matchesShortcut(e, SHORTCUTS.CANCEL) || matchesShortcut(e, SHORTCUTS.UNDO)) && markedForDeletion) {
         e.preventDefault()
         setMarkedForDeletion(null)
         return
       }
 
       // Command+Z to cancel copy mode (draft collection)
-      if (e.metaKey && e.key === 'z' && draftCollection) {
+      if (matchesShortcut(e, SHORTCUTS.UNDO) && draftCollection) {
         e.preventDefault()
         cancelCreation()
         return
       }
 
       // Escape to cancel draft collection
-      if (e.key === 'Escape' && draftCollection) {
+      if (matchesShortcut(e, SHORTCUTS.CANCEL) && draftCollection) {
         e.preventDefault()
         cancelCreation()
       }
 
       // Command+V to paste (start copy mode)
-      if (e.metaKey && e.key === 'v' && hasCopiedCollection && !draftCollection && !isInputting) {
+      if (matchesShortcut(e, SHORTCUTS.PASTE_COLLECTION) && hasCopiedCollection && !draftCollection && !isInputting) {
         e.preventDefault()
         handlePasteCollection()
       }

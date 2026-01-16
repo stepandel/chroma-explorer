@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation, useCreateDocumentsBatchMutation, useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
 import { useClipboard } from '../../context/ClipboardContext'
+import { SHORTCUTS, matchesShortcut } from '../../constants/keyboard-shortcuts'
 import DocumentsTable from './DocumentsTable'
 import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
 import { TypedMetadataRecord, TypedMetadataField, typedMetadataToChromaFormat, validateMetadataValue } from '../../types/metadata'
@@ -743,16 +744,16 @@ export default function DocumentsView({
     primarySelectedDocumentId,
   ])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts - using centralized SHORTCUTS definitions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger copy/paste if user is typing in an input or has text selected
+      // Context checks for conditional shortcuts
       const target = e.target as HTMLElement
       const isInputting = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
       const hasTextSelection = (window.getSelection()?.toString() || '').length > 0
 
       // Command+S or Command+Enter to save drafts or commit deletions
-      if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
+      if (matchesShortcut(e, SHORTCUTS.SAVE) || matchesShortcut(e, SHORTCUTS.SAVE_ENTER)) {
         e.preventDefault()
         if (hasDrafts) {
           handleSaveDraft()
@@ -761,28 +762,28 @@ export default function DocumentsView({
         }
       }
       // Escape or Command+Z to cancel drafts
-      if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && hasDrafts) {
+      if ((matchesShortcut(e, SHORTCUTS.CANCEL) || matchesShortcut(e, SHORTCUTS.UNDO)) && hasDrafts) {
         e.preventDefault()
         handleCancelDraft()
       }
       // Escape or Command+Z to cancel deletion marks (when no drafts)
-      if ((e.key === 'Escape' || (e.metaKey && e.key === 'z')) && markedForDeletion.size > 0 && !hasDrafts) {
+      if ((matchesShortcut(e, SHORTCUTS.CANCEL) || matchesShortcut(e, SHORTCUTS.UNDO)) && markedForDeletion.size > 0 && !hasDrafts) {
         e.preventDefault()
         setMarkedForDeletion(new Set())
       }
       // Command+Delete/Backspace to toggle deletion mark
-      if (e.metaKey && (e.key === 'Delete' || e.key === 'Backspace') && !hasDrafts) {
+      if (matchesShortcut(e, SHORTCUTS.DELETE_DOCUMENTS) && !hasDrafts) {
         if (isInputting) return
         e.preventDefault()
         handleToggleDeletion()
       }
       // Command+C to copy selected documents (but not if text is selected - let native copy work)
-      if (e.metaKey && e.key === 'c' && selectedDocumentIds.size > 0 && !hasDrafts && !isInputting && !hasTextSelection) {
+      if (matchesShortcut(e, SHORTCUTS.COPY_DOCUMENTS) && selectedDocumentIds.size > 0 && !hasDrafts && !isInputting && !hasTextSelection) {
         e.preventDefault()
         handleCopyDocuments()
       }
       // Command+V to paste documents
-      if (e.metaKey && e.key === 'v' && hasCopiedDocuments && !hasDrafts && !isInputting) {
+      if (matchesShortcut(e, SHORTCUTS.PASTE_DOCUMENTS) && hasCopiedDocuments && !hasDrafts && !isInputting) {
         e.preventDefault()
         handlePasteDocuments()
       }
