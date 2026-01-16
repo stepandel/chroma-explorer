@@ -11,6 +11,7 @@ interface EmbeddingFunctionSelectorProps {
   serverConfig: { name: string; type: string; config?: Record<string, unknown> } | null
   onSave: (override: EmbeddingFunctionOverride) => Promise<void>
   onClear: () => Promise<void>
+  embeddingDimension?: number | null
 }
 
 export function EmbeddingFunctionSelector({
@@ -19,6 +20,7 @@ export function EmbeddingFunctionSelector({
   serverConfig,
   onSave,
   onClear,
+  embeddingDimension,
 }: EmbeddingFunctionSelectorProps) {
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string>('')
@@ -130,8 +132,8 @@ export function EmbeddingFunctionSelector({
             const displayEF = selectedEF || serverFunction || EMBEDDING_FUNCTIONS.find(ef => ef.id === 'default')!
             return (
               <div className={`mx-1 text-[11px] px-2.5 py-2 rounded-[5px] space-y-0.5 ${
-                selectedEF 
-                  ? 'bg-[#007AFF]/8 dark:bg-[#0A84FF]/10 ring-1 ring-[#007AFF]/20 dark:ring-[#0A84FF]/25 shadow-[inset_0_0.5px_0_rgba(255,255,255,0.1)]' 
+                selectedEF
+                  ? 'bg-[#007AFF]/8 dark:bg-[#0A84FF]/10 ring-1 ring-[#007AFF]/20 dark:ring-[#0A84FF]/25 shadow-[inset_0_0.5px_0_rgba(255,255,255,0.1)]'
                   : 'bg-black/[0.03] dark:bg-white/[0.04] ring-1 ring-black/[0.04] dark:ring-white/[0.06] shadow-[inset_0_0.5px_0_rgba(255,255,255,0.05)]'
               }`}>
                 {selectedEF && (
@@ -143,6 +145,11 @@ export function EmbeddingFunctionSelector({
                 <p className="text-muted-foreground"><span className="text-foreground/60">Type:</span> {displayEF.type}</p>
                 <p className="text-muted-foreground"><span className="text-foreground/60">Model:</span> {displayEF.modelName}</p>
                 <p className="text-muted-foreground"><span className="text-foreground/60">Dimensions:</span> {displayEF.dimensions ?? 'variable'}</p>
+                {embeddingDimension && (
+                  <p className="text-muted-foreground pt-1 border-t border-black/5 dark:border-white/5 mt-1">
+                    <span className="text-foreground/60">Collection:</span> {embeddingDimension}d
+                  </p>
+                )}
               </div>
             )
           })()}

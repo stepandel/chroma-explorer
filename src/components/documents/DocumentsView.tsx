@@ -836,6 +836,7 @@ export default function DocumentsView({
               serverConfig={currentCollection?.embeddingFunction || null}
               onSave={handleSaveOverride}
               onClear={handleClearOverride}
+              embeddingDimension={documents[0]?.embedding?.length ?? null}
             />
           </div>
           <span className="text-xs text-muted-foreground">
