@@ -3,6 +3,7 @@ import { Plus, X, ChevronDown } from 'lucide-react'
 import EmbeddingCell from './EmbeddingCell'
 import { RegenerateEmbeddingDialog } from './RegenerateEmbeddingDialog'
 import { useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
+import { SHORTCUTS, matchesShortcut } from '../../constants/keyboard-shortcuts'
 import { Metadata } from 'chromadb'
 import { TypedMetadataRecord, TypedMetadataField, MetadataValueType, validateMetadataValue } from '../../types/metadata'
 
@@ -308,18 +309,18 @@ export default function DocumentDetailPanel({
     }
   }, [draftMetadata, isDraft, onDraftChange])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts - using centralized SHORTCUTS definitions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Command+S or Command+Enter to save
-      if (e.metaKey && (e.key === 's' || e.key === 'Enter')) {
+      if (matchesShortcut(e, SHORTCUTS.SAVE) || matchesShortcut(e, SHORTCUTS.SAVE_ENTER)) {
         e.preventDefault()
         if (hasDirtyChanges) {
           handleSave()
         }
       }
-      // Command+Z to cancel/revert (only when we have changes)
-      if (e.metaKey && e.key === 'z' && !e.shiftKey && hasDirtyChanges) {
+      // Command+Z to cancel/revert (only when we have changes, and not Shift+Z for redo)
+      if (matchesShortcut(e, SHORTCUTS.UNDO) && hasDirtyChanges) {
         e.preventDefault()
         handleCancel()
       }
