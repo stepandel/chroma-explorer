@@ -1,12 +1,13 @@
 {
   "name": "chroma-explorer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A desktop application for exploring and managing ChromaDB vector databases",
   "main": "dist-electron/main.js",
   "type": "module",
   "build": {
     "appId": "com.chroma.explorer",
     "productName": "Chroma Explorer",
+    "artifactName": "${name}-${version}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.png",
