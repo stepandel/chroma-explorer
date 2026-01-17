@@ -24,6 +24,11 @@ function getInitialTab(): TabId {
 }
 
 type Theme = 'light' | 'dark' | 'system'
+type ResolvedTheme = 'light' | 'dark'
+
+function getSystemTheme(): ResolvedTheme {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
 
 export function SettingsWindow() {
   const [activeTab, setActiveTab] = useState<TabId>(getInitialTab)
@@ -32,6 +37,7 @@ export function SettingsWindow() {
   const [saved, setSaved] = useState(false)
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
   const [theme, setTheme] = useState<Theme>('system')
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => getSystemTheme())
 
   // Make body transparent for vibrancy effect
   useEffect(() => {
@@ -59,13 +65,30 @@ export function SettingsWindow() {
 
   // Load theme on mount
   useEffect(() => {
-    window.electronAPI.settings.getTheme().then(setTheme).catch(console.error)
+    window.electronAPI.settings.getTheme().then((savedTheme) => {
+      setTheme(savedTheme)
+      setResolvedTheme(savedTheme === 'system' ? getSystemTheme() : savedTheme)
+    }).catch(console.error)
   }, [])
+
+  // Listen for system theme changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = () => {
+      if (theme === 'system') {
+        setResolvedTheme(getSystemTheme())
+      }
+    }
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [theme])
 
   // Listen for cross-window theme changes
   useEffect(() => {
     const unsubscribe = window.electronAPI.settings.onThemeChange((newTheme) => {
-      setTheme(newTheme as Theme)
+      const validTheme = newTheme as Theme
+      setTheme(validTheme)
+      setResolvedTheme(validTheme === 'system' ? getSystemTheme() : validTheme)
     })
     return unsubscribe
   }, [])
@@ -118,18 +141,25 @@ export function SettingsWindow() {
 
   const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme)
+    setResolvedTheme(newTheme === 'system' ? getSystemTheme() : newTheme)
     window.electronAPI.settings.setTheme(newTheme).catch(console.error)
   }
+
+  // Compute theme-aware styles
+  const isDark = resolvedTheme === 'dark'
+  const windowBackground = isDark ? 'oklch(0.30 0 0 / 95%)' : 'oklch(0.96 0 0 / 75%)'
+  const sectionBackground = isDark ? 'oklch(1 0 0 / 8%)' : 'oklch(0 0 0 / 4%)'
+  const dividerColor = isDark ? 'oklch(1 0 0 / 10%)' : 'oklch(0 0 0 / 6%)'
 
   return (
     <div
       className="fixed inset-0 flex flex-col select-none"
-      style={{ background: 'oklch(0.96 0 0 / 75%)' }}
+      style={{ background: windowBackground }}
     >
       {/* Title bar with tabs - macOS style */}
       <div
-        className="shrink-0 border-b border-black/[0.06]"
-        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        className="shrink-0 border-b"
+        style={{ WebkitAppRegion: 'drag', borderColor: dividerColor } as React.CSSProperties}
       >
         {/* Title */}
         <div className="h-10 flex items-center justify-center">
@@ -180,10 +210,10 @@ export function SettingsWindow() {
         {activeTab === 'api-keys' && (
           <>
             {/* Provider rows - flat grouped list */}
-            <div className="rounded-lg overflow-hidden" style={{ background: 'oklch(0 0 0 / 4%)' }}>
+            <div className="rounded-lg overflow-hidden" style={{ background: sectionBackground }}>
               {API_KEY_PROVIDERS.map((provider, index) => (
                 <div key={provider.id}>
-                  {index > 0 && <div className="h-px bg-black/[0.06] mx-3" />}
+                  {index > 0 && <div className="h-px mx-3" style={{ background: dividerColor }} />}
                   <div className="px-3 py-2.5">
                     {/* Provider header row */}
                     <div className="flex items-center justify-between mb-2">
@@ -243,10 +273,10 @@ export function SettingsWindow() {
 
         {activeTab === 'shortcuts' && (
           <>
-            <div className="rounded-lg overflow-hidden" style={{ background: 'oklch(0 0 0 / 4%)' }}>
+            <div className="rounded-lg overflow-hidden" style={{ background: sectionBackground }}>
               {getShortcutsByCategory().map((group, groupIndex) => (
                 <div key={group.category}>
-                  {groupIndex > 0 && <div className="h-px bg-black/[0.06] mx-3" />}
+                  {groupIndex > 0 && <div className="h-px mx-3" style={{ background: dividerColor }} />}
                   <div className="px-3 py-2.5">
                     {/* Category header */}
                     <div className="mb-2">
@@ -277,7 +307,7 @@ export function SettingsWindow() {
 
         {activeTab === 'appearance' && (
           <>
-            <div className="rounded-lg overflow-hidden" style={{ background: 'oklch(0 0 0 / 4%)' }}>
+            <div className="rounded-lg overflow-hidden" style={{ background: sectionBackground }}>
               <div className="px-3 py-2.5">
                 <div className="mb-2">
                   <span className="text-[12px] font-medium text-foreground">Theme</span>
