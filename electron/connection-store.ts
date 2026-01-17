@@ -5,6 +5,19 @@ import { existsSync, unlinkSync } from 'fs'
 import { ConnectionProfile, EmbeddingFunctionOverride } from './types'
 import { getEncryptionKey } from './secure-key-manager'
 
+// Delete legacy store files encrypted with the old hardcoded key
+function deleteLegacyStore(): void {
+  try {
+    const legacyPath = path.join(app.getPath('userData'), 'chroma-connections.json')
+    if (existsSync(legacyPath)) {
+      unlinkSync(legacyPath)
+      console.log('[ConnectionStore] Deleted legacy store file')
+    }
+  } catch {
+    // Ignore errors
+  }
+}
+
 interface StoreSchema {
   profiles: ConnectionProfile[]
   lastActiveProfileId: string | null
@@ -19,7 +32,7 @@ let store: Store<StoreSchema> | null = null
 function getStore(): Store<StoreSchema> {
   if (!store) {
     store = new Store<StoreSchema>({
-      name: 'chroma-connections-v2', // New name to avoid conflicts with old unreadable data
+      name: 'chroma-connections-v2',
       defaults: {
         profiles: [],
         lastActiveProfileId: null,
@@ -27,66 +40,9 @@ function getStore(): Store<StoreSchema> {
       },
       encryptionKey: getEncryptionKey(),
     })
-
-    // Migrate from old store if it exists and new store is empty
-    migrateFromLegacyStore()
+    deleteLegacyStore()
   }
   return store
-}
-
-/**
- * Migrate data from the old hardcoded-key store to the new secure store.
- * This runs once when the new store is first created.
- */
-function migrateFromLegacyStore(): void {
-  if (!store) return
-
-  // Only migrate if new store is empty
-  const currentProfiles = store.get('profiles', [])
-  if (currentProfiles.length > 0) return
-
-  // Check if legacy store file exists before attempting migration
-  const legacyPath = path.join(app.getPath('userData'), 'chroma-connections.json')
-  if (!existsSync(legacyPath)) {
-    return // No legacy store to migrate
-  }
-
-  try {
-    // Try to read from old store (with hardcoded key)
-    const legacyStore = new Store<StoreSchema>({
-      name: 'chroma-connections',
-      defaults: {
-        profiles: [],
-        lastActiveProfileId: null,
-        embeddingOverrides: {},
-      },
-      encryptionKey: 'chroma-explorer-obfuscation-key-v1',
-    })
-
-    const legacyProfiles = legacyStore.get('profiles', [])
-    const legacyLastActive = legacyStore.get('lastActiveProfileId', null)
-    const legacyOverrides = legacyStore.get('embeddingOverrides', {})
-
-    if (legacyProfiles.length > 0) {
-      console.log(`[ConnectionStore] Migrating ${legacyProfiles.length} profiles from legacy store`)
-      store.set('profiles', legacyProfiles)
-      store.set('lastActiveProfileId', legacyLastActive)
-      store.set('embeddingOverrides', legacyOverrides)
-
-      // Clear legacy store after successful migration
-      legacyStore.clear()
-      console.log('[ConnectionStore] Migration complete, legacy store cleared')
-    }
-  } catch (error) {
-    // Migration failed - likely encryption key mismatch or corrupted file
-    // Delete the legacy file so we don't keep trying
-    console.warn('[ConnectionStore] Could not migrate legacy store, removing it')
-    try {
-      unlinkSync(legacyPath)
-    } catch {
-      // Ignore deletion errors
-    }
-  }
 }
 
 export class ConnectionStore {
