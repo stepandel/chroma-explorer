@@ -9,7 +9,7 @@ import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
 import { settingsStore, ApiKeys, Theme } from './settings-store'
 import { windowManager } from './window-manager'
-import { createApplicationMenu } from './menu'
+import { createApplicationMenu, updateThemeMenu } from './menu'
 import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams, CopyCollectionParams } from './types'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
 
@@ -531,6 +531,8 @@ ipcMain.handle('settings:setTheme', async (event, theme: Theme) => {
         win.webContents.send('settings:theme-changed', theme)
       }
     })
+    // Update menu to reflect new theme selection
+    updateThemeMenu()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to set theme'
