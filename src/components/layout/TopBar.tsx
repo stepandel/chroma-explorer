@@ -25,7 +25,7 @@ export function TopBar() {
       className="h-11 flex items-center"
       style={{
         WebkitAppRegion: 'drag',
-        background: 'oklch(0.98 0 0 / 50%)',
+        background: 'var(--sidebar)',
         backdropFilter: 'blur(20px) saturate(1.2)',
         WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
       } as React.CSSProperties}

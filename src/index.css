@@ -179,9 +179,9 @@ body {
   --muted: oklch(0.30 0 0);
   --muted-foreground: oklch(0.58 0 0);
 
-  /* Accent: Tinted highlight for selection */
-  --accent: oklch(0.65 0.18 255 / 15%);
-  --accent-foreground: oklch(0.94 0 0);
+  /* Accent: Selection highlight - visible but not overwhelming */
+  --accent: oklch(0.55 0.18 255 / 35%);
+  --accent-foreground: oklch(0.98 0 0);
 
   /* Destructive: Softer red for dark mode */
   --destructive: oklch(0.65 0.20 25);
@@ -206,8 +206,8 @@ body {
   --sidebar-foreground: oklch(0.88 0 0);
   --sidebar-primary: oklch(0.65 0.18 255);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 12%);
-  --sidebar-accent-foreground: oklch(0.94 0 0);
+  --sidebar-accent: oklch(0.55 0.16 255 / 30%);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.65 0.18 255 / 40%);
   --sidebar-shadow:
