@@ -4,6 +4,31 @@ import path from 'path'
 import { existsSync } from 'fs'
 import { getEncryptionKey } from './secure-key-manager'
 
+export interface ApiKeys {
+  OPENAI_API_KEY?: string
+  COHERE_API_KEY?: string
+  GEMINI_API_KEY?: string
+  JINA_API_KEY?: string
+  MISTRAL_API_KEY?: string
+  VOYAGE_API_KEY?: string
+  TOGETHER_API_KEY?: string
+  CLOUDFLARE_ACCOUNT_ID?: string
+  CLOUDFLARE_API_KEY?: string
+  MORPH_API_KEY?: string
+}
+
+export type Theme = 'light' | 'dark' | 'system'
+
+interface SettingsSchema {
+  apiKeys: ApiKeys
+  theme: Theme
+}
+
+// Legacy store schema (v1 - before theme was added)
+interface LegacySettingsSchema {
+  apiKeys: ApiKeys
+}
+
 // Migrate data from legacy v1 store (hardcoded key) to v2 store (keychain)
 function migrateFromLegacyStore(newStore: Store<SettingsSchema>): void {
   // Only migrate if new store is empty
@@ -15,7 +40,7 @@ function migrateFromLegacyStore(newStore: Store<SettingsSchema>): void {
   if (!existsSync(legacyPath)) return
 
   try {
-    const legacyStore = new Store<SettingsSchema>({
+    const legacyStore = new Store<LegacySettingsSchema>({
       name: 'chroma-settings',
       defaults: { apiKeys: {} },
       encryptionKey: 'chroma-explorer-settings-key-v1',
@@ -34,23 +59,6 @@ function migrateFromLegacyStore(newStore: Store<SettingsSchema>): void {
   }
 }
 
-export interface ApiKeys {
-  OPENAI_API_KEY?: string
-  COHERE_API_KEY?: string
-  GEMINI_API_KEY?: string
-  JINA_API_KEY?: string
-  MISTRAL_API_KEY?: string
-  VOYAGE_API_KEY?: string
-  TOGETHER_API_KEY?: string
-  CLOUDFLARE_ACCOUNT_ID?: string
-  CLOUDFLARE_API_KEY?: string
-  MORPH_API_KEY?: string
-}
-
-interface SettingsSchema {
-  apiKeys: ApiKeys
-}
-
 // Lazy-initialized store (requires app to be ready for keychain access)
 let store: Store<SettingsSchema> | null = null
 
@@ -60,6 +68,7 @@ function getStore(): Store<SettingsSchema> {
       name: 'chroma-settings-v2',
       defaults: {
         apiKeys: {},
+        theme: 'system',
       },
       encryptionKey: getEncryptionKey(),
     })
@@ -97,6 +106,14 @@ export class SettingsStore {
         process.env[key] = value
       }
     }
+  }
+
+  getTheme(): Theme {
+    return getStore().get('theme', 'system')
+  }
+
+  setTheme(theme: Theme): void {
+    getStore().set('theme', theme)
   }
 }
 

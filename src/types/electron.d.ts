@@ -217,6 +217,9 @@ declare global {
     settings: {
       getApiKeys: () => Promise<Record<string, string>>
       setApiKeys: (apiKeys: Record<string, string>) => Promise<void>
+      getTheme: () => Promise<'light' | 'dark' | 'system'>
+      setTheme: (theme: 'light' | 'dark' | 'system') => Promise<void>
+      onThemeChange: (callback: (theme: string) => void) => () => void
       openWindow: () => Promise<void>
       onSwitchTab: (callback: (tab: string) => void) => () => void
     }

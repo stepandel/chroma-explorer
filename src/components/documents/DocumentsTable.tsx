@@ -477,7 +477,7 @@ export default function DocumentsTable({
             return (
             <tr
               key={`draft-${draftIndex}`}
-              className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-primary/10' : 'bg-primary/5'}`}
+              className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-primary/15 dark:bg-primary/25' : 'bg-primary/5 dark:bg-primary/10'}`}
               onClick={(e) => handleRowClick(e, draft.id, draftIndex)}
               onDoubleClick={(e) => handleRowDoubleClick(e, draft.id)}
               onMouseDown={(e) => handleMouseDown(e, draftIndex)}
@@ -562,9 +562,9 @@ export default function DocumentsTable({
             if (isEditing) {
               rowBgClass = 'bg-primary/8'
             } else if (isMarkedForDeletion) {
-              rowBgClass = isSelected ? 'bg-destructive/15' : 'bg-destructive/10'
+              rowBgClass = isSelected ? 'bg-destructive/20' : 'bg-destructive/12'
             } else if (isSelected) {
-              rowBgClass = 'bg-primary/10'
+              rowBgClass = 'bg-primary/15 dark:bg-primary/25'
             } else {
               rowBgClass = adjustedIndex % 2 === 1 ? 'bg-black/[0.04] dark:bg-white/[0.04]' : ''
             }

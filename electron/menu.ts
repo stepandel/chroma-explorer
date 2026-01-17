@@ -2,6 +2,7 @@ import { BrowserWindow, Menu, app, shell } from 'electron'
 import { windowManager } from './window-manager'
 import { connectionStore } from './connection-store'
 import { checkForUpdates } from './auto-updater'
+import { settingsStore, Theme } from './settings-store'
 
 // Helper to send menu events to the focused window
 function sendToFocusedWindow(channel: string, ...args: unknown[]) {
@@ -9,6 +10,45 @@ function sendToFocusedWindow(channel: string, ...args: unknown[]) {
   if (focusedWindow) {
     focusedWindow.webContents.send(channel, ...args)
   }
+}
+
+// Helper to set theme and broadcast to all windows
+function setThemeAndBroadcast(theme: Theme) {
+  settingsStore.setTheme(theme)
+  // Broadcast to all windows
+  BrowserWindow.getAllWindows().forEach(win => {
+    win.webContents.send('settings:theme-changed', theme)
+  })
+  // Rebuild menu to update checkmarks
+  updateThemeMenu()
+}
+
+/**
+ * Build the Theme submenu items
+ */
+function buildThemeSubmenu(): Electron.MenuItemConstructorOptions[] {
+  const currentTheme = settingsStore.getTheme()
+
+  return [
+    {
+      label: 'Light',
+      type: 'radio',
+      checked: currentTheme === 'light',
+      click: () => setThemeAndBroadcast('light'),
+    },
+    {
+      label: 'Dark',
+      type: 'radio',
+      checked: currentTheme === 'dark',
+      click: () => setThemeAndBroadcast('dark'),
+    },
+    {
+      label: 'System',
+      type: 'radio',
+      checked: currentTheme === 'system',
+      click: () => setThemeAndBroadcast('system'),
+    },
+  ]
 }
 
 /**
@@ -173,6 +213,11 @@ function buildMenuTemplate(): Electron.MenuItemConstructorOptions[] {
           click: () => {
             sendToFocusedWindow('menu:toggle-right-panel')
           },
+        },
+        { type: 'separator' },
+        {
+          label: 'Theme',
+          submenu: buildThemeSubmenu(),
         },
         { type: 'separator' },
         {
@@ -375,6 +420,17 @@ export function createApplicationMenu() {
  */
 export function updateRecentConnectionsMenu() {
   // Simply rebuild the entire menu - this ensures Recent Connections is fresh
+  const template = buildMenuTemplate()
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+}
+
+/**
+ * Update the menu to reflect the current theme selection
+ * Call this when theme changes to update the radio button checkmarks
+ */
+export function updateThemeMenu() {
+  // Rebuild the entire menu to update theme radio buttons
   const template = buildMenuTemplate()
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)

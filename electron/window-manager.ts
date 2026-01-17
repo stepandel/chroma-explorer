@@ -1,12 +1,24 @@
-import { BrowserWindow, session } from 'electron'
+import { BrowserWindow, session, nativeTheme } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { ConnectionProfile } from './types'
 import { ConnectionWindowData } from './window-types'
 import { chromaDBConnectionPool } from './chromadb-service'
 import { randomUUID } from 'crypto'
+import { settingsStore } from './settings-store'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * Get the appropriate background color based on theme setting
+ * Returns a color that prevents white flash during window creation
+ */
+function getThemeBackgroundColor(): string {
+  const theme = settingsStore.getTheme()
+  const isDark = theme === 'dark' || (theme === 'system' && nativeTheme.shouldUseDarkColors)
+  // Match the CSS variables: dark=oklch(0.30) ≈ #404040, light=oklch(0.96) ≈ #f5f5f5
+  return isDark ? '#404040' : '#f5f5f5'
+}
 
 /**
  * Set up Content Security Policy for a window session
@@ -86,6 +98,7 @@ class WindowManager {
       transparent: true,
       vibrancy: 'under-window',
       visualEffectState: 'active',
+      backgroundColor: getThemeBackgroundColor(),
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
@@ -143,6 +156,7 @@ class WindowManager {
       transparent: true,
       vibrancy: 'under-window',
       visualEffectState: 'active',
+      backgroundColor: getThemeBackgroundColor(),
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
@@ -210,11 +224,20 @@ class WindowManager {
       y: 100 + offset,
       titleBarStyle: 'hiddenInset',
       title: `Chroma Explorer - ${profile.name}`,
+      transparent: true,
+      vibrancy: 'under-window',
+      visualEffectState: 'active',
+      backgroundColor: getThemeBackgroundColor(),
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
         nodeIntegration: false,
       },
+    })
+
+    // Show window when content is ready (prevents white flash)
+    win.once('ready-to-show', () => {
+      win.show()
     })
 
     // Set up Content Security Policy

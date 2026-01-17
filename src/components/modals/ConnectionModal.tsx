@@ -8,6 +8,13 @@ interface ConnectionModalProps {
 
 const inputClassName = "w-full h-7 text-[13px] px-2.5 rounded bg-black/[0.06] dark:bg-white/[0.08] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/[0.12] transition-colors border-0"
 
+type Theme = 'light' | 'dark' | 'system'
+type ResolvedTheme = 'light' | 'dark'
+
+function getSystemTheme(): ResolvedTheme {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalProps) {
   const [profiles, setProfiles] = useState<ConnectionProfile[]>([])
   const [selectedProfileId, setSelectedProfileId] = useState<string>('')
@@ -18,6 +25,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const [apiKey, setApiKey] = useState('')
   const [error, setError] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => getSystemTheme())
 
   // Load saved profiles on mount
   useEffect(() => {
@@ -25,6 +33,33 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       loadProfiles()
     }
   }, [isOpen])
+
+  // Load and listen to theme changes
+  useEffect(() => {
+    window.electronAPI.settings.getTheme().then((savedTheme) => {
+      setResolvedTheme(savedTheme === 'system' ? getSystemTheme() : savedTheme)
+    }).catch(console.error)
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleSystemChange = () => {
+      window.electronAPI.settings.getTheme().then((theme) => {
+        if (theme === 'system') {
+          setResolvedTheme(getSystemTheme())
+        }
+      }).catch(console.error)
+    }
+    mediaQuery.addEventListener('change', handleSystemChange)
+
+    const unsubscribe = window.electronAPI.settings.onThemeChange((newTheme) => {
+      const validTheme = newTheme as Theme
+      setResolvedTheme(validTheme === 'system' ? getSystemTheme() : validTheme)
+    })
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleSystemChange)
+      unsubscribe()
+    }
+  }, [])
 
   const handleContextMenu = useCallback((e: React.MouseEvent, profileId: string) => {
     e.preventDefault()
@@ -189,11 +224,17 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
 
   if (!isOpen) return null
 
+  // Compute theme-aware styles
+  const isDark = resolvedTheme === 'dark'
+  const windowBackground = isDark ? 'oklch(0.30 0 0 / 95%)' : 'oklch(0.96 0 0 / 75%)'
+  const sidebarBackground = isDark ? 'oklch(1 0 0 / 6%)' : 'oklch(0 0 0 / 8%)'
+  const borderColor = isDark ? 'oklch(1 0 0 / 10%)' : 'oklch(0 0 0 / 8%)'
+
   return (
     <div
       className="fixed inset-0 flex"
       style={{
-        background: 'oklch(0.96 0 0 / 75%)',
+        background: windowBackground,
       }}
     >
       {/* Left side - Form area */}
@@ -307,8 +348,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
 
       {/* Right sidebar - Saved Connections (full height) */}
       <div
-        className="w-44 flex flex-col border-l border-black/[0.08]"
-        style={{ background: 'oklch(0 0 0 / 8%)' }}
+        className="w-44 flex flex-col border-l"
+        style={{ background: sidebarBackground, borderColor }}
       >
         {/* Sidebar header with drag region */}
         <div
@@ -335,8 +376,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                     onContextMenu={(e) => handleContextMenu(e, profile.id)}
                     className={`w-full px-3 py-1.5 text-left transition-colors ${
                       isSelected
-                        ? 'bg-white/[0.08]'
-                        : 'hover:bg-white/[0.04]'
+                        ? 'bg-black/[0.08] dark:bg-white/[0.10]'
+                        : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <div className={`text-[12px] truncate ${
@@ -360,8 +401,8 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
             onClick={() => handleProfileSelect('')}
             className={`w-full h-6 text-[11px] rounded transition-colors ${
               !selectedProfileId
-                ? 'bg-white/[0.08] text-foreground/70'
-                : 'text-foreground/40 hover:bg-white/[0.04] hover:text-foreground/60'
+                ? 'bg-black/[0.08] dark:bg-white/[0.10] text-foreground/70'
+                : 'text-foreground/40 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-foreground/60'
             }`}
           >
             + New
