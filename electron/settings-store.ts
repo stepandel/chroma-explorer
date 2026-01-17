@@ -1,19 +1,36 @@
 import Store from 'electron-store'
 import { app } from 'electron'
 import path from 'path'
-import { existsSync, unlinkSync } from 'fs'
+import { existsSync } from 'fs'
 import { getEncryptionKey } from './secure-key-manager'
 
-// Delete legacy store files encrypted with the old hardcoded key
-function deleteLegacyStore(): void {
+// Migrate data from legacy v1 store (hardcoded key) to v2 store (keychain)
+function migrateFromLegacyStore(newStore: Store<SettingsSchema>): void {
+  // Only migrate if new store is empty
+  const currentKeys = newStore.get('apiKeys', {})
+  if (Object.keys(currentKeys).length > 0) return
+
+  // Check if legacy store file exists
+  const legacyPath = path.join(app.getPath('userData'), 'chroma-settings.json')
+  if (!existsSync(legacyPath)) return
+
   try {
-    const legacyPath = path.join(app.getPath('userData'), 'chroma-settings.json')
-    if (existsSync(legacyPath)) {
-      unlinkSync(legacyPath)
-      console.log('[SettingsStore] Deleted legacy store file')
+    const legacyStore = new Store<SettingsSchema>({
+      name: 'chroma-settings',
+      defaults: { apiKeys: {} },
+      encryptionKey: 'chroma-explorer-settings-key-v1',
+    })
+
+    const legacyKeys = legacyStore.get('apiKeys', {})
+
+    if (Object.keys(legacyKeys).length > 0) {
+      console.log('[SettingsStore] Migrating API keys from legacy store')
+      newStore.set('apiKeys', legacyKeys)
+      legacyStore.clear()
+      console.log('[SettingsStore] Migration complete')
     }
-  } catch {
-    // Ignore errors
+  } catch (error) {
+    console.warn('[SettingsStore] Could not migrate from legacy store:', error)
   }
 }
 
@@ -46,7 +63,7 @@ function getStore(): Store<SettingsSchema> {
       },
       encryptionKey: getEncryptionKey(),
     })
-    deleteLegacyStore()
+    migrateFromLegacyStore(store)
   }
   return store
 }

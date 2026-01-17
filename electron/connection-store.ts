@@ -1,20 +1,45 @@
 import Store from 'electron-store'
 import { app } from 'electron'
 import path from 'path'
-import { existsSync, unlinkSync } from 'fs'
+import { existsSync } from 'fs'
 import { ConnectionProfile, EmbeddingFunctionOverride } from './types'
 import { getEncryptionKey } from './secure-key-manager'
 
-// Delete legacy store files encrypted with the old hardcoded key
-function deleteLegacyStore(): void {
+// Migrate data from legacy v1 store (hardcoded key) to v2 store (keychain)
+function migrateFromLegacyStore(newStore: Store<StoreSchema>): void {
+  // Only migrate if new store is empty
+  const currentProfiles = newStore.get('profiles', [])
+  if (currentProfiles.length > 0) return
+
+  // Check if legacy store file exists
+  const legacyPath = path.join(app.getPath('userData'), 'chroma-connections.json')
+  if (!existsSync(legacyPath)) return
+
   try {
-    const legacyPath = path.join(app.getPath('userData'), 'chroma-connections.json')
-    if (existsSync(legacyPath)) {
-      unlinkSync(legacyPath)
-      console.log('[ConnectionStore] Deleted legacy store file')
+    const legacyStore = new Store<StoreSchema>({
+      name: 'chroma-connections',
+      defaults: {
+        profiles: [],
+        lastActiveProfileId: null,
+        embeddingOverrides: {},
+      },
+      encryptionKey: 'chroma-explorer-obfuscation-key-v1',
+    })
+
+    const legacyProfiles = legacyStore.get('profiles', [])
+    const legacyLastActive = legacyStore.get('lastActiveProfileId', null)
+    const legacyOverrides = legacyStore.get('embeddingOverrides', {})
+
+    if (legacyProfiles.length > 0) {
+      console.log(`[ConnectionStore] Migrating ${legacyProfiles.length} profiles from legacy store`)
+      newStore.set('profiles', legacyProfiles)
+      newStore.set('lastActiveProfileId', legacyLastActive)
+      newStore.set('embeddingOverrides', legacyOverrides)
+      legacyStore.clear()
+      console.log('[ConnectionStore] Migration complete')
     }
-  } catch {
-    // Ignore errors
+  } catch (error) {
+    console.warn('[ConnectionStore] Could not migrate from legacy store:', error)
   }
 }
 
@@ -40,7 +65,7 @@ function getStore(): Store<StoreSchema> {
       },
       encryptionKey: getEncryptionKey(),
     })
-    deleteLegacyStore()
+    migrateFromLegacyStore(store)
   }
   return store
 }
