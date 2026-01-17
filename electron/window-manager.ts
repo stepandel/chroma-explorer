@@ -225,7 +225,8 @@ class WindowManager {
       titleBarStyle: 'hiddenInset',
       title: `Chroma Explorer - ${profile.name}`,
       transparent: true,
-      show: false, // Don't show until ready to prevent flash
+      vibrancy: 'under-window',
+      visualEffectState: 'active',
       backgroundColor: getThemeBackgroundColor(),
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
