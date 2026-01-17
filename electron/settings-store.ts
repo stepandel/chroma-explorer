@@ -1,4 +1,8 @@
 import Store from 'electron-store'
+import { app } from 'electron'
+import path from 'path'
+import { existsSync, unlinkSync } from 'fs'
+import { getEncryptionKey } from './secure-key-manager'
 
 export interface ApiKeys {
   OPENAI_API_KEY?: string
@@ -17,21 +21,79 @@ interface SettingsSchema {
   apiKeys: ApiKeys
 }
 
-const store = new Store<SettingsSchema>({
-  name: 'chroma-settings',
-  defaults: {
-    apiKeys: {},
-  },
-  encryptionKey: 'chroma-explorer-settings-key-v1',
-})
+// Lazy-initialized store (requires app to be ready for keychain access)
+let store: Store<SettingsSchema> | null = null
+
+function getStore(): Store<SettingsSchema> {
+  if (!store) {
+    store = new Store<SettingsSchema>({
+      name: 'chroma-settings-v2', // New name to avoid conflicts with old unreadable data
+      defaults: {
+        apiKeys: {},
+      },
+      encryptionKey: getEncryptionKey(),
+    })
+
+    // Migrate from old store if it exists and new store is empty
+    migrateFromLegacyStore()
+  }
+  return store
+}
+
+/**
+ * Migrate data from the old hardcoded-key store to the new secure store.
+ */
+function migrateFromLegacyStore(): void {
+  if (!store) return
+
+  // Only migrate if new store is empty
+  const currentKeys = store.get('apiKeys', {})
+  if (Object.keys(currentKeys).length > 0) return
+
+  // Check if legacy store file exists before attempting migration
+  const legacyPath = path.join(app.getPath('userData'), 'chroma-settings.json')
+  if (!existsSync(legacyPath)) {
+    return // No legacy store to migrate
+  }
+
+  try {
+    const legacyStore = new Store<SettingsSchema>({
+      name: 'chroma-settings',
+      defaults: {
+        apiKeys: {},
+      },
+      encryptionKey: 'chroma-explorer-settings-key-v1',
+    })
+
+    const legacyKeys = legacyStore.get('apiKeys', {})
+
+    if (Object.keys(legacyKeys).length > 0) {
+      console.log('[SettingsStore] Migrating API keys from legacy store')
+      store.set('apiKeys', legacyKeys)
+
+      // Clear legacy store after successful migration
+      legacyStore.clear()
+      console.log('[SettingsStore] Migration complete, legacy store cleared')
+    }
+  } catch (error) {
+    // Migration failed - likely encryption key mismatch or corrupted file
+    // Delete the legacy file so we don't keep trying
+    console.warn('[SettingsStore] Could not migrate legacy store, removing it')
+    try {
+      unlinkSync(legacyPath)
+    } catch {
+      // Ignore deletion errors
+    }
+  }
+}
 
 export class SettingsStore {
   getApiKeys(): ApiKeys {
-    return store.get('apiKeys', {})
+    return getStore().get('apiKeys', {})
   }
 
   setApiKeys(keys: ApiKeys): void {
-    store.set('apiKeys', keys)
+    getStore().set('apiKeys', keys)
     this.injectIntoProcessEnv()
   }
 
@@ -42,7 +104,7 @@ export class SettingsStore {
     } else {
       delete apiKeys[envVar]
     }
-    store.set('apiKeys', apiKeys)
+    getStore().set('apiKeys', apiKeys)
     this.injectIntoProcessEnv()
   }
 
