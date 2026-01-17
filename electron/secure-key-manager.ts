@@ -1,6 +1,6 @@
 import { safeStorage, app } from 'electron'
-import { randomBytes } from 'crypto'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { randomBytes, createHash } from 'crypto'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'fs'
 import path from 'path'
 
 /**
@@ -12,6 +12,11 @@ import path from 'path'
  * 3. Stores the encrypted key in a file in userData directory
  * 4. On subsequent runs, reads and decrypts the key from the file
  *
+ * Fallback behavior:
+ * - If keychain access is denied, uses a deterministic fallback key
+ * - The fallback key is derived from app path + bundle ID for consistency
+ * - This ensures data remains readable even when keychain is denied
+ *
  * Keychain access persists across app updates because:
  * - macOS ties access to bundle ID + code signing identity
  * - As long as appId stays 'com.chromaexplorer.app' and same cert is used, no re-prompts
@@ -19,8 +24,10 @@ import path from 'path'
 
 const KEY_FILE_NAME = 'encryption-key.enc'
 const KEY_LENGTH = 32 // 256 bits
+const FALLBACK_KEY_PREFIX = 'chroma-explorer-fallback-v2'
 
 let cachedKey: string | null = null
+let keychainAccessDenied = false
 
 function getKeyFilePath(): string {
   const userDataPath = app.getPath('userData')
@@ -32,11 +39,24 @@ function generateRandomKey(): string {
 }
 
 /**
+ * Generates a deterministic fallback key based on app location.
+ * This ensures the same key is used across sessions when keychain is denied.
+ * Note: This is less secure than keychain but prevents crashes and data loss.
+ */
+function getDeterministicFallbackKey(): string {
+  // Use app path + bundle ID to create a machine-specific but deterministic key
+  const appPath = app.getAppPath()
+  const bundleId = 'com.chromaexplorer.app'
+  const seed = `${FALLBACK_KEY_PREFIX}:${appPath}:${bundleId}`
+  return createHash('sha256').update(seed).digest('hex')
+}
+
+/**
  * Gets or creates the encryption key.
  * Uses OS keychain for secure storage - user is prompted once on first access.
+ * Falls back gracefully if keychain access is denied.
  *
  * @returns The encryption key as a hex string
- * @throws Error if safeStorage is not available
  */
 export function getEncryptionKey(): string {
   // Return cached key if available (avoid repeated keychain access)
@@ -44,11 +64,17 @@ export function getEncryptionKey(): string {
     return cachedKey
   }
 
+  // If we know keychain was denied, use fallback immediately
+  if (keychainAccessDenied) {
+    cachedKey = getDeterministicFallbackKey()
+    return cachedKey
+  }
+
   // Check if safeStorage is available
   if (!safeStorage.isEncryptionAvailable()) {
-    console.warn('[SecureKeyManager] safeStorage not available, falling back to legacy key')
-    // Fallback for systems without keychain support
-    return 'chroma-explorer-fallback-key-v1'
+    console.warn('[SecureKeyManager] safeStorage not available, using fallback key')
+    cachedKey = getDeterministicFallbackKey()
+    return cachedKey
   }
 
   const keyFilePath = getKeyFilePath()
@@ -62,9 +88,24 @@ export function getEncryptionKey(): string {
       return cachedKey
     } catch (error) {
       console.error('[SecureKeyManager] Failed to decrypt existing key:', error)
-      // Key file exists but can't be decrypted - this shouldn't happen normally
-      // Could be corruption or different machine. Generate new key.
-      console.warn('[SecureKeyManager] Generating new key (existing data will be inaccessible)')
+
+      // Check if this is a keychain access denial
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('denied') || errorMessage.includes('canceled') || errorMessage.includes('user refused')) {
+        console.warn('[SecureKeyManager] Keychain access denied, using fallback key')
+        keychainAccessDenied = true
+        cachedKey = getDeterministicFallbackKey()
+        return cachedKey
+      }
+
+      // Key file exists but can't be decrypted - might be corruption
+      // Try to remove and regenerate
+      console.warn('[SecureKeyManager] Removing corrupted key file')
+      try {
+        unlinkSync(keyFilePath)
+      } catch {
+        // Ignore deletion errors
+      }
     }
   }
 
@@ -86,7 +127,17 @@ export function getEncryptionKey(): string {
     return cachedKey
   } catch (error) {
     console.error('[SecureKeyManager] Failed to store encryption key:', error)
-    // If we can't store, use the key in memory only (won't persist)
+
+    // Check if this is a keychain access denial
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (errorMessage.includes('denied') || errorMessage.includes('canceled') || errorMessage.includes('user refused')) {
+      console.warn('[SecureKeyManager] Keychain access denied during encryption, using fallback key')
+      keychainAccessDenied = true
+      cachedKey = getDeterministicFallbackKey()
+      return cachedKey
+    }
+
+    // Other error - use the new key in memory only (won't persist across restarts)
     cachedKey = newKey
     return cachedKey
   }

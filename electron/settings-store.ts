@@ -64,15 +64,46 @@ let store: Store<SettingsSchema> | null = null
 
 function getStore(): Store<SettingsSchema> {
   if (!store) {
-    store = new Store<SettingsSchema>({
-      name: 'chroma-settings-v2',
-      defaults: {
-        apiKeys: {},
-        theme: 'system',
-      },
-      encryptionKey: getEncryptionKey(),
-    })
-    migrateFromLegacyStore(store)
+    try {
+      store = new Store<SettingsSchema>({
+        name: 'chroma-settings-v2',
+        defaults: {
+          apiKeys: {},
+          theme: 'system',
+        },
+        encryptionKey: getEncryptionKey(),
+      })
+
+      // Test if we can read the store (will throw if encryption key is wrong)
+      store.get('apiKeys')
+
+      migrateFromLegacyStore(store)
+    } catch (error) {
+      console.error('[SettingsStore] Failed to initialize store:', error)
+
+      // If decryption failed, the encryption key changed (e.g., keychain denied after previous allow)
+      // Clear the corrupted store and start fresh
+      const storePath = path.join(app.getPath('userData'), 'chroma-settings-v2.json')
+      if (existsSync(storePath)) {
+        console.warn('[SettingsStore] Removing corrupted store file to start fresh')
+        try {
+          const { unlinkSync } = require('fs')
+          unlinkSync(storePath)
+        } catch {
+          // Ignore deletion errors
+        }
+      }
+
+      // Create a fresh store
+      store = new Store<SettingsSchema>({
+        name: 'chroma-settings-v2',
+        defaults: {
+          apiKeys: {},
+          theme: 'system',
+        },
+        encryptionKey: getEncryptionKey(),
+      })
+    }
   }
   return store
 }

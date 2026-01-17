@@ -56,16 +56,48 @@ let store: Store<StoreSchema> | null = null
 
 function getStore(): Store<StoreSchema> {
   if (!store) {
-    store = new Store<StoreSchema>({
-      name: 'chroma-connections-v2',
-      defaults: {
-        profiles: [],
-        lastActiveProfileId: null,
-        embeddingOverrides: {},
-      },
-      encryptionKey: getEncryptionKey(),
-    })
-    migrateFromLegacyStore(store)
+    try {
+      store = new Store<StoreSchema>({
+        name: 'chroma-connections-v2',
+        defaults: {
+          profiles: [],
+          lastActiveProfileId: null,
+          embeddingOverrides: {},
+        },
+        encryptionKey: getEncryptionKey(),
+      })
+
+      // Test if we can read the store (will throw if encryption key is wrong)
+      store.get('profiles')
+
+      migrateFromLegacyStore(store)
+    } catch (error) {
+      console.error('[ConnectionStore] Failed to initialize store:', error)
+
+      // If decryption failed, the encryption key changed (e.g., keychain denied after previous allow)
+      // Clear the corrupted store and start fresh
+      const storePath = path.join(app.getPath('userData'), 'chroma-connections-v2.json')
+      if (existsSync(storePath)) {
+        console.warn('[ConnectionStore] Removing corrupted store file to start fresh')
+        try {
+          const { unlinkSync } = require('fs')
+          unlinkSync(storePath)
+        } catch {
+          // Ignore deletion errors
+        }
+      }
+
+      // Create a fresh store
+      store = new Store<StoreSchema>({
+        name: 'chroma-connections-v2',
+        defaults: {
+          profiles: [],
+          lastActiveProfileId: null,
+          embeddingOverrides: {},
+        },
+        encryptionKey: getEncryptionKey(),
+      })
+    }
   }
   return store
 }
