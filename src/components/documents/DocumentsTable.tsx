@@ -34,6 +34,7 @@ interface DocumentsTableProps {
   loading: boolean
   error: string | null
   hasActiveFilters?: boolean
+  databaseType?: 'chroma' | 'pinecone'
   // Multi-select props
   selectedDocumentIds: Set<string>
   selectionAnchor: string | null
@@ -58,6 +59,7 @@ export default function DocumentsTable({
   loading,
   error,
   hasActiveFilters = false,
+  databaseType = 'chroma',
   selectedDocumentIds,
   selectionAnchor,
   onSingleSelect,
@@ -316,33 +318,37 @@ export default function DocumentsTable({
       })
     }
 
-    baseColumns.push(
-      {
-        accessorKey: 'id',
-        header: 'id',
-        size: 200,
-        cell: info => (
-          <div className="text-xs font-mono text-foreground">
-            {info.getValue() as string}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'document',
-        header: 'document',
-        size: 300,
-        cell: info => {
-          const value = info.getValue() as string | null
-          return (
-            <div className="text-xs text-foreground">
-              <div className="line-clamp-2">
-                {value || <span className="text-muted-foreground italic">No document</span>}
-              </div>
+    // For Chroma, add id and document as base columns
+    // For Pinecone, these come from metadata so we only show metadata columns
+    if (databaseType === 'chroma') {
+      baseColumns.push(
+        {
+          accessorKey: 'id',
+          header: 'id',
+          size: 200,
+          cell: info => (
+            <div className="text-xs font-mono text-foreground">
+              {info.getValue() as string}
             </div>
-          )
+          ),
         },
-      },
-    )
+        {
+          accessorKey: 'document',
+          header: 'document',
+          size: 300,
+          cell: info => {
+            const value = info.getValue() as string | null
+            return (
+              <div className="text-xs text-foreground">
+                <div className="line-clamp-2">
+                  {value || <span className="text-muted-foreground italic">No document</span>}
+                </div>
+              </div>
+            )
+          },
+        },
+      )
+    }
 
     // Add dynamic metadata columns
     const metadataColumns: ColumnDef<DocumentRecord>[] = metadataKeys.map(key => ({
@@ -373,7 +379,7 @@ export default function DocumentsTable({
     }))
 
     return [...baseColumns, ...metadataColumns]
-  }, [metadataKeys, hasDistances])
+  }, [metadataKeys, hasDistances, databaseType])
 
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
 

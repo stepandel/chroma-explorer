@@ -879,6 +879,7 @@ export default function DocumentsView({
           loading={loading}
           error={error ? (error as Error).message : null}
           hasActiveFilters={hasActiveFilters}
+          databaseType={currentProfile?.type || 'chroma'}
           selectedDocumentIds={selectedDocumentIds}
           selectionAnchor={selectionAnchor}
           onSingleSelect={onSingleSelect}

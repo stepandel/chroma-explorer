@@ -83,6 +83,7 @@ function extractDocumentFromMetadata(metadata: RecordMetadata | undefined): stri
 
 /**
  * Strip the _document key from metadata for display
+ * This is extracted to the document field, so we don't need to show it again
  */
 function stripDocumentFromMetadata(metadata: RecordMetadata | undefined): Record<string, unknown> | null {
   if (!metadata) return null
