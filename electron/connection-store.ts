@@ -43,6 +43,25 @@ function migrateFromLegacyStore(newStore: Store<StoreSchema>): void {
   }
 }
 
+// Migrate profiles to add type field (defaults to 'chroma' for existing profiles)
+function migrateProfileTypes(store: Store<StoreSchema>): void {
+  const profiles = store.get('profiles', [])
+  let migrated = false
+
+  const updatedProfiles = profiles.map(profile => {
+    if (!profile.type) {
+      migrated = true
+      return { ...profile, type: 'chroma' as const }
+    }
+    return profile
+  })
+
+  if (migrated) {
+    console.log('[ConnectionStore] Migrating profiles to add type field')
+    store.set('profiles', updatedProfiles)
+  }
+}
+
 interface StoreSchema {
   profiles: ConnectionProfile[]
   lastActiveProfileId: string | null
@@ -66,6 +85,7 @@ function getStore(): Store<StoreSchema> {
       encryptionKey: getEncryptionKey(),
     })
     migrateFromLegacyStore(store)
+    migrateProfileTypes(store)
   }
   return store
 }

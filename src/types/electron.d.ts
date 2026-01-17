@@ -1,4 +1,19 @@
 declare global {
+  // Database backend types
+  type DatabaseBackend = 'chroma' | 'pinecone'
+
+  // Pinecone-specific types
+  type PineconeMetric = 'cosine' | 'euclidean' | 'dotproduct'
+  type PineconeCloud = 'aws' | 'gcp' | 'azure'
+
+  interface PineconeIndexInfo {
+    metric: PineconeMetric
+    host: string
+    cloud: PineconeCloud
+    region: string
+    namespaces: string[]
+  }
+
   type EmbeddingFunctionType =
     | 'default'
     | 'openai'
@@ -25,10 +40,13 @@ declare global {
   interface ConnectionProfile {
     id: string
     name: string
+    type?: DatabaseBackend
     url: string
     tenant?: string
     database?: string
     apiKey?: string
+    pineconeApiKey?: string
+    pineconeIndexName?: string
     createdAt: number
     lastUsed?: number
     embeddingOverrides?: Record<string, EmbeddingFunctionOverride>
@@ -45,6 +63,7 @@ declare global {
       type: 'known' | 'legacy' | 'unknown'
       config?: Record<string, unknown>
     } | null
+    pinecone?: PineconeIndexInfo
   }
 
   interface DocumentRecord {
@@ -62,6 +81,9 @@ declare global {
     ids?: string[] // Filter by specific IDs (no embedding function needed)
     limit?: number
     offset?: number
+    mode?: 'semantic' | 'id' | 'list' // Search mode
+    namespace?: string
+    paginationToken?: string
   }
 
   interface UpdateDocumentParams {
@@ -122,6 +144,12 @@ declare global {
       id: string
       document?: string
       metadata?: Record<string, unknown>
+    }
+    pinecone?: {
+      dimension: number
+      metric?: PineconeMetric
+      cloud?: PineconeCloud
+      region?: string
     }
   }
 

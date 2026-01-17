@@ -1,5 +1,20 @@
 import { Metadata } from "chromadb"
 
+// Database backend types
+export type DatabaseBackend = 'chroma' | 'pinecone'
+
+// Pinecone-specific types
+export type PineconeMetric = 'cosine' | 'euclidean' | 'dotproduct'
+export type PineconeCloud = 'aws' | 'gcp' | 'azure'
+
+export interface PineconeIndexInfo {
+  metric: PineconeMetric
+  host: string
+  cloud: PineconeCloud
+  region: string
+  namespaces: string[] // List of namespaces in this index
+}
+
 export type EmbeddingFunctionType =
   | 'default'
   | 'openai'
@@ -27,13 +42,20 @@ export interface ConnectionProfile {
   id: string // UUID
   name: string // User-friendly name (e.g., "Production Server")
 
-  // Connection URL (required)
+  // Database type (defaults to 'chroma' for backward compatibility)
+  type?: DatabaseBackend
+
+  // Connection URL (required for Chroma, not used for Pinecone)
   url: string // e.g., "http://localhost:8000" or "https://api.trychroma.com"
 
-  // Optional fields for remote/cloud connections
+  // Optional fields for Chroma remote/cloud connections
   tenant?: string // Chroma Cloud tenant ID
   database?: string // Chroma Cloud database name
-  apiKey?: string // API key for authentication
+  apiKey?: string // API key for authentication (Chroma)
+
+  // Pinecone-specific fields
+  pineconeApiKey?: string // Pinecone API key
+  pineconeIndexName?: string // Pinecone index name (namespaces within become collections)
 
   createdAt: number // Timestamp
   lastUsed?: number // Timestamp
@@ -53,6 +75,8 @@ export interface CollectionInfo {
     type: 'known' | 'legacy' | 'unknown'
     config?: Record<string, unknown>
   } | null
+  // Pinecone-specific fields (only populated for Pinecone indexes)
+  pinecone?: PineconeIndexInfo
 }
 
 export interface DocumentRecord {
@@ -71,6 +95,10 @@ export interface SearchDocumentsParams {
   ids?: string[] // Filter by specific IDs (no embedding function needed)
   limit?: number // For get() pagination
   offset?: number // For get() pagination
+  mode?: 'semantic' | 'id' | 'list' // Search mode: semantic (queryText), id (specific IDs), list (all documents)
+  // Pinecone-specific fields
+  namespace?: string // Pinecone namespace (parsed from collectionName if format is "index::namespace")
+  paginationToken?: string // For Pinecone list pagination
 }
 
 export interface UpdateDocumentParams {
@@ -132,6 +160,13 @@ export interface CreateCollectionParams {
     id: string
     document?: string
     metadata?: Record<string, unknown>
+  }
+  // Pinecone-specific fields for index creation
+  pinecone?: {
+    dimension: number // Required for Pinecone
+    metric?: PineconeMetric // Default: cosine
+    cloud?: PineconeCloud // Default: aws
+    region?: string // Default: us-east-1
   }
 }
 

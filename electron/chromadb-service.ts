@@ -14,6 +14,7 @@ import {
   CopyProgress,
   EmbeddingFunctionOverride,
 } from './types'
+import { VectorDBService, SearchResult } from './vector-db-service'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
 
 // Helper to convert EmbeddingFunctionOverride to the format expected by the factory
@@ -39,7 +40,7 @@ function buildEfConfigFromOverride(override: EmbeddingFunctionOverride): Collect
   }
 }
 
-class ChromaDBService {
+class ChromaDBService implements VectorDBService {
   private client: ChromaClient | CloudClient | null = null
   private efFactory: EmbeddingFunctionFactory | null = null
   private profile: ConnectionProfile | null = null
@@ -186,7 +187,7 @@ class ChromaDBService {
   async searchDocuments(
     params: SearchDocumentsParams,
     embeddingOverride?: EmbeddingFunctionOverride | null
-  ): Promise<DocumentRecord[]> {
+  ): Promise<SearchResult> {
     if (!this.client) {
       throw new Error('ChromaDB client not connected. Please connect first.')
     }
@@ -238,7 +239,7 @@ class ChromaDBService {
         distance: queryResults.distances?.[0]?.[i] ?? null,
       }));
 
-      return documents
+      return { documents }
     }
 
     // Use get method for metadata/ID filtering - no embedding function needed
@@ -277,7 +278,7 @@ class ChromaDBService {
       embedding: getResults.embeddings?.[i] || null,
     }));
 
-    return documents
+    return { documents }
   }
 
   async updateDocument(
@@ -888,6 +889,9 @@ class ChromaDBConnectionPool {
     return this.connections.get(profileId)?.refCount || 0
   }
 }
+
+// Export the class for use in vector-db-connection-pool
+export { ChromaDBService }
 
 // Export singleton connection pool
 export const chromaDBConnectionPool = new ChromaDBConnectionPool()

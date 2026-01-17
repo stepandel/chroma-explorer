@@ -11,6 +11,13 @@ export interface DraftHNSWConfig {
   maxNeighbors: string // String to allow empty input
 }
 
+export interface DraftPineconeConfig {
+  dimension: string // String to allow empty input
+  metric: 'cosine' | 'euclidean' | 'dotproduct'
+  cloud: 'aws' | 'gcp' | 'azure'
+  region: string
+}
+
 export interface DraftCollection {
   name: string
   embeddingFunctionId: string
@@ -24,6 +31,8 @@ export interface DraftCollection {
   } | null
   // If copying from an existing collection, this will be set
   sourceCollection?: CollectionInfo
+  // Pinecone-specific configuration
+  pinecone?: DraftPineconeConfig
 }
 
 interface DraftCollectionContextValue {
@@ -48,7 +57,7 @@ interface DraftCollectionProviderProps {
 
 const DEFAULT_EF = EMBEDDING_FUNCTIONS[0]
 
-function createInitialDraft(): DraftCollection {
+function createInitialDraft(isPinecone: boolean = false): DraftCollection {
   return {
     name: '',
     embeddingFunctionId: DEFAULT_EF.id,
@@ -59,6 +68,13 @@ function createInitialDraft(): DraftCollection {
       maxNeighbors: '',
     },
     firstDocument: null,
+    // Initialize Pinecone config if connected to Pinecone
+    pinecone: isPinecone ? {
+      dimension: '',
+      metric: 'cosine',
+      cloud: 'aws',
+      region: 'us-east-1',
+    } : undefined,
   }
 }
 
@@ -72,11 +88,12 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
   const createMutation = useCreateCollectionMutation(currentProfile?.id || '')
 
   const startCreation = useCallback(() => {
-    setDraftCollection(createInitialDraft())
+    const isPinecone = currentProfile?.type === 'pinecone'
+    setDraftCollection(createInitialDraft(isPinecone))
     setValidationErrors({})
     // Deselect current collection when starting creation
     setActiveCollection(null)
-  }, [setActiveCollection])
+  }, [setActiveCollection, currentProfile])
 
   const startCopyFromCollection = useCallback((collection: CollectionInfo) => {
     // Find matching embedding function from collection's config
@@ -152,10 +169,24 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
   const saveDraft = useCallback(async () => {
     if (!draftCollection || !currentProfile) return
 
+    const isPinecone = currentProfile.type === 'pinecone'
+
     // Validate
     const errors: Record<string, string> = {}
     if (!draftCollection.name.trim()) {
-      errors.name = 'Collection name is required'
+      errors.name = isPinecone ? 'Index name is required' : 'Collection name is required'
+    }
+
+    // Validate Pinecone-specific fields
+    if (isPinecone && draftCollection.pinecone) {
+      if (!draftCollection.pinecone.dimension.trim()) {
+        errors.dimension = 'Dimension is required for Pinecone indexes'
+      } else {
+        const dim = parseInt(draftCollection.pinecone.dimension, 10)
+        if (isNaN(dim) || dim <= 0) {
+          errors.dimension = 'Dimension must be a positive number'
+        }
+      }
     }
 
     // Validate first document metadata types
@@ -214,6 +245,17 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
       }
       if (Object.keys(hnswConfig).length > 0) {
         params.hnsw = hnswConfig
+      }
+
+      // Add Pinecone config if present
+      if (isPinecone && draftCollection.pinecone) {
+        const dim = parseInt(draftCollection.pinecone.dimension, 10)
+        params.pinecone = {
+          dimension: dim,
+          metric: draftCollection.pinecone.metric,
+          cloud: draftCollection.pinecone.cloud,
+          region: draftCollection.pinecone.region,
+        }
       }
 
       // Add first document if provided

@@ -8,6 +8,13 @@ export interface ApiKeyProvider {
 
 export const API_KEY_PROVIDERS: ApiKeyProvider[] = [
   {
+    id: 'pinecone',
+    name: 'Pinecone',
+    description: 'Vector database connections',
+    envVars: ['PINECONE_API_KEY'],
+    docsUrl: 'https://app.pinecone.io/',
+  },
+  {
     id: 'openai',
     name: 'OpenAI',
     description: 'GPT models and embeddings',

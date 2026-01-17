@@ -5,7 +5,7 @@ import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions, shell } 
 app.name = 'Chroma Explorer'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromaDBConnectionPool } from './chromadb-service'
+import { vectorDBConnectionPool } from './vector-db-connection-pool'
 import { connectionStore } from './connection-store'
 import { settingsStore, ApiKeys } from './settings-store'
 import { windowManager } from './window-manager'
@@ -29,7 +29,7 @@ process.env.VITE_PUBLIC = app.isPackaged
 // Set up IPC handlers
 ipcMain.handle('chromadb:connect', async (_event, profileId: string, profile: ConnectionProfile) => {
   try {
-    await chromaDBConnectionPool.connect(profileId, profile)
+    await vectorDBConnectionPool.connect(profileId, profile)
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to connect to ChromaDB'
@@ -39,9 +39,9 @@ ipcMain.handle('chromadb:connect', async (_event, profileId: string, profile: Co
 
 ipcMain.handle('chromadb:listCollections', async (_event, profileId: string) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
     const collections = await service.listCollections()
     return { success: true, data: collections }
@@ -53,12 +53,13 @@ ipcMain.handle('chromadb:listCollections', async (_event, profileId: string) => 
 
 ipcMain.handle('chromadb:getDocuments', async (_event, profileId: string, collectionName: string) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
-    const documents = await service.getCollectionDocuments(collectionName)
-    return { success: true, data: documents }
+    // Use searchDocuments with mode: 'list' to get all documents
+    const result = await service.searchDocuments({ collectionName, mode: 'list' })
+    return { success: true, data: result.documents }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch documents'
     return { success: false, error: message }
@@ -67,14 +68,15 @@ ipcMain.handle('chromadb:getDocuments', async (_event, profileId: string, collec
 
 ipcMain.handle('chromadb:searchDocuments', async (_event, profileId: string, params: SearchDocumentsParams) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
     // Check for user embedding override
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
-    const documents = await service.searchDocuments(params, embeddingOverride)
-    return { success: true, data: documents }
+    const result = await service.searchDocuments(params, embeddingOverride)
+    // Return documents array for backward compatibility, include paginationToken if available
+    return { success: true, data: result.documents, paginationToken: result.paginationToken }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to search documents'
     return { success: false, error: message }
@@ -83,9 +85,9 @@ ipcMain.handle('chromadb:searchDocuments', async (_event, profileId: string, par
 
 ipcMain.handle('chromadb:updateDocument', async (_event, profileId: string, params: UpdateDocumentParams) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
     // Check for user embedding override (needed for regeneration)
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
@@ -99,9 +101,9 @@ ipcMain.handle('chromadb:updateDocument', async (_event, profileId: string, para
 
 ipcMain.handle('chromadb:createDocument', async (_event, profileId: string, params: CreateDocumentParams) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
     // Check for user embedding override (needed for embedding generation)
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
@@ -115,9 +117,9 @@ ipcMain.handle('chromadb:createDocument', async (_event, profileId: string, para
 
 ipcMain.handle('chromadb:deleteDocuments', async (_event, profileId: string, params: DeleteDocumentsParams) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
     await service.deleteDocuments(params)
     return { success: true }
@@ -129,9 +131,9 @@ ipcMain.handle('chromadb:deleteDocuments', async (_event, profileId: string, par
 
 ipcMain.handle('chromadb:createDocumentsBatch', async (_event, profileId: string, params: CreateDocumentsBatchParams) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
     // Check for user embedding override
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
@@ -145,9 +147,9 @@ ipcMain.handle('chromadb:createDocumentsBatch', async (_event, profileId: string
 
 ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, params: CreateCollectionParams) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
     const collection = await service.createCollection(params)
     return { success: true, data: collection }
@@ -159,9 +161,9 @@ ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, pa
 
 ipcMain.handle('chromadb:deleteCollection', async (_event, profileId: string, collectionName: string) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
     await service.deleteCollection(collectionName)
     return { success: true }
@@ -173,9 +175,9 @@ ipcMain.handle('chromadb:deleteCollection', async (_event, profileId: string, co
 
 ipcMain.handle('chromadb:copyCollection', async (event, profileId: string, params: CopyCollectionParams) => {
   try {
-    const service = chromaDBConnectionPool.getConnection(profileId)
+    const service = vectorDBConnectionPool.getConnection(profileId)
     if (!service) {
-      return { success: false, error: 'Not connected to ChromaDB' }
+      return { success: false, error: 'Not connected to database' }
     }
 
     // Create abort controller for this copy operation

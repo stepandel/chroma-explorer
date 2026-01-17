@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, useCallback } from 'react'
-import { ConnectionProfile } from '../../../electron/types'
+import { ConnectionProfile, DatabaseBackend } from '../../../electron/types'
 
 interface ConnectionModalProps {
   isOpen: boolean
@@ -11,11 +11,16 @@ const inputClassName = "w-full h-7 text-[13px] px-2.5 rounded bg-black/[0.06] da
 export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalProps) {
   const [profiles, setProfiles] = useState<ConnectionProfile[]>([])
   const [selectedProfileId, setSelectedProfileId] = useState<string>('')
+  const [dbType, setDbType] = useState<DatabaseBackend>('chroma')
   const [profileName, setProfileName] = useState('')
+  // Chroma fields
   const [url, setUrl] = useState('http://localhost:8000')
   const [tenant, setTenant] = useState('')
   const [database, setDatabase] = useState('')
   const [apiKey, setApiKey] = useState('')
+  // Pinecone fields
+  const [pineconeApiKey, setPineconeApiKey] = useState('')
+  const [pineconeIndexName, setPineconeIndexName] = useState('')
   const [error, setError] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
 
@@ -67,20 +72,26 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
 
     const profile = profiles.find(p => p.id === profileId)
     if (profile) {
+      setDbType(profile.type || 'chroma')
       setProfileName(profile.name)
       setUrl(profile.url)
       setTenant(profile.tenant || '')
       setDatabase(profile.database || '')
       setApiKey(profile.apiKey || '')
+      setPineconeApiKey(profile.pineconeApiKey || '')
+      setPineconeIndexName(profile.pineconeIndexName || '')
     }
   }
 
   const resetForm = () => {
+    setDbType('chroma')
     setProfileName('')
     setUrl('http://localhost:8000')
     setTenant('')
     setDatabase('')
     setApiKey('')
+    setPineconeApiKey('')
+    setPineconeIndexName('')
   }
 
   const handleDeleteProfile = async (profileId: string) => {
@@ -125,14 +136,23 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       return 'Profile name is required'
     }
 
-    if (!url.trim()) {
-      return 'URL is required'
-    }
+    if (dbType === 'chroma') {
+      if (!url.trim()) {
+        return 'URL is required'
+      }
 
-    try {
-      new URL(url)
-    } catch {
-      return 'Please enter a valid URL (e.g., http://localhost:8000)'
+      try {
+        new URL(url)
+      } catch {
+        return 'Please enter a valid URL (e.g., http://localhost:8000)'
+      }
+    } else if (dbType === 'pinecone') {
+      if (!pineconeApiKey.trim()) {
+        return 'Pinecone API Key is required'
+      }
+      if (!pineconeIndexName.trim()) {
+        return 'Pinecone Index Name is required'
+      }
     }
 
     return null
@@ -154,14 +174,23 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       const profile: ConnectionProfile = {
         id: selectedProfileId || crypto.randomUUID(),
         name: profileName || `Connection-${Date.now()}`,
-        url: url.trim(),
+        type: dbType,
+        url: dbType === 'chroma' ? url.trim() : '', // URL only needed for Chroma
         createdAt: Date.now(),
       }
 
-      // Add optional fields if provided
-      if (tenant.trim()) profile.tenant = tenant.trim()
-      if (database.trim()) profile.database = database.trim()
-      if (apiKey.trim()) profile.apiKey = apiKey.trim()
+      // Add Chroma-specific fields if provided
+      if (dbType === 'chroma') {
+        if (tenant.trim()) profile.tenant = tenant.trim()
+        if (database.trim()) profile.database = database.trim()
+        if (apiKey.trim()) profile.apiKey = apiKey.trim()
+      }
+
+      // Add Pinecone-specific fields
+      if (dbType === 'pinecone') {
+        profile.pineconeApiKey = pineconeApiKey.trim()
+        profile.pineconeIndexName = pineconeIndexName.trim()
+      }
 
       // Test connection first before saving or proceeding
       try {
@@ -170,7 +199,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         // Connection failed - show detailed error message
         const errorMessage = connectionError instanceof Error
           ? connectionError.message
-          : 'Failed to connect to ChromaDB'
+          : `Failed to connect to ${dbType === 'pinecone' ? 'Pinecone' : 'ChromaDB'}`
 
         throw new Error(`Connection failed: ${errorMessage}`)
       }
@@ -211,9 +240,35 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         {/* Form content */}
         <div className="flex-1 flex flex-col px-10 pb-5">
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col max-w-sm mx-auto w-full">
+            {/* Database type tabs */}
+            <div className="flex gap-1 mb-4 p-0.5 rounded bg-black/[0.04] dark:bg-white/[0.04]">
+              <button
+                type="button"
+                onClick={() => setDbType('chroma')}
+                className={`flex-1 h-6 text-[11px] font-medium rounded transition-colors ${
+                  dbType === 'chroma'
+                    ? 'bg-white dark:bg-white/[0.12] text-foreground shadow-sm'
+                    : 'text-foreground/50 hover:text-foreground/70'
+                }`}
+              >
+                Chroma
+              </button>
+              <button
+                type="button"
+                onClick={() => setDbType('pinecone')}
+                className={`flex-1 h-6 text-[11px] font-medium rounded transition-colors ${
+                  dbType === 'pinecone'
+                    ? 'bg-white dark:bg-white/[0.12] text-foreground shadow-sm'
+                    : 'text-foreground/50 hover:text-foreground/70'
+                }`}
+              >
+                Pinecone
+              </button>
+            </div>
+
             {/* Form fields */}
             <div className="flex-1 space-y-4">
-              {/* Primary fields */}
+              {/* Common fields */}
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
                   <label htmlFor="profileName" className="text-[12px] text-foreground/50 w-16 text-right">Name</label>
@@ -227,63 +282,107 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   />
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <label htmlFor="url" className="text-[12px] text-foreground/50 w-16 text-right">URL</label>
-                  <input
-                    type="text"
-                    id="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="http://localhost:8000"
-                    required
-                    className={inputClassName}
-                  />
-                </div>
+                {/* Chroma-specific: URL field */}
+                {dbType === 'chroma' && (
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="url" className="text-[12px] text-foreground/50 w-16 text-right">URL</label>
+                    <input
+                      type="text"
+                      id="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="http://localhost:8000"
+                      required
+                      className={inputClassName}
+                    />
+                  </div>
+                )}
+
+                {/* Pinecone-specific fields */}
+                {dbType === 'pinecone' && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <label htmlFor="pineconeApiKey" className="text-[12px] text-foreground/50 w-16 text-right">API Key</label>
+                      <input
+                        type="password"
+                        id="pineconeApiKey"
+                        value={pineconeApiKey}
+                        onChange={(e) => setPineconeApiKey(e.target.value)}
+                        placeholder="pcsk_..."
+                        required
+                        className={inputClassName}
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label htmlFor="pineconeIndexName" className="text-[12px] text-foreground/50 w-16 text-right">Index</label>
+                      <input
+                        type="text"
+                        id="pineconeIndexName"
+                        value={pineconeIndexName}
+                        onChange={(e) => setPineconeIndexName(e.target.value)}
+                        placeholder="my-index"
+                        required
+                        className={inputClassName}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Advanced fields */}
-              <div className="space-y-2.5 pt-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Cloud</span>
-                  <div className="flex-1 h-px bg-foreground/10" />
-                </div>
+              {/* Chroma Cloud fields */}
+              {dbType === 'chroma' && (
+                <div className="space-y-2.5 pt-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Cloud</span>
+                    <div className="flex-1 h-px bg-foreground/10" />
+                  </div>
 
-                <div className="flex items-center gap-3">
-                  <label htmlFor="tenant" className="text-[12px] text-foreground/50 w-16 text-right">Tenant</label>
-                  <input
-                    type="text"
-                    id="tenant"
-                    value={tenant}
-                    onChange={(e) => setTenant(e.target.value)}
-                    placeholder="default_tenant"
-                    className={inputClassName}
-                  />
-                </div>
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="tenant" className="text-[12px] text-foreground/50 w-16 text-right">Tenant</label>
+                    <input
+                      type="text"
+                      id="tenant"
+                      value={tenant}
+                      onChange={(e) => setTenant(e.target.value)}
+                      placeholder="default_tenant"
+                      className={inputClassName}
+                    />
+                  </div>
 
-                <div className="flex items-center gap-3">
-                  <label htmlFor="database" className="text-[12px] text-foreground/50 w-16 text-right">Database</label>
-                  <input
-                    type="text"
-                    id="database"
-                    value={database}
-                    onChange={(e) => setDatabase(e.target.value)}
-                    placeholder="default_database"
-                    className={inputClassName}
-                  />
-                </div>
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="database" className="text-[12px] text-foreground/50 w-16 text-right">Database</label>
+                    <input
+                      type="text"
+                      id="database"
+                      value={database}
+                      onChange={(e) => setDatabase(e.target.value)}
+                      placeholder="default_database"
+                      className={inputClassName}
+                    />
+                  </div>
 
-                <div className="flex items-center gap-3">
-                  <label htmlFor="apiKey" className="text-[12px] text-foreground/50 w-16 text-right">API Key</label>
-                  <input
-                    type="password"
-                    id="apiKey"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="••••••••"
-                    className={inputClassName}
-                  />
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="apiKey" className="text-[12px] text-foreground/50 w-16 text-right">API Key</label>
+                    <input
+                      type="password"
+                      id="apiKey"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="••••••••"
+                      className={inputClassName}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Pinecone info text */}
+              {dbType === 'pinecone' && (
+                <div className="pt-2">
+                  <p className="text-[11px] text-foreground/40 leading-relaxed">
+                    Get your API key from the Pinecone console. Embeddings will be generated client-side using your configured embedding provider.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Error + Action anchored to bottom */}
@@ -339,13 +438,22 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                         : 'hover:bg-white/[0.04]'
                     }`}
                   >
-                    <div className={`text-[12px] truncate ${
-                      isSelected ? 'text-foreground' : 'text-foreground/60'
-                    }`}>
-                      {profile.name}
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[9px] px-1 py-0.5 rounded uppercase tracking-wider ${
+                        profile.type === 'pinecone'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-orange-500/20 text-orange-400'
+                      }`}>
+                        {profile.type === 'pinecone' ? 'PC' : 'CH'}
+                      </span>
+                      <span className={`text-[12px] truncate flex-1 ${
+                        isSelected ? 'text-foreground' : 'text-foreground/60'
+                      }`}>
+                        {profile.name}
+                      </span>
                     </div>
-                    <div className="text-[10px] text-foreground/30 truncate">
-                      {profile.url.replace(/^https?:\/\//, '')}
+                    <div className="text-[10px] text-foreground/30 truncate pl-5">
+                      {profile.type === 'pinecone' ? 'Pinecone' : profile.url.replace(/^https?:\/\//, '')}
                     </div>
                   </button>
                 )

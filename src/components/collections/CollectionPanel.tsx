@@ -347,6 +347,10 @@ export function CollectionPanel() {
                 hoverClass = ''
               }
 
+              // Check if this is a Pinecone collection (has pinecone info or namespace separator)
+              const isPinecone = !!collection.pinecone || collection.name.includes('::')
+              const displayName = collection.name
+
               return (
                 <button
                   key={collection.id}
@@ -354,8 +358,13 @@ export function CollectionPanel() {
                   onContextMenu={(e) => handleContextMenu(e, collection.name)}
                   className={`w-full px-3 py-1.5 text-left transition-colors duration-100 ${bgClass} ${hoverClass}`}
                 >
-                  <div className={`text-[12px] truncate ${textClass}`}>
-                    {collection.name}
+                  <div className="flex items-center gap-1.5">
+                    {isPinecone && (
+                      <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-400/60" title="Pinecone index" />
+                    )}
+                    <span className={`text-[12px] truncate ${textClass}`}>
+                      {displayName}
+                    </span>
                   </div>
                 </button>
               )

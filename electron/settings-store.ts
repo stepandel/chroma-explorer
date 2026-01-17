@@ -35,6 +35,7 @@ function migrateFromLegacyStore(newStore: Store<SettingsSchema>): void {
 }
 
 export interface ApiKeys {
+  PINECONE_API_KEY?: string
   OPENAI_API_KEY?: string
   COHERE_API_KEY?: string
   GEMINI_API_KEY?: string

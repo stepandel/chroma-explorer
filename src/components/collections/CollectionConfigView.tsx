@@ -7,6 +7,34 @@ import { EMBEDDING_FUNCTIONS, EMBEDDING_FUNCTION_GROUPS, getEmbeddingFunctionByI
 import { MetadataValueType, validateMetadataValue } from '../../types/metadata'
 import { CopyProgressDialog } from './CopyProgressDialog'
 
+// Pinecone configuration options
+const PINECONE_CLOUDS = [
+  { value: 'aws', label: 'AWS' },
+  { value: 'gcp', label: 'GCP' },
+  { value: 'azure', label: 'Azure' },
+]
+
+const PINECONE_REGIONS: Record<string, Array<{ value: string; label: string }>> = {
+  aws: [
+    { value: 'us-east-1', label: 'US East (N. Virginia)' },
+    { value: 'us-west-2', label: 'US West (Oregon)' },
+    { value: 'eu-west-1', label: 'Europe (Ireland)' },
+  ],
+  gcp: [
+    { value: 'us-central1', label: 'US Central (Iowa)' },
+    { value: 'europe-west4', label: 'Europe West (Netherlands)' },
+  ],
+  azure: [
+    { value: 'eastus2', label: 'East US 2' },
+  ],
+}
+
+const PINECONE_METRICS = [
+  { value: 'cosine', label: 'Cosine' },
+  { value: 'euclidean', label: 'Euclidean' },
+  { value: 'dotproduct', label: 'Dot Product' },
+]
+
 const inputClassName = "w-full h-6 text-[11px] px-1.5 rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 
@@ -17,6 +45,16 @@ export function CollectionConfigView() {
 
   const [showFirstDocument, setShowFirstDocument] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Check if connected to Pinecone
+  const isPinecone = currentProfile?.type === 'pinecone'
+
+  // Pinecone config helpers
+  const pineconeConfig = draftCollection?.pinecone
+  const updatePineconeConfig = (updates: Partial<typeof pineconeConfig>) => {
+    if (!draftCollection || !pineconeConfig) return
+    updateDraft({ pinecone: { ...pineconeConfig, ...updates } as any })
+  }
 
   // Copy operation state
   const [isCopying, setIsCopying] = useState(false)
@@ -240,14 +278,14 @@ export function CollectionConfigView() {
         {/* Collection Name */}
         <div className="space-y-1">
           <label htmlFor="collection-name" className="text-[11px] font-medium text-muted-foreground">
-            Name
+            {isPinecone ? 'Index Name' : 'Name'}
           </label>
           <input
             id="collection-name"
             type="text"
             value={draftCollection.name}
             onChange={(e) => updateDraft({ name: e.target.value })}
-            placeholder="my-collection"
+            placeholder={isPinecone ? "my-index" : "my-collection"}
             className={inputClassName}
             style={inputStyle}
             autoFocus
@@ -255,7 +293,100 @@ export function CollectionConfigView() {
           {validationErrors.name && <p className="text-[10px] text-destructive">{validationErrors.name}</p>}
         </div>
 
-        {/* Embedding Function Selector */}
+        {/* Pinecone-specific fields */}
+        {isPinecone && !isCopyMode && pineconeConfig && (
+          <>
+            {/* Dimension (Required for Pinecone) */}
+            <div className="space-y-1">
+              <label htmlFor="pinecone-dimension" className="text-[11px] font-medium text-muted-foreground">
+                Dimension <span className="text-destructive">*</span>
+              </label>
+              <input
+                id="pinecone-dimension"
+                type="number"
+                value={pineconeConfig.dimension}
+                onChange={(e) => updatePineconeConfig({ dimension: e.target.value })}
+                placeholder="1536"
+                className={inputClassName}
+                style={inputStyle}
+              />
+              {validationErrors.dimension && <p className="text-[10px] text-destructive">{validationErrors.dimension}</p>}
+              <p className="text-[10px] text-muted-foreground">
+                Must match your embedding model (e.g., 1536 for OpenAI text-embedding-ada-002)
+              </p>
+            </div>
+
+            {/* Metric */}
+            <div className="space-y-1">
+              <label htmlFor="pinecone-metric" className="text-[11px] font-medium text-muted-foreground">
+                Distance Metric
+              </label>
+              <div className="relative">
+                <select
+                  id="pinecone-metric"
+                  value={pineconeConfig.metric}
+                  onChange={(e) => updatePineconeConfig({ metric: e.target.value as any })}
+                  className="w-full h-6 appearance-none rounded-md border border-input bg-background pl-1.5 pr-6 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                  style={inputStyle}
+                >
+                  {PINECONE_METRICS.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Cloud Provider */}
+            <div className="space-y-1">
+              <label htmlFor="pinecone-cloud" className="text-[11px] font-medium text-muted-foreground">
+                Cloud Provider
+              </label>
+              <div className="relative">
+                <select
+                  id="pinecone-cloud"
+                  value={pineconeConfig.cloud}
+                  onChange={(e) => {
+                    const cloud = e.target.value as any
+                    // Reset region to first available for new cloud
+                    const newRegion = PINECONE_REGIONS[cloud]?.[0]?.value || 'us-east-1'
+                    updatePineconeConfig({ cloud, region: newRegion })
+                  }}
+                  className="w-full h-6 appearance-none rounded-md border border-input bg-background pl-1.5 pr-6 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                  style={inputStyle}
+                >
+                  {PINECONE_CLOUDS.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Region */}
+            <div className="space-y-1">
+              <label htmlFor="pinecone-region" className="text-[11px] font-medium text-muted-foreground">
+                Region
+              </label>
+              <div className="relative">
+                <select
+                  id="pinecone-region"
+                  value={pineconeConfig.region}
+                  onChange={(e) => updatePineconeConfig({ region: e.target.value })}
+                  className="w-full h-6 appearance-none rounded-md border border-input bg-background pl-1.5 pr-6 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                  style={inputStyle}
+                >
+                  {(PINECONE_REGIONS[pineconeConfig.cloud] || []).map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Embedding Function Selector - shown for Chroma or as optional for Pinecone */}
         <div className="space-y-1">
           <label htmlFor="ef-select" className="text-[11px] font-medium text-muted-foreground">
             Embedding Function
@@ -302,7 +433,8 @@ export function CollectionConfigView() {
           </p>
         </div>
 
-        {/* Advanced HNSW Settings */}
+        {/* Advanced HNSW Settings - Only for Chroma */}
+        {!isPinecone && (
         <div className="space-y-2">
           <button
             type="button"
@@ -373,9 +505,10 @@ export function CollectionConfigView() {
             </div>
           )}
         </div>
+        )}
 
-        {/* Optional First Document Section - hidden in copy mode */}
-        {!isCopyMode && (
+        {/* Optional First Document Section - hidden in copy mode and for Pinecone */}
+        {!isCopyMode && !isPinecone && (
         <div className="space-y-2 pt-3 border-t border-border">
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
