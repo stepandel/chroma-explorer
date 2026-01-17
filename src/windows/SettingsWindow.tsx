@@ -1,26 +1,29 @@
 import { useState, useEffect, useMemo } from 'react'
 import { API_KEY_PROVIDERS } from '../constants/api-key-providers'
 import { getShortcutsByCategory } from '../constants/keyboard-shortcuts'
-import { ExternalLink, Check, Eye, EyeOff, KeyRound, Keyboard } from 'lucide-react'
+import { ExternalLink, Check, Eye, EyeOff, KeyRound, Keyboard, Palette, Sun, Moon, Monitor } from 'lucide-react'
 
 const inputClassName = "flex-1 h-7 text-[12px] px-2.5 rounded bg-black/[0.06] dark:bg-white/[0.08] text-foreground placeholder:text-foreground/30 focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/[0.12] transition-colors border-0 font-mono"
 
-type TabId = 'api-keys' | 'shortcuts'
+type TabId = 'api-keys' | 'shortcuts' | 'appearance'
 
 const TABS: { id: TabId; label: string; icon: typeof KeyRound }[] = [
   { id: 'api-keys', label: 'API Keys', icon: KeyRound },
   { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
 ]
 
 // Get initial tab from URL params
 function getInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab')
-  if (tab === 'shortcuts' || tab === 'api-keys') {
+  if (tab === 'shortcuts' || tab === 'api-keys' || tab === 'appearance') {
     return tab
   }
   return 'api-keys'
 }
+
+type Theme = 'light' | 'dark' | 'system'
 
 export function SettingsWindow() {
   const [activeTab, setActiveTab] = useState<TabId>(getInitialTab)
@@ -28,6 +31,7 @@ export function SettingsWindow() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
+  const [theme, setTheme] = useState<Theme>('system')
 
   // Make body transparent for vibrancy effect
   useEffect(() => {
@@ -42,7 +46,7 @@ export function SettingsWindow() {
   // Listen for tab switch messages from main process
   useEffect(() => {
     const unsubscribe = window.electronAPI.settings.onSwitchTab((tab) => {
-      if (tab === 'shortcuts' || tab === 'api-keys') {
+      if (tab === 'shortcuts' || tab === 'api-keys' || tab === 'appearance') {
         setActiveTab(tab)
       }
     })
@@ -51,6 +55,19 @@ export function SettingsWindow() {
 
   useEffect(() => {
     loadSettings()
+  }, [])
+
+  // Load theme on mount
+  useEffect(() => {
+    window.electronAPI.settings.getTheme().then(setTheme).catch(console.error)
+  }, [])
+
+  // Listen for cross-window theme changes
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.settings.onThemeChange((newTheme) => {
+      setTheme(newTheme as Theme)
+    })
+    return unsubscribe
   }, [])
 
   const loadSettings = async () => {
@@ -97,6 +114,11 @@ export function SettingsWindow() {
       }
       return next
     })
+  }
+
+  const handleThemeChange = (newTheme: Theme) => {
+    setTheme(newTheme)
+    window.electronAPI.settings.setTheme(newTheme).catch(console.error)
   }
 
   return (
@@ -249,6 +271,62 @@ export function SettingsWindow() {
 
             <p className="text-[11px] text-foreground/30 mt-3 px-1">
               Some shortcuts are context-sensitive and apply to the focused panel.
+            </p>
+          </>
+        )}
+
+        {activeTab === 'appearance' && (
+          <>
+            <div className="rounded-lg overflow-hidden" style={{ background: 'oklch(0 0 0 / 4%)' }}>
+              <div className="px-3 py-2.5">
+                <div className="mb-2">
+                  <span className="text-[12px] font-medium text-foreground">Theme</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {[
+                    { id: 'light' as Theme, label: 'Light', icon: Sun, description: 'Light appearance' },
+                    { id: 'dark' as Theme, label: 'Dark', icon: Moon, description: 'Dark appearance' },
+                    { id: 'system' as Theme, label: 'System', icon: Monitor, description: 'Match system setting' },
+                  ].map((option) => {
+                    const Icon = option.icon
+                    const isSelected = theme === option.id
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => handleThemeChange(option.id)}
+                        className={`
+                          w-full flex items-center gap-3 px-2.5 py-2 rounded-md transition-colors text-left
+                          ${isSelected
+                            ? 'bg-black/[0.06] dark:bg-white/[0.08]'
+                            : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
+                          }
+                        `}
+                      >
+                        <Icon
+                          className={`h-4 w-4 ${isSelected ? 'text-primary' : 'text-foreground/40'}`}
+                          strokeWidth={1.5}
+                        />
+                        <div className="flex-1">
+                          <div className={`text-[12px] ${isSelected ? 'text-foreground font-medium' : 'text-foreground/70'}`}>
+                            {option.label}
+                          </div>
+                          <div className="text-[10px] text-foreground/40">
+                            {option.description}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <Check className="h-4 w-4 text-primary" strokeWidth={2} />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-foreground/30 mt-3 px-1">
+              Theme changes apply to all windows.
             </p>
           </>
         )}

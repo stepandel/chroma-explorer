@@ -7,7 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
-import { settingsStore, ApiKeys } from './settings-store'
+import { settingsStore, ApiKeys, Theme } from './settings-store'
 import { windowManager } from './window-manager'
 import { createApplicationMenu } from './menu'
 import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams, CopyCollectionParams } from './types'
@@ -507,6 +507,33 @@ ipcMain.handle('settings:setApiKeys', async (_event, apiKeys: ApiKeys) => {
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to save API keys'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('settings:getTheme', async () => {
+  try {
+    const theme = settingsStore.getTheme()
+    return { success: true, data: theme }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get theme'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('settings:setTheme', async (event, theme: Theme) => {
+  try {
+    settingsStore.setTheme(theme)
+    // Broadcast theme change to all windows except the sender
+    const senderWindow = BrowserWindow.fromWebContents(event.sender)
+    BrowserWindow.getAllWindows().forEach(win => {
+      if (win !== senderWindow) {
+        win.webContents.send('settings:theme-changed', theme)
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to set theme'
     return { success: false, error: message }
   }
 })

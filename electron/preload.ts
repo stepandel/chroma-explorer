@@ -231,6 +231,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(result.error)
       }
     },
+    getTheme: async (): Promise<'light' | 'dark' | 'system'> => {
+      const result = await ipcRenderer.invoke('settings:getTheme')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    setTheme: async (theme: 'light' | 'dark' | 'system'): Promise<void> => {
+      const result = await ipcRenderer.invoke('settings:setTheme', theme)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    onThemeChange: (callback: (theme: string) => void): (() => void) => {
+      const handler = (_event: any, theme: string) => callback(theme)
+      ipcRenderer.on('settings:theme-changed', handler)
+      return () => ipcRenderer.removeListener('settings:theme-changed', handler)
+    },
     openWindow: async (): Promise<void> => {
       const result = await ipcRenderer.invoke('settings:openWindow')
       if (!result.success) {
