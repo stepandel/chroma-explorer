@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { API_KEY_PROVIDERS } from '../constants/api-key-providers'
 import { getShortcutsByCategory } from '../constants/keyboard-shortcuts'
+import { useTheme, Theme } from '../context/ThemeContext'
 import { ExternalLink, Check, Eye, EyeOff, KeyRound, Keyboard, Palette, Sun, Moon, Monitor } from 'lucide-react'
 
 const inputClassName = "flex-1 h-7 text-[12px] px-2.5 rounded bg-black/[0.06] dark:bg-white/[0.08] text-foreground placeholder:text-foreground/30 focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/[0.12] transition-colors border-0 font-mono"
@@ -23,21 +24,13 @@ function getInitialTab(): TabId {
   return 'api-keys'
 }
 
-type Theme = 'light' | 'dark' | 'system'
-type ResolvedTheme = 'light' | 'dark'
-
-function getSystemTheme(): ResolvedTheme {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
 export function SettingsWindow() {
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState<TabId>(getInitialTab)
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
-  const [theme, setTheme] = useState<Theme>('system')
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => getSystemTheme())
 
   // Make body transparent for vibrancy effect
   useEffect(() => {
@@ -61,36 +54,6 @@ export function SettingsWindow() {
 
   useEffect(() => {
     loadSettings()
-  }, [])
-
-  // Load theme on mount
-  useEffect(() => {
-    window.electronAPI.settings.getTheme().then((savedTheme) => {
-      setTheme(savedTheme)
-      setResolvedTheme(savedTheme === 'system' ? getSystemTheme() : savedTheme)
-    }).catch(console.error)
-  }, [])
-
-  // Listen for system theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = () => {
-      if (theme === 'system') {
-        setResolvedTheme(getSystemTheme())
-      }
-    }
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [theme])
-
-  // Listen for cross-window theme changes
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.settings.onThemeChange((newTheme) => {
-      const validTheme = newTheme as Theme
-      setTheme(validTheme)
-      setResolvedTheme(validTheme === 'system' ? getSystemTheme() : validTheme)
-    })
-    return unsubscribe
   }, [])
 
   const loadSettings = async () => {
@@ -139,11 +102,6 @@ export function SettingsWindow() {
     })
   }
 
-  const handleThemeChange = (newTheme: Theme) => {
-    setTheme(newTheme)
-    setResolvedTheme(newTheme === 'system' ? getSystemTheme() : newTheme)
-    window.electronAPI.settings.setTheme(newTheme).catch(console.error)
-  }
 
   // Compute theme-aware styles
   const isDark = resolvedTheme === 'dark'
@@ -324,7 +282,7 @@ export function SettingsWindow() {
                     return (
                       <button
                         key={option.id}
-                        onClick={() => handleThemeChange(option.id)}
+                        onClick={() => setTheme(option.id)}
                         className={`
                           w-full flex items-center gap-3 px-2.5 py-2 rounded-md transition-colors text-left
                           ${isSelected
