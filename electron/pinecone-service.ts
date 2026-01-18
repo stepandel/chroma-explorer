@@ -408,11 +408,14 @@ export class PineconeService implements VectorDBService {
       let embedding: number[] | undefined
 
       if (params.firstDocument.document && this.embeddingGenerator) {
-        // Get embedding function config from params if available
+        // Get embedding function config from params if available, include index dimension
         const efConfig = params.embeddingFunction ? {
           name: params.embeddingFunction.type,
           type: 'known' as const,
-          config: { model_name: params.embeddingFunction.modelName },
+          config: {
+            model_name: params.embeddingFunction.modelName,
+            dimensions: indexInfo.dimension,
+          },
         } : null
 
         embedding = await this.embeddingGenerator.generateEmbedding(
@@ -490,6 +493,9 @@ export class PineconeService implements VectorDBService {
 
     // Get collection info for embedding function config
     const collectionInfo = this.indexCache.get(params.collectionName)
+    const dimension = collectionInfo?.dimension
+
+    // Build efConfig with dimension included
     const efConfig = embeddingOverride
       ? {
           name: embeddingOverride.type,
@@ -498,9 +504,18 @@ export class PineconeService implements VectorDBService {
             model_name: embeddingOverride.modelName,
             url: embeddingOverride.url,
             account_id: embeddingOverride.accountId,
+            dimensions: dimension,
           },
         }
-      : collectionInfo?.embeddingFunction || null
+      : collectionInfo?.embeddingFunction
+        ? {
+            ...collectionInfo.embeddingFunction,
+            config: {
+              ...((collectionInfo.embeddingFunction.config as Record<string, unknown>) || {}),
+              dimensions: dimension,
+            },
+          }
+        : null
 
     // Generate embedding for the query
     const queryEmbedding = await this.embeddingGenerator.generateEmbedding(
