@@ -61,6 +61,9 @@ export class EmbeddingGenerator {
 
   /**
    * Generate embedding for a single text
+   * @param collectionName - Name of the collection
+   * @param text - Text to embed
+   * @param efConfig - Embedding function configuration (dimension should be in config.dimensions for OpenAI)
    */
   async generateEmbedding(
     collectionName: string,
@@ -81,6 +84,9 @@ export class EmbeddingGenerator {
 
   /**
    * Generate embeddings for multiple texts
+   * @param collectionName - Name of the collection
+   * @param texts - Texts to embed
+   * @param efConfig - Embedding function configuration (dimension should be in config.dimensions for OpenAI)
    */
   async generateEmbeddings(
     collectionName: string,
@@ -110,7 +116,7 @@ export class EmbeddingGenerator {
       return undefined
     }
 
-    // Generate cache key from collection + config
+    // Generate cache key from collection + config (dimension is included in config)
     const cacheKey = this.getCacheKey(collectionName, efConfig)
 
     // Check cache
@@ -154,13 +160,15 @@ export class EmbeddingGenerator {
           }
 
           const modelName = (config.model_name as string) || 'text-embedding-ada-002'
-          console.log(`[Embedding Generator] Creating OpenAI embedding function with model: ${modelName}`)
+          const dimensions = config.dimensions as number | undefined
+
+          console.log(`[Embedding Generator] Creating OpenAI embedding function with model: ${modelName}${dimensions ? `, dimensions: ${dimensions}` : ''}`)
 
           return new OpenAIEmbeddingFunction({
             apiKey,
             modelName,
             organizationId: config.organization_id as string | undefined,
-            dimensions: config.dimensions as number | undefined,
+            dimensions,
             apiBase: config.api_base as string | undefined,
           })
         }

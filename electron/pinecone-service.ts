@@ -639,6 +639,9 @@ export class PineconeService implements VectorDBService {
       }
 
       const collectionInfo = this.indexCache.get(params.collectionName)
+      const dimension = collectionInfo?.dimension
+
+      // Build efConfig with dimension included in config
       const efConfig = embeddingOverride
         ? {
             name: embeddingOverride.type,
@@ -647,9 +650,18 @@ export class PineconeService implements VectorDBService {
               model_name: embeddingOverride.modelName,
               url: embeddingOverride.url,
               account_id: embeddingOverride.accountId,
+              dimensions: dimension,
             },
           }
-        : collectionInfo?.embeddingFunction || null
+        : collectionInfo?.embeddingFunction
+          ? {
+              ...collectionInfo.embeddingFunction,
+              config: {
+                ...((collectionInfo.embeddingFunction.config as Record<string, unknown>) || {}),
+                dimensions: dimension,
+              },
+            }
+          : null
 
       embedding = await this.embeddingGenerator.generateEmbedding(
         params.collectionName,
@@ -700,6 +712,9 @@ export class PineconeService implements VectorDBService {
       }
 
       const collectionInfo = this.indexCache.get(params.collectionName)
+      const dimension = collectionInfo?.dimension
+
+      // Build efConfig with dimension included in config
       const efConfig = embeddingOverride
         ? {
             name: embeddingOverride.type,
@@ -708,9 +723,18 @@ export class PineconeService implements VectorDBService {
               model_name: embeddingOverride.modelName,
               url: embeddingOverride.url,
               account_id: embeddingOverride.accountId,
+              dimensions: dimension,
             },
           }
-        : collectionInfo?.embeddingFunction || null
+        : collectionInfo?.embeddingFunction
+          ? {
+              ...collectionInfo.embeddingFunction,
+              config: {
+                ...((collectionInfo.embeddingFunction.config as Record<string, unknown>) || {}),
+                dimensions: dimension,
+              },
+            }
+          : null
 
       embedding = await this.embeddingGenerator.generateEmbedding(
         params.collectionName,
@@ -769,8 +793,10 @@ export class PineconeService implements VectorDBService {
     const createdIds: string[] = []
     const errors: string[] = []
 
-    // Get embedding function config
+    // Get embedding function config with dimension included
     const collectionInfo = this.indexCache.get(params.collectionName)
+    const dimension = collectionInfo?.dimension
+
     const efConfig = embeddingOverride
       ? {
           name: embeddingOverride.type,
@@ -779,9 +805,18 @@ export class PineconeService implements VectorDBService {
             model_name: embeddingOverride.modelName,
             url: embeddingOverride.url,
             account_id: embeddingOverride.accountId,
+            dimensions: dimension,
           },
         }
-      : collectionInfo?.embeddingFunction || null
+      : collectionInfo?.embeddingFunction
+        ? {
+            ...collectionInfo.embeddingFunction,
+            config: {
+              ...((collectionInfo.embeddingFunction.config as Record<string, unknown>) || {}),
+              dimensions: dimension,
+            },
+          }
+        : null
 
     // Process in batches
     const totalBatches = Math.ceil(params.documents.length / BATCH_SIZE)
