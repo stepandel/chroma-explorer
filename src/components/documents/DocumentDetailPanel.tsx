@@ -20,6 +20,7 @@ interface DocumentDetailPanelProps {
   profileId: string
   isDraft?: boolean
   isFirstDocument?: boolean
+  databaseType?: 'chroma' | 'pinecone'
   onDraftChange?: (updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void
 }
 
@@ -29,6 +30,7 @@ export default function DocumentDetailPanel({
   profileId,
   isDraft = false,
   isFirstDocument = false,
+  databaseType = 'chroma',
   onDraftChange,
 }: DocumentDetailPanelProps) {
   // Draft state
@@ -355,45 +357,49 @@ export default function DocumentDetailPanel({
       }}
     >
       <div className="h-full overflow-auto space-y-3 p-3">
-      {/* ID Section - Editable for drafts */}
-      <section>
-        <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
-        {isDraft ? (
-          <input
-            type="text"
-            value={document.id}
+      {/* ID Section - Only for Chroma, editable for drafts */}
+      {databaseType === 'chroma' && (
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
+          {isDraft ? (
+            <input
+              type="text"
+              value={document.id}
+              onChange={(e) => {
+                if (onDraftChange) {
+                  onDraftChange({ id: e.target.value })
+                }
+              }}
+              placeholder="Enter document ID"
+              className="w-full text-xs font-mono p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md ring-1 ring-blue-500/20 focus:outline-none focus:ring-blue-500/30"
+            />
+          ) : (
+            <div className="p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md">
+              <code className="text-xs font-mono break-all">{document.id}</code>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Document Text Section - Only for Chroma */}
+      {databaseType === 'chroma' && (
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
+          <textarea
+            rows={1}
+            value={draftDocument ?? ''}
             onChange={(e) => {
-              if (onDraftChange) {
-                onDraftChange({ id: e.target.value })
+              setDraftDocument(e.target.value)
+              if (isDraft && onDraftChange) {
+                onDraftChange({ document: e.target.value })
               }
             }}
-            placeholder="Enter document ID"
-            className="w-full text-xs font-mono p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md ring-1 ring-blue-500/20 focus:outline-none focus:ring-blue-500/30"
+            placeholder="No document - type to add"
+            style={{ fieldSizing: 'content' } as React.CSSProperties}
+            className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasDocumentChanges)}`}
           />
-        ) : (
-          <div className="p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md">
-            <code className="text-xs font-mono break-all">{document.id}</code>
-          </div>
-        )}
-      </section>
-
-      {/* Document Text Section */}
-      <section>
-        <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
-        <textarea
-          rows={1}
-          value={draftDocument ?? ''}
-          onChange={(e) => {
-            setDraftDocument(e.target.value)
-            if (isDraft && onDraftChange) {
-              onDraftChange({ document: e.target.value })
-            }
-          }}
-          placeholder="No document - type to add"
-          style={{ fieldSizing: 'content' } as React.CSSProperties}
-          className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasDocumentChanges)}`}
-        />
-      </section>
+        </section>
+      )}
 
       {/* Metadata Fields - Each as Individual Section */}
       {(() => {

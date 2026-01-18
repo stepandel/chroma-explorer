@@ -212,6 +212,8 @@ export class PineconeService implements VectorDBService {
       throw new Error(`Index "${indexName}" not found.`)
     }
 
+    console.log('indexInfo', JSON.stringify(indexInfo, null, 2))
+
     // Get index stats to discover namespaces and counts
     const stats = await index.describeIndexStats()
     const dimension = indexInfo.dimension
