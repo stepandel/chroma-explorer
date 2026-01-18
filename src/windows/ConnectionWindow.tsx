@@ -1,9 +1,9 @@
-import { ChromaDBProvider } from '../providers/ChromaDBProvider'
+import { VectorDBProvider } from '../providers/VectorDBProvider'
 import { CollectionProvider } from '../context/CollectionContext'
 import { DraftCollectionProvider } from '../context/DraftCollectionContext'
 import { ClipboardProvider } from '../context/ClipboardContext'
 import { AppLayout } from '../components/layout/AppLayout'
-import { useProfileQuery } from '../hooks/useChromaQueries'
+import { useProfileQuery } from '../hooks/useVectorDBQueries'
 
 interface ConnectionWindowProps {
   windowId: string
@@ -32,7 +32,7 @@ export function ConnectionWindow({ windowId, profileId }: ConnectionWindowProps)
   }
 
   return (
-    <ChromaDBProvider profile={profile} windowId={windowId}>
+    <VectorDBProvider profile={profile} windowId={windowId}>
       <ClipboardProvider>
         <CollectionProvider>
           <DraftCollectionProvider>
@@ -40,6 +40,6 @@ export function ConnectionWindow({ windowId, profileId }: ConnectionWindowProps)
           </DraftCollectionProvider>
         </CollectionProvider>
       </ClipboardProvider>
-    </ChromaDBProvider>
+    </VectorDBProvider>
   )
 }

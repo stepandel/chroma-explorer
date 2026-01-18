@@ -2,18 +2,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams } from '../../electron/types'
 
 // Query Keys
-export const chromaQueryKeys = {
-  all: ['chroma'] as const,
-  profile: (profileId: string) => [...chromaQueryKeys.all, 'profile', profileId] as const,
-  collections: (profileId: string) => [...chromaQueryKeys.all, 'collections', profileId] as const,
+export const vectorDBQueryKeys = {
+  all: ['vectordb'] as const,
+  profile: (profileId: string) => [...vectorDBQueryKeys.all, 'profile', profileId] as const,
+  collections: (profileId: string) => [...vectorDBQueryKeys.all, 'collections', profileId] as const,
   documents: (profileId: string, params: SearchDocumentsParams) =>
-    [...chromaQueryKeys.all, 'documents', profileId, params] as const,
+    [...vectorDBQueryKeys.all, 'documents', profileId, params] as const,
 }
 
 // Profile Query
 export function useProfileQuery(profileId: string) {
   return useQuery({
-    queryKey: chromaQueryKeys.profile(profileId),
+    queryKey: vectorDBQueryKeys.profile(profileId),
     queryFn: async () => {
       const profile = await window.electronAPI.window.getProfile(profileId)
       return profile
@@ -25,7 +25,7 @@ export function useProfileQuery(profileId: string) {
 // Collections Query
 export function useCollectionsQuery(profileId: string | null, enabled: boolean = true) {
   return useQuery({
-    queryKey: chromaQueryKeys.collections(profileId || ''),
+    queryKey: vectorDBQueryKeys.collections(profileId || ''),
     queryFn: async () => {
       if (!profileId) {
         throw new Error('Profile ID is required')
@@ -51,7 +51,7 @@ export function useDocumentsQuery(
   enabled: boolean = true
 ) {
   return useQuery({
-    queryKey: chromaQueryKeys.documents(profileId || '', params),
+    queryKey: vectorDBQueryKeys.documents(profileId || '', params),
     queryFn: async (): Promise<DocumentsQueryResult> => {
       if (!profileId) {
         throw new Error('Profile ID is required')
@@ -78,7 +78,7 @@ export function useConnectMutation() {
     onSuccess: (profile) => {
       // Invalidate collections to refetch after connection
       queryClient.invalidateQueries({
-        queryKey: chromaQueryKeys.collections(profile.id)
+        queryKey: vectorDBQueryKeys.collections(profile.id)
       })
     },
   })
@@ -95,7 +95,7 @@ export function useRefreshCollectionsMutation(profileId: string) {
     },
     onSuccess: (collections) => {
       // Update the cache directly
-      queryClient.setQueryData(chromaQueryKeys.collections(profileId), collections)
+      queryClient.setQueryData(vectorDBQueryKeys.collections(profileId), collections)
     },
   })
 }
@@ -117,7 +117,7 @@ export function useUpdateDocumentMutation(profileId: string, collectionName: str
         predicate: (query) => {
           const key = query.queryKey
           return (
-            key[0] === 'chroma' &&
+            key[0] === 'vectordb' &&
             key[1] === 'documents' &&
             key[2] === profileId &&
             typeof key[3] === 'object' &&
@@ -147,7 +147,7 @@ export function useCreateDocumentMutation(profileId: string, collectionName: str
         predicate: (query) => {
           const key = query.queryKey
           return (
-            key[0] === 'chroma' &&
+            key[0] === 'vectordb' &&
             key[1] === 'documents' &&
             key[2] === profileId &&
             typeof key[3] === 'object' &&
@@ -158,7 +158,7 @@ export function useCreateDocumentMutation(profileId: string, collectionName: str
       })
       // Also invalidate collections to update document count
       queryClient.invalidateQueries({
-        queryKey: chromaQueryKeys.collections(profileId),
+        queryKey: vectorDBQueryKeys.collections(profileId),
       })
     },
   })
@@ -181,7 +181,7 @@ export function useDeleteDocumentsMutation(profileId: string, collectionName: st
         predicate: (query) => {
           const key = query.queryKey
           return (
-            key[0] === 'chroma' &&
+            key[0] === 'vectordb' &&
             key[1] === 'documents' &&
             key[2] === profileId &&
             typeof key[3] === 'object' &&
@@ -192,7 +192,7 @@ export function useDeleteDocumentsMutation(profileId: string, collectionName: st
       })
       // Also invalidate collections to update document count
       queryClient.invalidateQueries({
-        queryKey: chromaQueryKeys.collections(profileId),
+        queryKey: vectorDBQueryKeys.collections(profileId),
       })
     },
   })
@@ -215,7 +215,7 @@ export function useCreateDocumentsBatchMutation(profileId: string, collectionNam
         predicate: (query) => {
           const key = query.queryKey
           return (
-            key[0] === 'chroma' &&
+            key[0] === 'vectordb' &&
             key[1] === 'documents' &&
             key[2] === profileId &&
             typeof key[3] === 'object' &&
@@ -226,7 +226,7 @@ export function useCreateDocumentsBatchMutation(profileId: string, collectionNam
       })
       // Also invalidate collections to update document count
       queryClient.invalidateQueries({
-        queryKey: chromaQueryKeys.collections(profileId),
+        queryKey: vectorDBQueryKeys.collections(profileId),
       })
     },
   })
@@ -243,7 +243,7 @@ export function useCreateCollectionMutation(profileId: string) {
     onSuccess: () => {
       // Invalidate collections to refetch with new collection
       queryClient.invalidateQueries({
-        queryKey: chromaQueryKeys.collections(profileId),
+        queryKey: vectorDBQueryKeys.collections(profileId),
       })
     },
   })
@@ -260,9 +260,8 @@ export function useDeleteCollectionMutation(profileId: string) {
     onSuccess: () => {
       // Invalidate collections to refetch
       queryClient.invalidateQueries({
-        queryKey: chromaQueryKeys.collections(profileId),
+        queryKey: vectorDBQueryKeys.collections(profileId),
       })
     },
   })
 }
-

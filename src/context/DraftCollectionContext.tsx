@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import { useChromaDB } from '../providers/ChromaDBProvider'
-import { useCreateCollectionMutation } from '../hooks/useChromaQueries'
+import { useVectorDB } from '../providers/VectorDBProvider'
+import { useCreateCollectionMutation } from '../hooks/useVectorDBQueries'
 import { useCollection } from './CollectionContext'
 import { EMBEDDING_FUNCTIONS } from '../constants/embedding-functions'
 import { TypedMetadataRecord, typedMetadataToChromaFormat, validateMetadataValue } from '../types/metadata'
@@ -83,7 +83,7 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
   const [isCreating, setIsCreating] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
-  const { currentProfile } = useChromaDB()
+  const { currentProfile } = useVectorDB()
   const { setActiveCollection } = useCollection()
   const createMutation = useCreateCollectionMutation(currentProfile?.id || '')
 

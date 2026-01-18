@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useCollection } from '../../context/CollectionContext'
 import { useDraftCollection } from '../../context/DraftCollectionContext'
 import { usePanel } from '../../context/PanelContext'
-import { useChromaDB } from '../../providers/ChromaDBProvider'
+import { useVectorDB } from '../../providers/VectorDBProvider'
 import { CollectionPanel } from '../collections/CollectionPanel'
 import { CollectionConfigView } from '../collections/CollectionConfigView'
 import DocumentsView from '../documents/DocumentsView'
@@ -18,7 +18,7 @@ interface DocumentRecord {
 export function MainContent() {
   const { activeCollection } = useCollection()
   const { draftCollection } = useDraftCollection()
-  const { currentProfile } = useChromaDB()
+  const { currentProfile } = useVectorDB()
   const {
     leftPanelOpen,
     leftPanelWidth,
@@ -39,7 +39,7 @@ export function MainContent() {
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null)
   const [isSelectedDraft, setIsSelectedDraft] = useState(false)
   const [isFirstDocument, setIsFirstDocument] = useState(false)
-  const [draftUpdateHandler, setDraftUpdateHandler] = useState<((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void) | null>(null)
+  const [draftUpdateHandler, setDraftUpdateHandler] = useState<((updates: { id?: string; document?: string; metadata?: Record<string, unknown>; embedField?: string }) => void) | null>(null)
 
   // Resize state
   const [isResizingLeft, setIsResizingLeft] = useState(false)
@@ -50,7 +50,7 @@ export function MainContent() {
     setIsSelectedDraft(isDraft)
   }
 
-  const handleExposeDraftHandler = (handler: ((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void) | null) => {
+  const handleExposeDraftHandler = (handler: ((updates: { id?: string; document?: string; metadata?: Record<string, unknown>; embedField?: string }) => void) | null) => {
     setDraftUpdateHandler(() => handler)
   }
 

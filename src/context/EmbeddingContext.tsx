@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { useChromaDB } from '../providers/ChromaDBProvider'
+import { useVectorDB } from '../providers/VectorDBProvider'
 import { useCollection } from './CollectionContext'
-import { useCollectionsQuery } from '../hooks/useChromaQueries'
+import { useCollectionsQuery } from '../hooks/useVectorDBQueries'
 
 interface ServerEmbeddingConfig {
   name: string
@@ -33,7 +33,7 @@ interface EmbeddingContextType {
 const EmbeddingContext = createContext<EmbeddingContextType | undefined>(undefined)
 
 export function EmbeddingProvider({ children }: { children: ReactNode }) {
-  const { currentProfile } = useChromaDB()
+  const { currentProfile } = useVectorDB()
   const { activeCollection } = useCollection()
   const { data: collections = [] } = useCollectionsQuery(currentProfile?.id || null)
 

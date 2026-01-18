@@ -118,6 +118,7 @@ export interface CreateDocumentParams {
   metadata?: Metadata
   embedding?: number[]
   generateEmbedding?: boolean // If true, generate embedding from document text
+  embedField?: string // For Pinecone: which metadata field to use for embedding generation
 }
 
 export interface DeleteDocumentsParams {
@@ -133,6 +134,7 @@ export interface CreateDocumentsBatchParams {
     metadata?: Record<string, unknown>
   }>
   generateEmbeddings?: boolean
+  embedField?: string // For Pinecone: which metadata field to use for embedding generation
 }
 
 export interface HNSWConfig {

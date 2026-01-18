@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { ConnectionProfile, DocumentRecord, SearchDocumentsParams } from '../../electron/types'
-import { useCollectionsQuery, useConnectMutation, useRefreshCollectionsMutation } from '../hooks/useChromaQueries'
+import { useCollectionsQuery, useConnectMutation, useRefreshCollectionsMutation } from '../hooks/useVectorDBQueries'
 import { useQueryClient } from '@tanstack/react-query'
 
-interface ChromaDBContextValue {
+interface VectorDBContextValue {
   // Connection state
   currentProfile: ConnectionProfile | null
   isConnected: boolean
@@ -23,15 +23,15 @@ interface ChromaDBContextValue {
   invalidateCache: () => void
 }
 
-const ChromaDBContext = createContext<ChromaDBContextValue | null>(null)
+const VectorDBContext = createContext<VectorDBContextValue | null>(null)
 
-interface ChromaDBProviderProps {
+interface VectorDBProviderProps {
   profile: ConnectionProfile
   windowId: string // For future use if needed
   children: ReactNode
 }
 
-export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProviderProps) {
+export function VectorDBProvider({ profile, windowId, children }: VectorDBProviderProps) {
   const [currentProfile, setCurrentProfile] = useState<ConnectionProfile | null>(profile)
   const [isConnected, setIsConnected] = useState(false)
   const queryClient = useQueryClient()
@@ -63,8 +63,8 @@ export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProvid
     setIsConnected(false)
     // Clear all queries for this profile
     if (currentProfile) {
-      queryClient.removeQueries({ queryKey: ['chroma', 'collections', currentProfile.id] })
-      queryClient.removeQueries({ queryKey: ['chroma', 'documents', currentProfile.id] })
+      queryClient.removeQueries({ queryKey: ['vectordb', 'collections', currentProfile.id] })
+      queryClient.removeQueries({ queryKey: ['vectordb', 'documents', currentProfile.id] })
     }
   }, [currentProfile, queryClient])
 
@@ -75,7 +75,7 @@ export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProvid
 
   const searchDocuments = useCallback(async (params: SearchDocumentsParams): Promise<DocumentRecord[]> => {
     if (!currentProfile) {
-      throw new Error('Not connected to ChromaDB')
+      throw new Error('Not connected to database')
     }
 
     // Fetch documents directly (React Query will cache at component level)
@@ -90,7 +90,7 @@ export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProvid
 
   const invalidateCache = useCallback(() => {
     if (currentProfile) {
-      queryClient.invalidateQueries({ queryKey: ['chroma', 'documents', currentProfile.id] })
+      queryClient.invalidateQueries({ queryKey: ['vectordb', 'documents', currentProfile.id] })
     }
   }, [currentProfile, queryClient])
 
@@ -105,14 +105,14 @@ export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProvid
   useEffect(() => {
     const handleRefresh = () => {
       if (currentProfile) {
-        queryClient.resetQueries({ queryKey: ['chroma', 'documents', currentProfile.id] })
+        queryClient.resetQueries({ queryKey: ['vectordb', 'documents', currentProfile.id] })
       }
     }
     window.addEventListener('chroma:refresh', handleRefresh)
     return () => window.removeEventListener('chroma:refresh', handleRefresh)
   }, [currentProfile, queryClient])
 
-  const value: ChromaDBContextValue = {
+  const value: VectorDBContextValue = {
     currentProfile,
     isConnected,
     connect,
@@ -126,16 +126,16 @@ export function ChromaDBProvider({ profile, windowId, children }: ChromaDBProvid
   }
 
   return (
-    <ChromaDBContext.Provider value={value}>
+    <VectorDBContext.Provider value={value}>
       {children}
-    </ChromaDBContext.Provider>
+    </VectorDBContext.Provider>
   )
 }
 
-export function useChromaDB() {
-  const context = useContext(ChromaDBContext)
+export function useVectorDB() {
+  const context = useContext(VectorDBContext)
   if (!context) {
-    throw new Error('useChromaDB must be used within a ChromaDBProvider')
+    throw new Error('useVectorDB must be used within a VectorDBProvider')
   }
   return context
 }

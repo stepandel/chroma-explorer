@@ -12,6 +12,7 @@ declare global {
     cloud: PineconeCloud
     region: string
     namespaces: string[]
+    embeddingModel?: string // From tags.embedding_model (e.g., "text-embedding-3-small")
   }
 
   type EmbeddingFunctionType =
@@ -102,6 +103,7 @@ declare global {
     metadata?: Record<string, unknown>
     embedding?: number[]
     generateEmbedding?: boolean
+    embedField?: string // For Pinecone: which metadata field to use for embedding generation
   }
 
   interface DeleteDocumentsParams {
@@ -117,6 +119,7 @@ declare global {
       metadata?: Record<string, unknown>
     }>
     generateEmbeddings?: boolean
+    embedField?: string // For Pinecone: which metadata field to use for embedding generation
   }
 
   interface HNSWConfig {

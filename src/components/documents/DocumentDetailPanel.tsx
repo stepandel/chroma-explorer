@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Plus, X, ChevronDown } from 'lucide-react'
 import EmbeddingCell from './EmbeddingCell'
 import { RegenerateEmbeddingDialog } from './RegenerateEmbeddingDialog'
-import { useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
+import { useUpdateDocumentMutation } from '../../hooks/useVectorDBQueries'
 import { SHORTCUTS, matchesShortcut } from '../../constants/keyboard-shortcuts'
 import { Metadata } from 'chromadb'
 import { TypedMetadataRecord, TypedMetadataField, MetadataValueType, validateMetadataValue } from '../../types/metadata'
@@ -21,7 +21,7 @@ interface DocumentDetailPanelProps {
   isDraft?: boolean
   isFirstDocument?: boolean
   databaseType?: 'chroma' | 'pinecone'
-  onDraftChange?: (updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void
+  onDraftChange?: (updates: { id?: string; document?: string; metadata?: Record<string, unknown>; embedField?: string }) => void
 }
 
 export default function DocumentDetailPanel({
@@ -39,6 +39,7 @@ export default function DocumentDetailPanel({
   const [draftEmbedding, setDraftEmbedding] = useState<string>('')
   const [embeddingError, setEmbeddingError] = useState<string | null>(null)
   const [isEditingEmbedding, setIsEditingEmbedding] = useState(false)
+  const [draftEmbedField, setDraftEmbedField] = useState<string | undefined>(undefined)
 
   // Regenerate embedding dialog state
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false)
@@ -96,6 +97,11 @@ export default function DocumentDetailPanel({
     setEmbeddingError(null)
     setIsEditingEmbedding(false)
   }, [document.id, document.document, document.metadata, document.embedding])
+
+  // Reset embedField only when switching to a different document
+  useEffect(() => {
+    setDraftEmbedField(undefined)
+  }, [document.id])
 
   // Handle cancel/revert all changes
   const handleCancel = useCallback(() => {
@@ -357,8 +363,8 @@ export default function DocumentDetailPanel({
       }}
     >
       <div className="h-full overflow-auto space-y-3 p-3">
-      {/* ID Section - Only for Chroma, editable for drafts */}
-      {databaseType === 'chroma' && (
+      {/* ID Section - Show for Chroma or for drafts (editable for drafts) */}
+      {(databaseType === 'chroma' || isDraft) && (
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
           {isDraft ? (
@@ -381,7 +387,7 @@ export default function DocumentDetailPanel({
         </section>
       )}
 
-      {/* Document Text Section - Only for Chroma */}
+      {/* Document Text Section - Chroma only (Pinecone has no separate document field) */}
       {databaseType === 'chroma' && (
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
@@ -394,10 +400,46 @@ export default function DocumentDetailPanel({
                 onDraftChange({ document: e.target.value })
               }
             }}
-            placeholder="No document - type to add"
+            placeholder={isDraft ? "Enter document text for embedding generation" : "No document - type to add"}
             style={{ fieldSizing: 'content' } as React.CSSProperties}
             className={`w-full text-xs whitespace-pre-wrap overflow-hidden focus:outline-none resize-none ${getFieldStyle(hasDocumentChanges)}`}
           />
+        </section>
+      )}
+
+      {/* Embed Field Selector - Pinecone drafts only */}
+      {databaseType === 'pinecone' && isDraft && (
+        <section>
+          <h3 className="text-xs font-semibold text-muted-foreground mb-1">
+            embed field <span className="text-destructive">*</span>
+          </h3>
+          <select
+            value={draftEmbedField || ''}
+            onChange={(e) => {
+              const value = e.target.value || undefined
+              setDraftEmbedField(value)
+              if (onDraftChange) {
+                onDraftChange({ embedField: value })
+              }
+            }}
+            className="w-full text-xs p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md focus:outline-none focus:ring-1 focus:ring-primary/30"
+          >
+            <option value="">Select a text field to embed...</option>
+            {draftMetadata && Object.entries(draftMetadata).map(([key, value]) => {
+              // Only show string fields as options
+              const isTypedField = value && typeof value === 'object' && 'value' in value && 'type' in value
+              const typedField = isTypedField ? (value as TypedMetadataField) : null
+              if (typedField?.type !== 'string') return null
+              return (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              )
+            })}
+          </select>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            This field's value will be used to generate the embedding vector
+          </p>
         </section>
       )}
 

@@ -604,16 +604,36 @@ export class PineconeService implements VectorDBService {
     const index = this.getIndex()
     const ns = index.namespace(namespace)
 
-    // Build metadata with document text (clean for Pinecone compatibility)
+    // Build metadata (clean for Pinecone compatibility)
     const metadata = cleanMetadataForPinecone(params.metadata)
-    if (params.document !== undefined) {
+
+    // For backwards compatibility: if document is provided without embedField, use _document
+    if (params.document !== undefined && !params.embedField) {
       metadata[DOCUMENT_METADATA_KEY] = params.document
     }
 
     // Get or generate embedding
     let embedding = params.embedding
 
-    if (!embedding && params.generateEmbedding && params.document) {
+    if (!embedding && params.generateEmbedding) {
+      // Determine the text to embed
+      let textToEmbed: string | undefined
+
+      if (params.embedField) {
+        // Use the specified metadata field for embedding
+        textToEmbed = metadata[params.embedField] as string | undefined
+        if (!textToEmbed || typeof textToEmbed !== 'string') {
+          throw new Error(`Embed field "${params.embedField}" must contain a non-empty string value`)
+        }
+      } else if (params.document) {
+        // Fallback to document field (backwards compatibility)
+        textToEmbed = params.document
+      }
+
+      if (!textToEmbed) {
+        throw new Error('No text to embed. Specify embedField or provide document text.')
+      }
+
       if (!this.embeddingGenerator) {
         throw new Error('Embedding generator not initialized')
       }
@@ -633,13 +653,13 @@ export class PineconeService implements VectorDBService {
 
       embedding = await this.embeddingGenerator.generateEmbedding(
         params.collectionName,
-        params.document,
+        textToEmbed,
         efConfig
       )
     }
 
     if (!embedding) {
-      throw new Error('Embedding is required. Either provide an embedding or enable generateEmbedding with document text.')
+      throw new Error('Embedding is required. Either provide an embedding or enable generateEmbedding with a text field.')
     }
 
     await ns.upsert([
@@ -781,23 +801,38 @@ export class PineconeService implements VectorDBService {
         for (const doc of batch) {
           // Clean metadata for Pinecone compatibility
           const metadata = cleanMetadataForPinecone(doc.metadata)
-          if (doc.document !== undefined) {
+
+          // For backwards compatibility: if document is provided without embedField, use _document
+          if (doc.document !== undefined && !params.embedField) {
             metadata[DOCUMENT_METADATA_KEY] = doc.document
           }
 
           // Generate embedding if needed
           let embedding: number[] | undefined
 
-          if (params.generateEmbeddings && doc.document && this.embeddingGenerator) {
-            embedding = await this.embeddingGenerator.generateEmbedding(
-              params.collectionName,
-              doc.document,
-              efConfig
-            )
+          if (params.generateEmbeddings && this.embeddingGenerator) {
+            // Determine the text to embed
+            let textToEmbed: string | undefined
+
+            if (params.embedField) {
+              // Use the specified metadata field for embedding
+              textToEmbed = metadata[params.embedField] as string | undefined
+            } else if (doc.document) {
+              // Fallback to document field
+              textToEmbed = doc.document
+            }
+
+            if (textToEmbed && typeof textToEmbed === 'string') {
+              embedding = await this.embeddingGenerator.generateEmbedding(
+                params.collectionName,
+                textToEmbed,
+                efConfig
+              )
+            }
           }
 
           if (!embedding) {
-            errors.push(`Document ${doc.id}: Embedding is required`)
+            errors.push(`Document ${doc.id}: No text field to embed`)
             continue
           }
 

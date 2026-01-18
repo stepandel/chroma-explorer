@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
 import { useDraftCollection, DraftHNSWConfig } from '../../context/DraftCollectionContext'
-import { useChromaDB } from '../../providers/ChromaDBProvider'
+import { useVectorDB } from '../../providers/VectorDBProvider'
 import { useCollection } from '../../context/CollectionContext'
 import { EMBEDDING_FUNCTIONS, EMBEDDING_FUNCTION_GROUPS, getEmbeddingFunctionById } from '../../constants/embedding-functions'
 import { MetadataValueType, validateMetadataValue } from '../../types/metadata'
@@ -40,7 +40,7 @@ const inputStyle = { boxShadow: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.05)' }
 
 export function CollectionConfigView() {
   const { draftCollection, updateDraft, cancelCreation, saveDraft, isCreating, validationErrors, isCopyMode } = useDraftCollection()
-  const { currentProfile, refreshCollections } = useChromaDB()
+  const { currentProfile, refreshCollections } = useVectorDB()
   const { setActiveCollection } = useCollection()
 
   const [showFirstDocument, setShowFirstDocument] = useState(false)
