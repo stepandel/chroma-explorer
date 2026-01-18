@@ -27,6 +27,101 @@ import { EmbeddingGenerator } from './embedding-generator'
 // Reserved metadata key for document text
 const DOCUMENT_METADATA_KEY = '_document'
 
+/**
+ * Parse embedding function config from Pinecone index tags
+ * Pinecone indexes can store embedding_model in tags, e.g., { embedding_model: "text-embedding-3-small" }
+ */
+function parseEmbeddingFunctionFromTags(
+  tags: Record<string, string> | undefined
+): CollectionInfo['embeddingFunction'] | null {
+  if (!tags) return null
+
+  const embeddingModel = tags.embedding_model || tags['embedding-model'] || tags.model
+  if (!embeddingModel) return null
+
+  // Map model name to provider
+  const modelLower = embeddingModel.toLowerCase()
+
+  // OpenAI models
+  if (modelLower.includes('text-embedding') || modelLower.includes('ada')) {
+    return {
+      name: 'openai',
+      type: 'known',
+      config: { model_name: embeddingModel },
+    }
+  }
+
+  // Cohere models
+  if (modelLower.includes('embed-') && (modelLower.includes('english') || modelLower.includes('multilingual'))) {
+    return {
+      name: 'cohere',
+      type: 'known',
+      config: { model_name: embeddingModel },
+    }
+  }
+
+  // VoyageAI models
+  if (modelLower.includes('voyage')) {
+    return {
+      name: 'voyageai',
+      type: 'known',
+      config: { model_name: embeddingModel },
+    }
+  }
+
+  // Jina models
+  if (modelLower.includes('jina')) {
+    return {
+      name: 'jina',
+      type: 'known',
+      config: { model_name: embeddingModel },
+    }
+  }
+
+  // Mistral models
+  if (modelLower.includes('mistral')) {
+    return {
+      name: 'mistral',
+      type: 'known',
+      config: { model_name: embeddingModel },
+    }
+  }
+
+  // Google Gemini models
+  if (modelLower.includes('gemini') || modelLower.includes('gecko')) {
+    return {
+      name: 'google-gemini',
+      type: 'known',
+      config: { model_name: embeddingModel },
+    }
+  }
+
+  // Together AI models
+  if (modelLower.includes('together') || modelLower.includes('m2-bert')) {
+    return {
+      name: 'together-ai',
+      type: 'known',
+      config: { model_name: embeddingModel },
+    }
+  }
+
+  // Cloudflare models
+  if (modelLower.includes('@cf/') || modelLower.includes('bge-')) {
+    return {
+      name: 'cloudflare-worker-ai',
+      type: 'known',
+      config: { model_name: embeddingModel },
+    }
+  }
+
+  // Default: store as unknown with the model name
+  return {
+    name: embeddingModel,
+    type: 'unknown',
+    config: { model_name: embeddingModel },
+  }
+}
+
 // Display name for the default (empty) namespace
 const DEFAULT_NAMESPACE_DISPLAY = '(default)'
 
@@ -218,6 +313,11 @@ export class PineconeService implements VectorDBService {
     const stats = await index.describeIndexStats()
     const dimension = indexInfo.dimension
 
+    // Parse embedding function from index tags
+    const tags = indexInfo.tags as Record<string, string> | undefined
+    const embeddingFunction = parseEmbeddingFunctionFromTags(tags)
+    const embeddingModel = tags?.embedding_model || tags?.['embedding-model'] || tags?.model
+
     // Build index info for UI
     const pineconeInfo = {
       metric: indexInfo.metric as PineconeMetric,
@@ -225,6 +325,7 @@ export class PineconeService implements VectorDBService {
       cloud: (indexInfo.spec?.serverless?.cloud || 'aws') as PineconeCloud,
       region: indexInfo.spec?.serverless?.region || 'us-east-1',
       namespaces: Object.keys(stats.namespaces || {}),
+      embeddingModel,
     }
 
     const collections: CollectionInfo[] = []
@@ -239,6 +340,7 @@ export class PineconeService implements VectorDBService {
         metadata: null,
         count: 0,
         dimension,
+        embeddingFunction,
         pinecone: pineconeInfo,
       }
       collections.push(collection)
@@ -253,6 +355,7 @@ export class PineconeService implements VectorDBService {
           metadata: namespace ? { namespace } : null,
           count: nsStats.recordCount || 0,
           dimension,
+          embeddingFunction,
           pinecone: pineconeInfo,
         }
         collections.push(collection)

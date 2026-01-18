@@ -13,6 +13,7 @@ export interface PineconeIndexInfo {
   cloud: PineconeCloud
   region: string
   namespaces: string[] // List of namespaces in this index
+  embeddingModel?: string // From tags.embedding_model (e.g., "text-embedding-3-small")
 }
 
 export type EmbeddingFunctionType =
