@@ -363,29 +363,27 @@ export default function DocumentDetailPanel({
       }}
     >
       <div className="h-full overflow-auto space-y-3 p-3">
-      {/* ID Section - Show for Chroma or for drafts (editable for drafts) */}
-      {(databaseType === 'chroma' || isDraft) && (
-        <section>
-          <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
-          {isDraft ? (
-            <input
-              type="text"
-              value={document.id}
-              onChange={(e) => {
-                if (onDraftChange) {
-                  onDraftChange({ id: e.target.value })
-                }
-              }}
-              placeholder="Enter document ID"
-              className="w-full text-xs font-mono p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md ring-1 ring-blue-500/20 focus:outline-none focus:ring-blue-500/30"
-            />
-          ) : (
-            <div className="p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md">
-              <code className="text-xs font-mono break-all">{document.id}</code>
-            </div>
-          )}
-        </section>
-      )}
+      {/* ID Section - Always shown (editable for drafts) */}
+      <section>
+        <h3 className="text-xs font-semibold text-muted-foreground mb-1">id</h3>
+        {isDraft ? (
+          <input
+            type="text"
+            value={document.id}
+            onChange={(e) => {
+              if (onDraftChange) {
+                onDraftChange({ id: e.target.value })
+              }
+            }}
+            placeholder="Enter document ID"
+            className="w-full text-xs font-mono p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md ring-1 ring-blue-500/20 focus:outline-none focus:ring-blue-500/30"
+          />
+        ) : (
+          <div className="p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md">
+            <code className="text-xs font-mono break-all">{document.id}</code>
+          </div>
+        )}
+      </section>
 
       {/* Document Text Section - Chroma only (Pinecone has no separate document field) */}
       {databaseType === 'chroma' && (

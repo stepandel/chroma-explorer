@@ -318,36 +318,35 @@ export default function DocumentsTable({
       })
     }
 
-    // For Chroma, add id and document as base columns
-    // For Pinecone, these come from metadata so we only show metadata columns
+    // ID column - always shown (it's a real field for both Chroma and Pinecone)
+    baseColumns.push({
+      accessorKey: 'id',
+      header: 'id',
+      size: 200,
+      cell: info => (
+        <div className="text-xs font-mono text-foreground">
+          {info.getValue() as string}
+        </div>
+      ),
+    })
+
+    // Document column - only for Chroma (Pinecone stores document text in _document metadata, which is stripped)
     if (databaseType === 'chroma') {
-      baseColumns.push(
-        {
-          accessorKey: 'id',
-          header: 'id',
-          size: 200,
-          cell: info => (
-            <div className="text-xs font-mono text-foreground">
-              {info.getValue() as string}
-            </div>
-          ),
-        },
-        {
-          accessorKey: 'document',
-          header: 'document',
-          size: 300,
-          cell: info => {
-            const value = info.getValue() as string | null
-            return (
-              <div className="text-xs text-foreground">
-                <div className="line-clamp-2">
-                  {value || <span className="text-muted-foreground italic">No document</span>}
-                </div>
+      baseColumns.push({
+        accessorKey: 'document',
+        header: 'document',
+        size: 300,
+        cell: info => {
+          const value = info.getValue() as string | null
+          return (
+            <div className="text-xs text-foreground">
+              <div className="line-clamp-2">
+                {value || <span className="text-muted-foreground italic">No document</span>}
               </div>
-            )
-          },
+            </div>
+          )
         },
-      )
+      })
     }
 
     // Add dynamic metadata columns
@@ -512,19 +511,21 @@ export default function DocumentsTable({
                   className="w-full text-xs font-mono bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
                 />
               </td>
-              {/* Document cell - editable */}
-              <td
-                className="pl-3 py-0.5 align-top "
-                style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
-              >
-                <input
-                  type="text"
-                  value={draft.document}
-                  onChange={(e) => onDraftChange({ ...draft, document: e.target.value }, draftIndex)}
-                  placeholder="Enter document text"
-                  className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
-                />
-              </td>
+              {/* Document cell - editable (only for Chroma) */}
+              {databaseType === 'chroma' && (
+                <td
+                  className="pl-3 py-0.5 align-top "
+                  style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
+                >
+                  <input
+                    type="text"
+                    value={draft.document}
+                    onChange={(e) => onDraftChange({ ...draft, document: e.target.value }, draftIndex)}
+                    placeholder="Enter document text"
+                    className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
+                  />
+                </td>
+              )}
               {/* Editable metadata cells */}
               {metadataKeys.map(key => {
                 const field = draft.metadata[key]
@@ -609,21 +610,23 @@ export default function DocumentsTable({
                       {row.original.id}
                     </div>
                   </td>
-                  {/* Document cell - editable */}
-                  <td
-                    className="pl-3 py-0.5 align-top "
-                    style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
-                  >
-                    <input
-                      ref={editingInputRef}
-                      type="text"
-                      value={editingState.document}
-                      onChange={(e) => handleEditChange('document', e.target.value)}
-                      onKeyDown={handleEditKeyDown}
-                      onBlur={saveEditing}
-                      className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground"
-                    />
-                  </td>
+                  {/* Document cell - editable (only for Chroma) */}
+                  {databaseType === 'chroma' && (
+                    <td
+                      className="pl-3 py-0.5 align-top "
+                      style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
+                    >
+                      <input
+                        ref={editingInputRef}
+                        type="text"
+                        value={editingState.document}
+                        onChange={(e) => handleEditChange('document', e.target.value)}
+                        onKeyDown={handleEditKeyDown}
+                        onBlur={saveEditing}
+                        className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground"
+                      />
+                    </td>
+                  )}
                   {/* Editable metadata cells */}
                   {metadataKeys.map(key => {
                     const value = editingState.metadata[key]
