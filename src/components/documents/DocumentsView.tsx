@@ -65,7 +65,7 @@ export default function DocumentsView({
   onExposeDraftHandler,
   onIsFirstDocumentChange,
 }: DocumentsViewProps) {
-  const { currentProfile } = useVectorDB()
+  const { currentProfile, documentSchema } = useVectorDB()
   const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
   const [nResults, setNResults] = useState(10)
 
@@ -370,7 +370,8 @@ export default function DocumentsView({
     if (draftDocuments.length === 0) return
     setDraftError(null)
 
-    const isPinecone = currentProfile?.type === 'pinecone'
+    // Use schema to determine embedding source
+    const embedsFromMetadata = documentSchema.embedSource === 'metadata'
 
     // Validate all drafts
     for (let i = 0; i < draftDocuments.length; i++) {
@@ -392,8 +393,8 @@ export default function DocumentsView({
         }
       }
 
-      if (isPinecone) {
-        // Pinecone: require embedField and that field must have a string value
+      if (embedsFromMetadata) {
+        // Embedding from metadata field: require embedField and that field must have a string value
         if (!draft.embedField) {
           setDraftError(`Document ${i + 1}: Select a text field to embed`)
           return
@@ -413,7 +414,7 @@ export default function DocumentsView({
           return
         }
       } else {
-        // ChromaDB: require document text for embedding generation
+        // Embedding from document field: require document text for embedding generation
         const documentText = draft.document?.trim()
         if (!documentText) {
           setDraftError(`Document ${i + 1}: Document text is required for embedding generation`)
@@ -428,7 +429,7 @@ export default function DocumentsView({
         const draft = draftDocuments[0]
         const metadata = typedMetadataToChromaFormat(draft.metadata)
 
-        if (isPinecone) {
+        if (embedsFromMetadata) {
           await createMutation.mutateAsync({
             id: draft.id,
             metadata,
@@ -447,13 +448,13 @@ export default function DocumentsView({
         // Multiple documents - use batch create mutation
         const docsToCreate = draftDocuments.map(draft => ({
           id: draft.id,
-          document: isPinecone ? undefined : draft.document.trim(),
+          document: embedsFromMetadata ? undefined : draft.document.trim(),
           metadata: typedMetadataToChromaFormat(draft.metadata),
         }))
         await createBatchMutation.mutateAsync({
           documents: docsToCreate,
           generateEmbeddings: true,
-          embedField: isPinecone ? draftDocuments[0]?.embedField : undefined,
+          embedField: embedsFromMetadata ? draftDocuments[0]?.embedField : undefined,
         })
       }
       setDraftDocuments([])
@@ -464,7 +465,7 @@ export default function DocumentsView({
       const message = error instanceof Error ? error.message : 'Failed to create document(s)'
       setDraftError(message)
     }
-  }, [draftDocuments, currentProfile?.type, createMutation, createBatchMutation, onClearSelection, onIsFirstDocumentChange])
+  }, [draftDocuments, documentSchema.embedSource, createMutation, createBatchMutation, onClearSelection, onIsFirstDocumentChange])
 
   // Toggle deletion mark for all selected documents
   const handleToggleDeletion = useCallback(() => {
@@ -916,7 +917,6 @@ export default function DocumentsView({
           loading={loading}
           error={error ? (error as Error).message : null}
           hasActiveFilters={hasActiveFilters}
-          databaseType={currentProfile?.type || 'chroma'}
           selectedDocumentIds={selectedDocumentIds}
           selectionAnchor={selectionAnchor}
           onSingleSelect={onSingleSelect}

@@ -1,7 +1,20 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { ConnectionProfile, DocumentRecord, SearchDocumentsParams } from '../../electron/types'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react'
+import { ConnectionProfile, DocumentRecord, SearchDocumentsParams, DatabaseBackend } from '../../electron/types'
 import { useCollectionsQuery, useConnectMutation, useRefreshCollectionsMutation } from '../hooks/useVectorDBQueries'
 import { useQueryClient } from '@tanstack/react-query'
+
+/**
+ * Schema describing which base fields are available for the current database type.
+ * This allows components to render appropriately without checking database type directly.
+ */
+export interface DocumentSchema {
+  /** Database backend type */
+  backend: DatabaseBackend
+  /** Whether the database has a first-class 'document' text field (Chroma: yes, Pinecone: no) */
+  hasDocumentField: boolean
+  /** How embeddings are generated: from 'document' field or from a user-selected 'metadata' field */
+  embedSource: 'document' | 'metadata'
+}
 
 interface VectorDBContextValue {
   // Connection state
@@ -9,6 +22,9 @@ interface VectorDBContextValue {
   isConnected: boolean
   connect: (profile: ConnectionProfile) => Promise<void>
   disconnect: () => void
+
+  // Document schema (derived from database type)
+  documentSchema: DocumentSchema
 
   // Collections
   collections: any[]
@@ -112,11 +128,30 @@ export function VectorDBProvider({ profile, windowId, children }: VectorDBProvid
     return () => window.removeEventListener('chroma:refresh', handleRefresh)
   }, [currentProfile, queryClient])
 
+  // Derive document schema from database type
+  const documentSchema = useMemo((): DocumentSchema => {
+    const backend = currentProfile?.type || 'chroma'
+    if (backend === 'pinecone') {
+      return {
+        backend: 'pinecone',
+        hasDocumentField: false,
+        embedSource: 'metadata',
+      }
+    }
+    // Default: Chroma
+    return {
+      backend: 'chroma',
+      hasDocumentField: true,
+      embedSource: 'document',
+    }
+  }, [currentProfile?.type])
+
   const value: VectorDBContextValue = {
     currentProfile,
     isConnected,
     connect,
     disconnect,
+    documentSchema,
     collections,
     collectionsLoading,
     collectionsError: collectionsError ? (collectionsError as Error).message : null,

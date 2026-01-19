@@ -167,7 +167,6 @@ export function MainContent() {
             profileId={currentProfile.id}
             isDraft={isSelectedDraft}
             isFirstDocument={isFirstDocument}
-            databaseType={currentProfile.type || 'chroma'}
             onDraftChange={isSelectedDraft ? draftUpdateHandler ?? undefined : undefined}
           />
         ) : (

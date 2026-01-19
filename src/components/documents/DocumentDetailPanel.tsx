@@ -6,6 +6,7 @@ import { useUpdateDocumentMutation } from '../../hooks/useVectorDBQueries'
 import { SHORTCUTS, matchesShortcut } from '../../constants/keyboard-shortcuts'
 import { Metadata } from 'chromadb'
 import { TypedMetadataRecord, TypedMetadataField, MetadataValueType, validateMetadataValue } from '../../types/metadata'
+import { useVectorDB } from '../../providers/VectorDBProvider'
 
 interface DocumentRecord {
   id: string
@@ -20,7 +21,6 @@ interface DocumentDetailPanelProps {
   profileId: string
   isDraft?: boolean
   isFirstDocument?: boolean
-  databaseType?: 'chroma' | 'pinecone'
   onDraftChange?: (updates: { id?: string; document?: string; metadata?: Record<string, unknown>; embedField?: string }) => void
 }
 
@@ -30,9 +30,10 @@ export default function DocumentDetailPanel({
   profileId,
   isDraft = false,
   isFirstDocument = false,
-  databaseType = 'chroma',
   onDraftChange,
 }: DocumentDetailPanelProps) {
+  // Get document schema from context
+  const { documentSchema } = useVectorDB()
   // Draft state
   const [draftDocument, setDraftDocument] = useState(document.document)
   const [draftMetadata, setDraftMetadata] = useState(document.metadata)
@@ -385,8 +386,8 @@ export default function DocumentDetailPanel({
         )}
       </section>
 
-      {/* Document Text Section - Chroma only (Pinecone has no separate document field) */}
-      {databaseType === 'chroma' && (
+      {/* Document Text Section - only when schema has document field */}
+      {documentSchema.hasDocumentField && (
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
           <textarea
@@ -405,8 +406,8 @@ export default function DocumentDetailPanel({
         </section>
       )}
 
-      {/* Embed Field Selector - Pinecone drafts only */}
-      {databaseType === 'pinecone' && isDraft && (
+      {/* Embed Field Selector - only for drafts when embedding from metadata field */}
+      {documentSchema.embedSource === 'metadata' && isDraft && (
         <section>
           <h3 className="text-xs font-semibold text-muted-foreground mb-1">
             embed field <span className="text-destructive">*</span>

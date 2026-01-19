@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table'
 import EmbeddingCell from './EmbeddingCell'
 import { TypedMetadataRecord } from '../../types/metadata'
+import { useVectorDB } from '../../providers/VectorDBProvider'
 
 interface DocumentRecord {
   id: string
@@ -34,7 +35,6 @@ interface DocumentsTableProps {
   loading: boolean
   error: string | null
   hasActiveFilters?: boolean
-  databaseType?: 'chroma' | 'pinecone'
   // Multi-select props
   selectedDocumentIds: Set<string>
   selectionAnchor: string | null
@@ -59,7 +59,6 @@ export default function DocumentsTable({
   loading,
   error,
   hasActiveFilters = false,
-  databaseType = 'chroma',
   selectedDocumentIds,
   selectionAnchor,
   onSingleSelect,
@@ -74,6 +73,8 @@ export default function DocumentsTable({
   onDocumentContextMenu,
   onTableContextMenu,
 }: DocumentsTableProps) {
+  // Get document schema from context
+  const { documentSchema } = useVectorDB()
   // Ref for auto-focusing the id input when draft starts
   const draftIdInputRef = useRef<HTMLInputElement>(null)
   const prevDraftCountRef = useRef<number>(0)
@@ -330,8 +331,8 @@ export default function DocumentsTable({
       ),
     })
 
-    // Document column - only for Chroma (Pinecone stores document text in _document metadata, which is stripped)
-    if (databaseType === 'chroma') {
+    // Document column - only when schema has document field (e.g., Chroma)
+    if (documentSchema.hasDocumentField) {
       baseColumns.push({
         accessorKey: 'document',
         header: 'document',
@@ -378,7 +379,7 @@ export default function DocumentsTable({
     }))
 
     return [...baseColumns, ...metadataColumns]
-  }, [metadataKeys, hasDistances, databaseType])
+  }, [metadataKeys, hasDistances, documentSchema])
 
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange')
 
@@ -512,7 +513,7 @@ export default function DocumentsTable({
                 />
               </td>
               {/* Document cell - editable (only for Chroma) */}
-              {databaseType === 'chroma' && (
+              {documentSchema.hasDocumentField && (
                 <td
                   className="pl-3 py-0.5 align-top "
                   style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
@@ -611,7 +612,7 @@ export default function DocumentsTable({
                     </div>
                   </td>
                   {/* Document cell - editable (only for Chroma) */}
-                  {databaseType === 'chroma' && (
+                  {documentSchema.hasDocumentField && (
                     <td
                       className="pl-3 py-0.5 align-top "
                       style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
