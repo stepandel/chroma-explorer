@@ -36,6 +36,7 @@ declare global {
     modelName?: string
     url?: string // For Ollama, HuggingFace Server
     accountId?: string // For Cloudflare Workers AI
+    embedField?: string // For Pinecone: which metadata field to use for embedding generation
   }
 
   interface ConnectionProfile {

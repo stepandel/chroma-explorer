@@ -37,6 +37,7 @@ export interface EmbeddingFunctionOverride {
   modelName?: string // e.g., 'text-embedding-3-large', 'Xenova/all-MiniLM-L6-v2'
   url?: string // For Ollama, HuggingFace Server
   accountId?: string // For Cloudflare Workers AI
+  embedField?: string // For Pinecone: which metadata field to use for embedding generation
 }
 
 export interface ConnectionProfile {

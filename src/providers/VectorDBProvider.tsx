@@ -26,6 +26,10 @@ interface VectorDBContextValue {
   // Document schema (derived from database type)
   documentSchema: DocumentSchema
 
+  // Embed field persistence (for databases that embed from metadata, e.g., Pinecone)
+  getEmbedField: (collectionName: string) => Promise<string | undefined>
+  setEmbedField: (collectionName: string, field: string) => Promise<void>
+
   // Collections
   collections: any[]
   collectionsLoading: boolean
@@ -110,6 +114,45 @@ export function VectorDBProvider({ profile, windowId, children }: VectorDBProvid
     }
   }, [currentProfile, queryClient])
 
+  // Get persisted embed field for a collection
+  const getEmbedField = useCallback(async (collectionName: string): Promise<string | undefined> => {
+    if (!currentProfile?.id) return undefined
+    try {
+      const override = await window.electronAPI.profiles.getEmbeddingOverride(
+        currentProfile.id,
+        collectionName
+      )
+      return override?.embedField
+    } catch (err) {
+      console.error('Failed to get embed field:', err)
+      return undefined
+    }
+  }, [currentProfile?.id])
+
+  // Persist embed field for a collection
+  const setEmbedField = useCallback(async (collectionName: string, field: string): Promise<void> => {
+    if (!currentProfile?.id) return
+    try {
+      // Get existing override to preserve other settings
+      const existingOverride = await window.electronAPI.profiles.getEmbeddingOverride(
+        currentProfile.id,
+        collectionName
+      )
+      // Merge with new embedField
+      await window.electronAPI.profiles.setEmbeddingOverride(
+        currentProfile.id,
+        collectionName,
+        {
+          ...existingOverride,
+          type: existingOverride?.type || 'default',
+          embedField: field,
+        }
+      )
+    } catch (err) {
+      console.error('Failed to set embed field:', err)
+    }
+  }, [currentProfile?.id])
+
   // Auto-connect when profile changes or on initial mount
   useEffect(() => {
     if (profile && (profile !== currentProfile || !isConnected)) {
@@ -152,6 +195,8 @@ export function VectorDBProvider({ profile, windowId, children }: VectorDBProvid
     connect,
     disconnect,
     documentSchema,
+    getEmbedField,
+    setEmbedField,
     collections,
     collectionsLoading,
     collectionsError: collectionsError ? (collectionsError as Error).message : null,

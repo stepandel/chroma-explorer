@@ -65,7 +65,7 @@ export default function DocumentsView({
   onExposeDraftHandler,
   onIsFirstDocumentChange,
 }: DocumentsViewProps) {
-  const { currentProfile, documentSchema } = useVectorDB()
+  const { currentProfile, documentSchema, getEmbedField, setEmbedField } = useVectorDB()
   const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
   const [nResults, setNResults] = useState(10)
 
@@ -293,7 +293,7 @@ export default function DocumentsView({
   )
 
   // Draft document handlers
-  const handleStartCreate = useCallback(() => {
+  const handleStartCreate = useCallback(async () => {
     const newId = crypto.randomUUID()
     // Check if this is the first document (collection is empty)
     const isFirstDocument = documents.length === 0
@@ -312,16 +312,24 @@ export default function DocumentsView({
         initialMetadata[key] = { value: '', type: inferredType }
       })
     }
+
+    // Load persisted embed field for this collection (if embedding from metadata)
+    let persistedEmbedField: string | undefined
+    if (documentSchema.embedSource === 'metadata') {
+      persistedEmbedField = await getEmbedField(collectionName)
+    }
+
     setDraftDocuments([{
       id: newId,
       document: '',
       metadata: initialMetadata,
+      embedField: persistedEmbedField,
     }])
     // Select the draft so it shows in the detail panel
     onSingleSelect(newId)
     // Notify parent about first document status
     onIsFirstDocumentChange?.(isFirstDocument)
-  }, [onSingleSelect, metadataFields, documents.length, onIsFirstDocumentChange])
+  }, [onSingleSelect, metadataFields, documents.length, onIsFirstDocumentChange, documentSchema.embedSource, getEmbedField, collectionName])
 
   const handleDraftChange = useCallback((draft: DraftDocument, index: number = 0) => {
     setDraftDocuments(prev => {
@@ -457,6 +465,12 @@ export default function DocumentsView({
           embedField: embedsFromMetadata ? draftDocuments[0]?.embedField : undefined,
         })
       }
+
+      // Persist the embed field for future documents (if embedding from metadata)
+      if (embedsFromMetadata && draftDocuments[0]?.embedField) {
+        await setEmbedField(collectionName, draftDocuments[0].embedField)
+      }
+
       setDraftDocuments([])
       setDraftError(null)
       onClearSelection() // Deselect after saving
@@ -465,7 +479,7 @@ export default function DocumentsView({
       const message = error instanceof Error ? error.message : 'Failed to create document(s)'
       setDraftError(message)
     }
-  }, [draftDocuments, documentSchema.embedSource, createMutation, createBatchMutation, onClearSelection, onIsFirstDocumentChange])
+  }, [draftDocuments, documentSchema.embedSource, createMutation, createBatchMutation, onClearSelection, onIsFirstDocumentChange, setEmbedField, collectionName])
 
   // Toggle deletion mark for all selected documents
   const handleToggleDeletion = useCallback(() => {

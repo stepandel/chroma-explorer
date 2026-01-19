@@ -32,8 +32,8 @@ export default function DocumentDetailPanel({
   isFirstDocument = false,
   onDraftChange,
 }: DocumentDetailPanelProps) {
-  // Get document schema from context
-  const { documentSchema } = useVectorDB()
+  // Get document schema and embed field helpers from context
+  const { documentSchema, getEmbedField } = useVectorDB()
   // Draft state
   const [draftDocument, setDraftDocument] = useState(document.document)
   const [draftMetadata, setDraftMetadata] = useState(document.metadata)
@@ -99,10 +99,18 @@ export default function DocumentDetailPanel({
     setIsEditingEmbedding(false)
   }, [document.id, document.document, document.metadata, document.embedding])
 
-  // Reset embedField only when switching to a different document
+  // Load persisted embedField when switching to a different document (for drafts)
   useEffect(() => {
-    setDraftEmbedField(undefined)
-  }, [document.id])
+    const loadEmbedField = async () => {
+      if (isDraft && documentSchema.embedSource === 'metadata') {
+        const persisted = await getEmbedField(collectionName)
+        setDraftEmbedField(persisted)
+      } else {
+        setDraftEmbedField(undefined)
+      }
+    }
+    loadEmbedField()
+  }, [document.id, isDraft, documentSchema.embedSource, getEmbedField, collectionName])
 
   // Handle cancel/revert all changes
   const handleCancel = useCallback(() => {
