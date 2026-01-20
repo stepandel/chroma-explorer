@@ -21,7 +21,7 @@ interface DocumentDetailPanelProps {
   profileId: string
   isDraft?: boolean
   isFirstDocument?: boolean
-  onDraftChange?: (updates: { id?: string; document?: string; metadata?: Record<string, unknown>; embedField?: string }) => void
+  onDraftChange?: (updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => void
 }
 
 export default function DocumentDetailPanel({
@@ -32,15 +32,14 @@ export default function DocumentDetailPanel({
   isFirstDocument = false,
   onDraftChange,
 }: DocumentDetailPanelProps) {
-  // Get document schema and embed field helpers from context
-  const { documentSchema, getEmbedField } = useVectorDB()
+  // Get document schema from context
+  const { documentSchema } = useVectorDB()
   // Draft state
   const [draftDocument, setDraftDocument] = useState(document.document)
   const [draftMetadata, setDraftMetadata] = useState(document.metadata)
   const [draftEmbedding, setDraftEmbedding] = useState<string>('')
   const [embeddingError, setEmbeddingError] = useState<string | null>(null)
   const [isEditingEmbedding, setIsEditingEmbedding] = useState(false)
-  const [draftEmbedField, setDraftEmbedField] = useState<string | undefined>(undefined)
 
   // Regenerate embedding dialog state
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false)
@@ -99,18 +98,6 @@ export default function DocumentDetailPanel({
     setIsEditingEmbedding(false)
   }, [document.id, document.document, document.metadata, document.embedding])
 
-  // Load persisted embedField when switching to a different document (for drafts)
-  useEffect(() => {
-    const loadEmbedField = async () => {
-      if (isDraft && documentSchema.embedSource === 'metadata') {
-        const persisted = await getEmbedField(collectionName)
-        setDraftEmbedField(persisted)
-      } else {
-        setDraftEmbedField(undefined)
-      }
-    }
-    loadEmbedField()
-  }, [document.id, isDraft, documentSchema.embedSource, getEmbedField, collectionName])
 
   // Handle cancel/revert all changes
   const handleCancel = useCallback(() => {
@@ -414,42 +401,6 @@ export default function DocumentDetailPanel({
         </section>
       )}
 
-      {/* Embed Field Selector - only for drafts when embedding from metadata field */}
-      {documentSchema.embedSource === 'metadata' && isDraft && (
-        <section>
-          <h3 className="text-xs font-semibold text-muted-foreground mb-1">
-            embed field <span className="text-destructive">*</span>
-          </h3>
-          <select
-            value={draftEmbedField || ''}
-            onChange={(e) => {
-              const value = e.target.value || undefined
-              setDraftEmbedField(value)
-              if (onDraftChange) {
-                onDraftChange({ embedField: value })
-              }
-            }}
-            className="w-full text-xs p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md focus:outline-none focus:ring-1 focus:ring-primary/30"
-          >
-            <option value="">Select a text field to embed...</option>
-            {draftMetadata && Object.entries(draftMetadata).map(([key, value]) => {
-              // Only show string fields as options
-              const isTypedField = value && typeof value === 'object' && 'value' in value && 'type' in value
-              const typedField = isTypedField ? (value as TypedMetadataField) : null
-              if (typedField?.type !== 'string') return null
-              return (
-                <option key={key} value={key}>
-                  {key}
-                </option>
-              )
-            })}
-          </select>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            This field's value will be used to generate the embedding vector
-          </p>
-        </section>
-      )}
-
       {/* Metadata Fields - Each as Individual Section */}
       {(() => {
         if (!draftMetadata) return null
@@ -459,6 +410,7 @@ export default function DocumentDetailPanel({
         if (!canEditSchema) {
           entries.sort(([a], [b]) => a.localeCompare(b))
         }
+
         return entries.map(([key, value], index) => {
           // Check if value is a TypedMetadataField (has value and type properties)
           const isTypedField = value && typeof value === 'object' && 'value' in value && 'type' in value

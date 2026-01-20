@@ -13,7 +13,6 @@ interface DraftDocument {
   id: string
   document: string // For Chroma - document text
   metadata: TypedMetadataRecord
-  embedField?: string // For Pinecone - which metadata field to embed
 }
 
 interface DocumentRecord {
@@ -68,6 +67,18 @@ export default function DocumentsView({
   const { currentProfile, documentSchema, getEmbedField, setEmbedField } = useVectorDB()
   const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
   const [nResults, setNResults] = useState(10)
+
+  // Embed field state (for databases that embed from metadata, e.g., Pinecone)
+  const [currentEmbedField, setCurrentEmbedField] = useState<string | undefined>(undefined)
+
+  // Load persisted embed field on mount and when collection changes
+  useEffect(() => {
+    if (documentSchema.embedSource === 'metadata') {
+      getEmbedField(collectionName).then(setCurrentEmbedField)
+    } else {
+      setCurrentEmbedField(undefined)
+    }
+  }, [collectionName, documentSchema.embedSource, getEmbedField])
 
   // Draft documents state - supports single new document or multiple pasted documents
   const [draftDocuments, setDraftDocuments] = useState<DraftDocument[]>([])
@@ -152,6 +163,12 @@ export default function DocumentsView({
     )
     setEmbeddingOverride(null)
   }, [currentProfile?.id, collectionName])
+
+  // Handle embed field change (for Pinecone)
+  const handleEmbedFieldChange = useCallback(async (field: string) => {
+    setCurrentEmbedField(field)
+    await setEmbedField(collectionName, field)
+  }, [collectionName, setEmbedField])
 
   // Reset filters and deletion marks when collection changes
   useEffect(() => {
@@ -261,6 +278,15 @@ export default function DocumentsView({
     return Array.from(fields).sort()
   }, [documents])
 
+  // Get string metadata fields (for embed field selection)
+  const stringMetadataFields = useMemo(() => {
+    return metadataFields.filter(field => {
+      // Check if any document has a string value for this field
+      const doc = documents.find(d => d.metadata?.[field] !== undefined && d.metadata?.[field] !== null)
+      return doc && typeof doc.metadata?.[field] === 'string'
+    })
+  }, [metadataFields, documents])
+
   // Filter row handlers
   const handleFilterRowChange = useCallback((id: string, updates: Partial<FilterRowType>) => {
     setFilterRows(prev => prev.map(row =>
@@ -293,7 +319,7 @@ export default function DocumentsView({
   )
 
   // Draft document handlers
-  const handleStartCreate = useCallback(async () => {
+  const handleStartCreate = useCallback(() => {
     const newId = crypto.randomUUID()
     // Check if this is the first document (collection is empty)
     const isFirstDocument = documents.length === 0
@@ -313,23 +339,16 @@ export default function DocumentsView({
       })
     }
 
-    // Load persisted embed field for this collection (if embedding from metadata)
-    let persistedEmbedField: string | undefined
-    if (documentSchema.embedSource === 'metadata') {
-      persistedEmbedField = await getEmbedField(collectionName)
-    }
-
     setDraftDocuments([{
       id: newId,
       document: '',
       metadata: initialMetadata,
-      embedField: persistedEmbedField,
     }])
     // Select the draft so it shows in the detail panel
     onSingleSelect(newId)
     // Notify parent about first document status
     onIsFirstDocumentChange?.(isFirstDocument)
-  }, [onSingleSelect, metadataFields, documents.length, onIsFirstDocumentChange, documentSchema.embedSource, getEmbedField, collectionName])
+  }, [onSingleSelect, metadataFields, documents.length, onIsFirstDocumentChange])
 
   const handleDraftChange = useCallback((draft: DraftDocument, index: number = 0) => {
     setDraftDocuments(prev => {
@@ -341,7 +360,7 @@ export default function DocumentsView({
   }, [])
 
   // Handler for external draft updates (from detail panel) - only works for single draft
-  const handleExternalDraftUpdate = useCallback((updates: { id?: string; document?: string; metadata?: Record<string, unknown>; embedField?: string }) => {
+  const handleExternalDraftUpdate = useCallback((updates: { id?: string; document?: string; metadata?: Record<string, unknown> }) => {
     setDraftDocuments((prev) => {
       if (prev.length !== 1) return prev
       const newId = updates.id !== undefined ? updates.id : prev[0].id
@@ -350,7 +369,6 @@ export default function DocumentsView({
         id: newId,
         document: updates.document !== undefined ? updates.document : prev[0].document,
         metadata: updates.metadata !== undefined ? (updates.metadata as TypedMetadataRecord) : prev[0].metadata,
-        embedField: updates.embedField !== undefined ? updates.embedField : prev[0].embedField,
       }]
     })
     // Also update the primary selected document ID if ID changed
@@ -402,23 +420,23 @@ export default function DocumentsView({
       }
 
       if (embedsFromMetadata) {
-        // Embedding from metadata field: require embedField and that field must have a string value
-        if (!draft.embedField) {
-          setDraftError(`Document ${i + 1}: Select a text field to embed`)
+        // Embedding from metadata field: require embedField to be set at collection level
+        if (!currentEmbedField) {
+          setDraftError('Select an embed field at the top of the table before saving')
           return
         }
-        const embedFieldValue = draft.metadata[draft.embedField]
+        const embedFieldValue = draft.metadata[currentEmbedField]
         if (!embedFieldValue || typeof embedFieldValue !== 'object' || !('value' in embedFieldValue)) {
-          setDraftError(`Document ${i + 1}: Embed field "${draft.embedField}" not found`)
+          setDraftError(`Document ${i + 1}: Embed field "${currentEmbedField}" not found in metadata`)
           return
         }
         const typedValue = embedFieldValue as TypedMetadataField
         if (!typedValue.value?.trim()) {
-          setDraftError(`Document ${i + 1}: Embed field "${draft.embedField}" must have a value`)
+          setDraftError(`Document ${i + 1}: Embed field "${currentEmbedField}" must have a value`)
           return
         }
         if (typedValue.type !== 'string') {
-          setDraftError(`Document ${i + 1}: Embed field "${draft.embedField}" must be a string type`)
+          setDraftError(`Document ${i + 1}: Embed field "${currentEmbedField}" must be a string type`)
           return
         }
       } else {
@@ -442,7 +460,7 @@ export default function DocumentsView({
             id: draft.id,
             metadata,
             generateEmbedding: true,
-            embedField: draft.embedField,
+            embedField: currentEmbedField,
           })
         } else {
           await createMutation.mutateAsync({
@@ -462,13 +480,8 @@ export default function DocumentsView({
         await createBatchMutation.mutateAsync({
           documents: docsToCreate,
           generateEmbeddings: true,
-          embedField: embedsFromMetadata ? draftDocuments[0]?.embedField : undefined,
+          embedField: embedsFromMetadata ? currentEmbedField : undefined,
         })
-      }
-
-      // Persist the embed field for future documents (if embedding from metadata)
-      if (embedsFromMetadata && draftDocuments[0]?.embedField) {
-        await setEmbedField(collectionName, draftDocuments[0].embedField)
       }
 
       setDraftDocuments([])
@@ -479,7 +492,7 @@ export default function DocumentsView({
       const message = error instanceof Error ? error.message : 'Failed to create document(s)'
       setDraftError(message)
     }
-  }, [draftDocuments, documentSchema.embedSource, createMutation, createBatchMutation, onClearSelection, onIsFirstDocumentChange, setEmbedField, collectionName])
+  }, [draftDocuments, documentSchema.embedSource, currentEmbedField, createMutation, createBatchMutation, onClearSelection, onIsFirstDocumentChange])
 
   // Toggle deletion mark for all selected documents
   const handleToggleDeletion = useCallback(() => {
@@ -882,7 +895,7 @@ export default function DocumentsView({
         <div className="px-4 py-2 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 overflow-hidden">
             <h1 className="text-lg font-semibold text-foreground truncate">{collectionName}</h1>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center gap-2">
               <EmbeddingFunctionSelector
                 collectionName={collectionName}
                 currentOverride={embeddingOverride}
@@ -891,6 +904,26 @@ export default function DocumentsView({
                 onClear={handleClearOverride}
                 embeddingDimension={documents[0]?.embedding?.length ?? null}
               />
+              {/* Embed field selector - only for databases that embed from metadata */}
+              {documentSchema.embedSource === 'metadata' && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-muted-foreground">embed:</span>
+                  <select
+                    value={currentEmbedField || ''}
+                    onChange={(e) => handleEmbedFieldChange(e.target.value)}
+                    className={`text-xs px-2 py-0.5 rounded cursor-pointer transition-opacity ${
+                      currentEmbedField
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'text-muted-foreground bg-muted border border-transparent'
+                    }`}
+                  >
+                    <option value="">select field...</option>
+                    {stringMetadataFields.map(field => (
+                      <option key={field} value={field}>{field}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
           <span className="text-xs text-muted-foreground flex-shrink-0">
