@@ -17,10 +17,12 @@ mac:
   target:
     - target: dmg
       arch:
-        - universal
+        - x64
+        - arm64
     - target: zip
       arch:
-        - universal
+        - x64
+        - arm64
   icon: build/icon.icns
   hardenedRuntime: true
   gatekeeperAssess: false
