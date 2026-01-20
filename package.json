@@ -16,6 +16,14 @@
         "zip"
       ]
     },
+    "linux": {
+      "category": "Development",
+      "icon": "build/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
     "directories": {
       "output": "dist"
     },
