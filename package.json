@@ -34,7 +34,7 @@
     "build": "vite build && electron-builder --dir",
     "build:release": "vite build && electron-builder",
     "preview": "vite preview",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "node scripts/postinstall.mjs"
   },
   "keywords": [
     "electron",
@@ -82,7 +82,6 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.90.16",
     "@tanstack/react-table": "^8.21.3",
-    "bufferutil": "^4.1.0",
     "chromadb": "^3.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -96,7 +95,6 @@
     "react-dom": "^19.2.3",
     "react-resizable-panels": "^4.3.2",
     "sharp": "^0.34.5",
-    "tailwind-merge": "^3.4.0",
-    "utf-8-validate": "^6.0.6"
+    "tailwind-merge": "^3.4.0"
   }
 }
