@@ -30,6 +30,22 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   notarize: true
 
+win:
+  artifactName: "Chroma-Explorer-${version}-${arch}-win.${ext}"
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: build/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+
 dmg:
   artifactName: "Chroma-Explorer-${version}-${arch}.${ext}"
   sign: false

@@ -8,6 +8,21 @@ import { randomUUID } from 'crypto'
 import { settingsStore } from './settings-store'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const isMac = process.platform === 'darwin'
+
+/**
+ * Get macOS-specific window options (vibrancy, hidden title bar)
+ * These options are only applied on macOS; on other platforms they're omitted
+ */
+function getMacOSWindowOptions(): Partial<Electron.BrowserWindowConstructorOptions> {
+  if (!isMac) return {}
+  return {
+    titleBarStyle: 'hiddenInset',
+    transparent: true,
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
+  }
+}
 
 /**
  * Get the appropriate background color based on theme setting
@@ -92,13 +107,10 @@ class WindowManager {
       resizable: false,
       minimizable: false,
       maximizable: false,
-      titleBarStyle: 'hiddenInset',
       title: 'Chroma Explorer - Setup',
       center: true,
-      transparent: true,
-      vibrancy: 'under-window',
-      visualEffectState: 'active',
       backgroundColor: getThemeBackgroundColor(),
+      ...getMacOSWindowOptions(),
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
@@ -150,13 +162,10 @@ class WindowManager {
       resizable: true,
       minimizable: true,
       maximizable: false,
-      titleBarStyle: 'hiddenInset',
       title: 'Settings',
       center: true,
-      transparent: true,
-      vibrancy: 'under-window',
-      visualEffectState: 'active',
       backgroundColor: getThemeBackgroundColor(),
+      ...getMacOSWindowOptions(),
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
@@ -222,12 +231,9 @@ class WindowManager {
       height: 800,
       x: 100 + offset,
       y: 100 + offset,
-      titleBarStyle: 'hiddenInset',
       title: `Chroma Explorer - ${profile.name}`,
-      transparent: true,
-      vibrancy: 'under-window',
-      visualEffectState: 'active',
       backgroundColor: getThemeBackgroundColor(),
+      ...getMacOSWindowOptions(),
       webPreferences: {
         preload: path.join(__dirname, 'preload.mjs'),
         contextIsolation: true,
