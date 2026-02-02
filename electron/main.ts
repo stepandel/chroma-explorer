@@ -12,6 +12,7 @@ import { windowManager } from './window-manager'
 import { createApplicationMenu, updateThemeMenu } from './menu'
 import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams, CopyCollectionParams } from './types'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
+import { initAnalytics, track } from './analytics'
 
 // Inject stored API keys into process.env at startup
 settingsStore.injectIntoProcessEnv()
@@ -30,6 +31,7 @@ process.env.VITE_PUBLIC = app.isPackaged
 ipcMain.handle('chromadb:connect', async (_event, profileId: string, profile: ConnectionProfile) => {
   try {
     await chromaDBConnectionPool.connect(profileId, profile)
+    track('chroma_connected')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to connect to ChromaDB'
@@ -90,6 +92,7 @@ ipcMain.handle('chromadb:updateDocument', async (_event, profileId: string, para
     // Check for user embedding override (needed for regeneration)
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
     await service.updateDocument(params, embeddingOverride)
+    track('document_updated')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update document'
@@ -106,6 +109,7 @@ ipcMain.handle('chromadb:createDocument', async (_event, profileId: string, para
     // Check for user embedding override (needed for embedding generation)
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
     await service.createDocument(params, embeddingOverride)
+    track('document_created')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create document'
@@ -120,6 +124,9 @@ ipcMain.handle('chromadb:deleteDocuments', async (_event, profileId: string, par
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     await service.deleteDocuments(params)
+    track('documents_deleted', {
+      count: params.ids.length
+    })
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete documents'
@@ -136,6 +143,9 @@ ipcMain.handle('chromadb:createDocumentsBatch', async (_event, profileId: string
     // Check for user embedding override
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
     const result = await service.createDocumentsBatch(params, embeddingOverride)
+    track('documents_imported', {
+      count: params.documents.length
+    })
     return { success: true, data: result }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create documents'
@@ -150,6 +160,9 @@ ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, pa
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     const collection = await service.createCollection(params)
+    track('collection_created', {
+      distanceFunction: params.hnsw?.space || params.metadata?.['hnsw:space'] || 'default'
+    })
     return { success: true, data: collection }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create collection'
@@ -164,6 +177,7 @@ ipcMain.handle('chromadb:deleteCollection', async (_event, profileId: string, co
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     await service.deleteCollection(collectionName)
+    track('collection_deleted')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete collection'
@@ -194,6 +208,12 @@ ipcMain.handle('chromadb:copyCollection', async (event, profileId: string, param
 
     // Clean up abort controller
     activeCopyOperations.delete(profileId)
+
+    if (result.success) {
+      track('collection_duplicated', {
+        documentsCopied: result.copiedDocuments
+      })
+    }
 
     return { success: result.success, data: result, error: result.error }
   } catch (error) {
@@ -562,6 +582,10 @@ ipcMain.handle('shell:openExternal', async (_event, url: string) => {
 })
 
 app.whenReady().then(() => {
+  // Initialize analytics
+  initAnalytics()
+  track('app_started')
+
   // Create application menu
   createApplicationMenu()
 
@@ -583,6 +607,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('before-quit', () => {
+  track('app_closed')
 })
 
 app.on('activate', () => {
