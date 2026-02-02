@@ -46,7 +46,6 @@ ipcMain.handle('chromadb:listCollections', async (_event, profileId: string) => 
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     const collections = await service.listCollections()
-    track('collections_listed', { count: collections.length })
     return { success: true, data: collections }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch collections'
@@ -77,11 +76,6 @@ ipcMain.handle('chromadb:searchDocuments', async (_event, profileId: string, par
     // Check for user embedding override
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
     const documents = await service.searchDocuments(params, embeddingOverride)
-    track('collection_queried', {
-      collectionName: params.collectionName,
-      hasQueryText: !!params.queryText,
-      resultCount: documents.length
-    })
     return { success: true, data: documents }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to search documents'
@@ -98,6 +92,7 @@ ipcMain.handle('chromadb:updateDocument', async (_event, profileId: string, para
     // Check for user embedding override (needed for regeneration)
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
     await service.updateDocument(params, embeddingOverride)
+    track('document_updated')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update document'
@@ -114,6 +109,7 @@ ipcMain.handle('chromadb:createDocument', async (_event, profileId: string, para
     // Check for user embedding override (needed for embedding generation)
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
     await service.createDocument(params, embeddingOverride)
+    track('document_created')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create document'
@@ -128,6 +124,9 @@ ipcMain.handle('chromadb:deleteDocuments', async (_event, profileId: string, par
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     await service.deleteDocuments(params)
+    track('documents_deleted', {
+      count: params.ids.length
+    })
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete documents'
@@ -144,6 +143,9 @@ ipcMain.handle('chromadb:createDocumentsBatch', async (_event, profileId: string
     // Check for user embedding override
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
     const result = await service.createDocumentsBatch(params, embeddingOverride)
+    track('documents_imported', {
+      count: params.documents.length
+    })
     return { success: true, data: result }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create documents'
@@ -158,6 +160,9 @@ ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, pa
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     const collection = await service.createCollection(params)
+    track('collection_created', {
+      distanceFunction: params.hnsw?.space || params.metadata?.['hnsw:space'] || 'default'
+    })
     return { success: true, data: collection }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create collection'
@@ -172,6 +177,7 @@ ipcMain.handle('chromadb:deleteCollection', async (_event, profileId: string, co
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     await service.deleteCollection(collectionName)
+    track('collection_deleted')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete collection'
@@ -202,6 +208,12 @@ ipcMain.handle('chromadb:copyCollection', async (event, profileId: string, param
 
     // Clean up abort controller
     activeCopyOperations.delete(profileId)
+
+    if (result.success) {
+      track('collection_duplicated', {
+        documentsCopied: result.copiedDocuments
+      })
+    }
 
     return { success: result.success, data: result, error: result.error }
   } catch (error) {
