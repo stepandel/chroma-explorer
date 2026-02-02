@@ -1,4 +1,4 @@
-import { trackEvent, init } from '@aptabase/electron/main'
+import { trackEvent, initialize } from '@aptabase/electron/main'
 
 let isInitialized = false
 
@@ -15,7 +15,7 @@ export function initAnalytics(): void {
       return
     }
 
-    init(appKey)
+    initialize(appKey)
     isInitialized = true
     console.log('[Analytics] Initialized successfully')
   } catch (error) {
