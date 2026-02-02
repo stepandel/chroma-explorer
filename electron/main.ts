@@ -12,6 +12,7 @@ import { windowManager } from './window-manager'
 import { createApplicationMenu, updateThemeMenu } from './menu'
 import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams, CopyCollectionParams } from './types'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
+import { initAnalytics, track } from './analytics'
 
 // Inject stored API keys into process.env at startup
 settingsStore.injectIntoProcessEnv()
@@ -30,6 +31,7 @@ process.env.VITE_PUBLIC = app.isPackaged
 ipcMain.handle('chromadb:connect', async (_event, profileId: string, profile: ConnectionProfile) => {
   try {
     await chromaDBConnectionPool.connect(profileId, profile)
+    track('chroma_connected')
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to connect to ChromaDB'
@@ -44,6 +46,7 @@ ipcMain.handle('chromadb:listCollections', async (_event, profileId: string) => 
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     const collections = await service.listCollections()
+    track('collections_listed', { count: collections.length })
     return { success: true, data: collections }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch collections'
@@ -74,6 +77,11 @@ ipcMain.handle('chromadb:searchDocuments', async (_event, profileId: string, par
     // Check for user embedding override
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.collectionName)
     const documents = await service.searchDocuments(params, embeddingOverride)
+    track('collection_queried', {
+      collectionName: params.collectionName,
+      hasQueryText: !!params.queryText,
+      resultCount: documents.length
+    })
     return { success: true, data: documents }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to search documents'
@@ -562,6 +570,10 @@ ipcMain.handle('shell:openExternal', async (_event, url: string) => {
 })
 
 app.whenReady().then(() => {
+  // Initialize analytics
+  initAnalytics()
+  track('app_started')
+
   // Create application menu
   createApplicationMenu()
 
@@ -583,6 +595,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('before-quit', () => {
+  track('app_closed')
 })
 
 app.on('activate', () => {
