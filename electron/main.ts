@@ -1,4 +1,3 @@
-import 'dotenv/config'
 import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions, shell } from 'electron'
 
 // Set app name before anything else (affects menu bar, about dialog, etc.)
