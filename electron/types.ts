@@ -35,6 +35,11 @@ export interface ConnectionProfile {
   database?: string // Chroma Cloud database name
   apiKey?: string // API key for authentication
 
+  // Authentication for self-hosted servers
+  authType?: 'none' | 'token' | 'basic'
+  authToken?: string // Bearer token for token auth
+  authCredentials?: string // "username:password" for basic auth
+
   createdAt: number // Timestamp
   lastUsed?: number // Timestamp
 
