@@ -23,6 +23,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const [tenant, setTenant] = useState('')
   const [database, setDatabase] = useState('')
   const [apiKey, setApiKey] = useState('')
+  const [authType, setAuthType] = useState<'none' | 'token' | 'basic'>('none')
+  const [authToken, setAuthToken] = useState('')
+  const [authCredentials, setAuthCredentials] = useState('')
   const [error, setError] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => getSystemTheme())
@@ -107,6 +110,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       setTenant(profile.tenant || '')
       setDatabase(profile.database || '')
       setApiKey(profile.apiKey || '')
+      setAuthType(profile.authType || 'none')
+      setAuthToken(profile.authToken || '')
+      setAuthCredentials(profile.authCredentials || '')
     }
   }
 
@@ -116,6 +122,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     setTenant('')
     setDatabase('')
     setApiKey('')
+    setAuthType('none')
+    setAuthToken('')
+    setAuthCredentials('')
   }
 
   const handleDeleteProfile = async (profileId: string) => {
@@ -197,6 +206,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       if (tenant.trim()) profile.tenant = tenant.trim()
       if (database.trim()) profile.database = database.trim()
       if (apiKey.trim()) profile.apiKey = apiKey.trim()
+      if (authType !== 'none') profile.authType = authType
+      if (authToken.trim()) profile.authToken = authToken.trim()
+      if (authCredentials.trim()) profile.authCredentials = authCredentials.trim()
 
       // Test connection first before saving or proceeding
       try {
@@ -281,6 +293,58 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   />
                 </div>
               </div>
+
+              {/* Auth section - only shown for non-cloud connections */}
+              {!tenant.trim() && !database.trim() && (
+                <div className="space-y-2.5 pt-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Auth</span>
+                    <div className="flex-1 h-px bg-foreground/10" />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="authType" className="text-[12px] text-foreground/50 w-16 text-right">Type</label>
+                    <select
+                      id="authType"
+                      value={authType}
+                      onChange={(e) => setAuthType(e.target.value as 'none' | 'token' | 'basic')}
+                      className={inputClassName}
+                    >
+                      <option value="none">None</option>
+                      <option value="token">Token</option>
+                      <option value="basic">Basic</option>
+                    </select>
+                  </div>
+
+                  {authType === 'token' && (
+                    <div className="flex items-center gap-3">
+                      <label htmlFor="authToken" className="text-[12px] text-foreground/50 w-16 text-right">Token</label>
+                      <input
+                        type="password"
+                        id="authToken"
+                        value={authToken}
+                        onChange={(e) => setAuthToken(e.target.value)}
+                        placeholder="••••••••"
+                        className={inputClassName}
+                      />
+                    </div>
+                  )}
+
+                  {authType === 'basic' && (
+                    <div className="flex items-center gap-3">
+                      <label htmlFor="authCredentials" className="text-[12px] text-foreground/50 w-16 text-right">Credentials</label>
+                      <input
+                        type="password"
+                        id="authCredentials"
+                        value={authCredentials}
+                        onChange={(e) => setAuthCredentials(e.target.value)}
+                        placeholder="username:password"
+                        className={inputClassName}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Advanced fields */}
               <div className="space-y-2.5 pt-2">

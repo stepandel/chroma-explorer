@@ -80,6 +80,17 @@ class ChromaDBService {
           ssl,
         }
 
+        // Build auth headers for self-hosted connections
+        if (profile.authType === 'token' && profile.authToken) {
+          clientConfig.headers = {
+            'Authorization': `Bearer ${profile.authToken}`,
+          }
+        } else if (profile.authType === 'basic' && profile.authCredentials) {
+          clientConfig.headers = {
+            'Authorization': `Basic ${Buffer.from(profile.authCredentials).toString('base64')}`,
+          }
+        }
+
         this.client = new ChromaClient(clientConfig)
       }
 
