@@ -38,6 +38,8 @@ export default defineConfig({
           build: {
             rollupOptions: {
               external: [
+                '@chroma-core/default-embed',
+                '@chroma-core/sentence-transformer',
                 'onnxruntime-node',
                 'sharp',
               ],

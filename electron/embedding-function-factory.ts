@@ -1,18 +1,4 @@
 import { ChromaClient, CloudClient, EmbeddingFunction } from 'chromadb'
-import { DefaultEmbeddingFunction } from '@chroma-core/default-embed'
-import { OpenAIEmbeddingFunction } from '@chroma-core/openai'
-import { OllamaEmbeddingFunction } from '@chroma-core/ollama'
-import { CohereEmbeddingFunction } from '@chroma-core/cohere'
-import { GoogleGeminiEmbeddingFunction } from '@chroma-core/google-gemini'
-import { JinaEmbeddingFunction } from '@chroma-core/jina'
-import { MistralEmbeddingFunction } from '@chroma-core/mistral'
-import { VoyageAIEmbeddingFunction } from '@chroma-core/voyageai'
-import { TogetherAIEmbeddingFunction } from '@chroma-core/together-ai'
-import { HuggingfaceServerEmbeddingFunction } from '@chroma-core/huggingface-server'
-import { CloudflareWorkerAIEmbeddingFunction } from '@chroma-core/cloudflare-worker-ai'
-import { MorphEmbeddingFunction } from '@chroma-core/morph'
-import { ChromaCloudQwenEmbeddingFunction, ChromaCloudQwenEmbeddingModel } from '@chroma-core/chroma-cloud-qwen'
-import { SentenceTransformersEmbeddingFunction } from '@chroma-core/sentence-transformer'
 import { CollectionInfo } from './types'
 
 // Custom error for missing API credentials
@@ -107,6 +93,7 @@ export class EmbeddingFunctionFactory {
       // Handle each supported embedding function
       switch (packageName) {
         case 'default-embed': {
+          const { DefaultEmbeddingFunction } = await import('@chroma-core/default-embed')
           return DefaultEmbeddingFunction.buildFromConfig(efConfig.config as any || {})
         }
 
@@ -122,6 +109,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || 'text-embedding-ada-002'
           console.log(`[EF Factory] Creating OpenAI embedding function with model: ${modelName}`)
 
+          const { OpenAIEmbeddingFunction } = await import('@chroma-core/openai')
           return new OpenAIEmbeddingFunction({
             apiKey,
             modelName,
@@ -138,6 +126,7 @@ export class EmbeddingFunctionFactory {
 
           console.log(`[EF Factory] Creating Ollama embedding function with model: ${model} at ${url}`)
 
+          const { OllamaEmbeddingFunction } = await import('@chroma-core/ollama')
           return new OllamaEmbeddingFunction({
             url,
             model,
@@ -156,6 +145,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || 'embed-english-v3.0'
           console.log(`[EF Factory] Creating Cohere embedding function with model: ${modelName}`)
 
+          const { CohereEmbeddingFunction } = await import('@chroma-core/cohere')
           return new CohereEmbeddingFunction({
             apiKey,
             modelName,
@@ -174,6 +164,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || 'text-embedding-004'
           console.log(`[EF Factory] Creating Google Gemini embedding function with model: ${modelName}`)
 
+          const { GoogleGeminiEmbeddingFunction } = await import('@chroma-core/google-gemini')
           return new GoogleGeminiEmbeddingFunction({
             apiKey,
             modelName,
@@ -192,6 +183,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || 'jina-embeddings-v3'
           console.log(`[EF Factory] Creating Jina embedding function with model: ${modelName}`)
 
+          const { JinaEmbeddingFunction } = await import('@chroma-core/jina')
           return new JinaEmbeddingFunction({
             apiKey,
             modelName,
@@ -210,6 +202,7 @@ export class EmbeddingFunctionFactory {
           const model = (config.model_name as string) || 'mistral-embed'
           console.log(`[EF Factory] Creating Mistral embedding function with model: ${model}`)
 
+          const { MistralEmbeddingFunction } = await import('@chroma-core/mistral')
           return new MistralEmbeddingFunction({
             apiKey,
             model,
@@ -228,6 +221,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || 'voyage-3'
           console.log(`[EF Factory] Creating VoyageAI embedding function with model: ${modelName}`)
 
+          const { VoyageAIEmbeddingFunction } = await import('@chroma-core/voyageai')
           return new VoyageAIEmbeddingFunction({
             apiKey,
             modelName,
@@ -246,6 +240,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || 'togethercomputer/m2-bert-80M-8k-retrieval'
           console.log(`[EF Factory] Creating Together AI embedding function with model: ${modelName}`)
 
+          const { TogetherAIEmbeddingFunction } = await import('@chroma-core/together-ai')
           return new TogetherAIEmbeddingFunction({
             apiKey,
             modelName,
@@ -266,6 +261,7 @@ export class EmbeddingFunctionFactory {
 
           console.log(`[EF Factory] Creating HuggingFace Server embedding function at: ${url}`)
 
+          const { HuggingfaceServerEmbeddingFunction } = await import('@chroma-core/huggingface-server')
           return new HuggingfaceServerEmbeddingFunction({
             url,
           })
@@ -295,6 +291,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || '@cf/baai/bge-base-en-v1.5'
           console.log(`[EF Factory] Creating Cloudflare Workers AI embedding function with model: ${modelName}`)
 
+          const { CloudflareWorkerAIEmbeddingFunction } = await import('@chroma-core/cloudflare-worker-ai')
           return new CloudflareWorkerAIEmbeddingFunction({
             accountId,
             apiKey,
@@ -314,6 +311,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || 'morph-embedding-base'
           console.log(`[EF Factory] Creating Morph embedding function with model: ${modelName}`)
 
+          const { MorphEmbeddingFunction } = await import('@chroma-core/morph')
           return new MorphEmbeddingFunction({
             api_key: apiKey,
             model_name: modelName,
@@ -325,6 +323,7 @@ export class EmbeddingFunctionFactory {
           const task = (config.task as string) || null
           console.log(`[EF Factory] Creating Chroma Cloud Qwen embedding function`)
 
+          const { ChromaCloudQwenEmbeddingFunction, ChromaCloudQwenEmbeddingModel } = await import('@chroma-core/chroma-cloud-qwen')
           // Chroma Cloud Qwen uses the client credentials from the CloudClient
           return new ChromaCloudQwenEmbeddingFunction({
             model: ChromaCloudQwenEmbeddingModel.QWEN3_EMBEDDING_0p6B,
@@ -338,6 +337,7 @@ export class EmbeddingFunctionFactory {
           const modelName = (config.model_name as string) || 'Xenova/all-MiniLM-L6-v2'
           console.log(`[EF Factory] Creating Sentence Transformer embedding function with model: ${modelName}`)
 
+          const { SentenceTransformersEmbeddingFunction } = await import('@chroma-core/sentence-transformer')
           return new SentenceTransformersEmbeddingFunction({
             modelName,
           })
