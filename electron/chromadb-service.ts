@@ -1,4 +1,13 @@
-import { ChromaClient, Collection, CloudClient, ChromaClientArgs, Metadata } from 'chromadb'
+import {
+  ChromaClient,
+  Collection,
+  CloudClient,
+  ChromaClientArgs,
+  ChromaConnectionError,
+  ChromaForbiddenError,
+  ChromaUnauthorizedError,
+  Metadata,
+} from 'chromadb'
 import {
   ConnectionProfile,
   CollectionInfo,
@@ -54,43 +63,55 @@ class ChromaDBService {
   }
 
   async connect(profile: ConnectionProfile): Promise<void> {
-    try {
-      // Auto-detect connection type based on provided fields
-      const hasCloudFields = profile.tenant || profile.database
+    let resolvedTarget = profile.url
+    let isCloud = false
 
-      if (!!hasCloudFields) {
-        // Cloud connection using CloudClient
+    try {
+      // Route by URL host, not by presence of tenant/database — self-hosted
+      // Chroma 1.5+ is multi-tenant too and uses ChromaClient with headers.
+      let parsedUrl: URL | null = null
+      try {
+        parsedUrl = new URL(profile.url)
+      } catch {
+        parsedUrl = null
+      }
+
+      isCloud = parsedUrl?.hostname.endsWith('trychroma.com') ?? false
+
+      if (isCloud) {
         const cloudConfig = {
           tenant: profile.tenant,
           database: profile.database,
           apiKey: profile.apiKey,
         }
-
+        resolvedTarget = `Chroma Cloud (${parsedUrl?.hostname ?? 'api.trychroma.com'})`
         this.client = new CloudClient(cloudConfig)
       } else {
-        // Local or remote connection using ChromaClient
-        // Parse the URL to extract host, port, and SSL
-        const url = new URL(profile.url)
-        const host = url.hostname
-        const ssl = url.protocol === 'https:'
+        if (!parsedUrl) {
+          throw new Error(`Invalid URL: "${profile.url}"`)
+        }
 
         const clientConfig: ChromaClientArgs = {
-          host,
-          port: url.port ? parseInt(url.port, 10) : 8000,
-          ssl,
+          host: parsedUrl.hostname,
+          port: parsedUrl.port ? parseInt(parsedUrl.port, 10) : (parsedUrl.protocol === 'https:' ? 443 : 8000),
+          ssl: parsedUrl.protocol === 'https:',
         }
 
-        // Build auth headers for self-hosted connections
+        // Multi-tenant self-hosted: pass tenant/database to ChromaClient.
+        if (profile.tenant) clientConfig.tenant = profile.tenant
+        if (profile.database) clientConfig.database = profile.database
+
+        const headers: Record<string, string> = {}
         if (profile.authType === 'token' && profile.authToken) {
-          clientConfig.headers = {
-            'Authorization': `Bearer ${profile.authToken}`,
-          }
+          headers['Authorization'] = `Bearer ${profile.authToken}`
         } else if (profile.authType === 'basic' && profile.authCredentials) {
-          clientConfig.headers = {
-            'Authorization': `Basic ${Buffer.from(profile.authCredentials).toString('base64')}`,
-          }
+          headers['Authorization'] = `Basic ${Buffer.from(profile.authCredentials).toString('base64')}`
+        }
+        if (Object.keys(headers).length > 0) {
+          clientConfig.headers = headers
         }
 
+        resolvedTarget = `${parsedUrl.protocol}//${parsedUrl.host}`
         this.client = new ChromaClient(clientConfig)
       }
 
@@ -106,8 +127,55 @@ class ChromaDBService {
       this.client = null
       this.efFactory = null
       this.profile = null
-      throw error
+      throw this.mapConnectError(error, profile, resolvedTarget, isCloud)
     }
+  }
+
+  private mapConnectError(
+    error: unknown,
+    profile: ConnectionProfile,
+    resolvedTarget: string,
+    isCloud: boolean
+  ): Error {
+    const authMode = isCloud
+      ? (profile.apiKey ? 'Chroma Cloud API key' : 'no API key')
+      : profile.authType === 'token'
+        ? 'token auth'
+        : profile.authType === 'basic'
+          ? 'basic auth'
+          : 'no auth'
+
+    const tenantPart = profile.tenant ? `, tenant="${profile.tenant}"` : ''
+    const dbPart = profile.database ? `, database="${profile.database}"` : ''
+    const ctx = `(${resolvedTarget}${tenantPart}${dbPart}, ${authMode})`
+
+    if (error instanceof ChromaUnauthorizedError) {
+      const credName = isCloud
+        ? 'API key'
+        : profile.authType === 'basic'
+          ? 'username/password'
+          : 'token'
+      return new Error(
+        `Authentication failed: the server rejected the ${credName}. ` +
+        `Verify the credential is correct and matches the server's auth provider. ${ctx}`
+      )
+    }
+
+    if (error instanceof ChromaForbiddenError) {
+      return new Error(
+        `Authenticated, but not authorized to access this tenant/database. ` +
+        `Check that the tenant and database names exist and your credential has access. ${ctx}`
+      )
+    }
+
+    if (error instanceof ChromaConnectionError) {
+      return new Error(
+        `Could not reach the Chroma server. Check that it is running and the URL is correct. ${ctx}`
+      )
+    }
+
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return new Error(`${message} ${ctx}`)
   }
 
   disconnect(): void {

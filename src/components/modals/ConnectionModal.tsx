@@ -294,57 +294,55 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                 </div>
               </div>
 
-              {/* Auth section - only shown for non-cloud connections */}
-              {!tenant.trim() && !database.trim() && (
-                <div className="space-y-2.5 pt-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Auth</span>
-                    <div className="flex-1 h-px bg-foreground/10" />
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <label htmlFor="authType" className="text-[12px] text-foreground/50 w-16 text-right">Type</label>
-                    <select
-                      id="authType"
-                      value={authType}
-                      onChange={(e) => setAuthType(e.target.value as 'none' | 'token' | 'basic')}
-                      className={inputClassName}
-                    >
-                      <option value="none">None</option>
-                      <option value="token">Token</option>
-                      <option value="basic">Basic</option>
-                    </select>
-                  </div>
-
-                  {authType === 'token' && (
-                    <div className="flex items-center gap-3">
-                      <label htmlFor="authToken" className="text-[12px] text-foreground/50 w-16 text-right">Token</label>
-                      <input
-                        type="password"
-                        id="authToken"
-                        value={authToken}
-                        onChange={(e) => setAuthToken(e.target.value)}
-                        placeholder="••••••••"
-                        className={inputClassName}
-                      />
-                    </div>
-                  )}
-
-                  {authType === 'basic' && (
-                    <div className="flex items-center gap-3">
-                      <label htmlFor="authCredentials" className="text-[12px] text-foreground/50 w-16 text-right">Credentials</label>
-                      <input
-                        type="password"
-                        id="authCredentials"
-                        value={authCredentials}
-                        onChange={(e) => setAuthCredentials(e.target.value)}
-                        placeholder="username:password"
-                        className={inputClassName}
-                      />
-                    </div>
-                  )}
+              {/* Auth section - applies to self-hosted servers (with or without tenant/database) */}
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Auth</span>
+                  <div className="flex-1 h-px bg-foreground/10" />
                 </div>
-              )}
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="authType" className="text-[12px] text-foreground/50 w-16 text-right">Type</label>
+                  <select
+                    id="authType"
+                    value={authType}
+                    onChange={(e) => setAuthType(e.target.value as 'none' | 'token' | 'basic')}
+                    className={inputClassName}
+                  >
+                    <option value="none">None</option>
+                    <option value="token">Token</option>
+                    <option value="basic">Basic</option>
+                  </select>
+                </div>
+
+                {authType === 'token' && (
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="authToken" className="text-[12px] text-foreground/50 w-16 text-right">Token</label>
+                    <input
+                      type="password"
+                      id="authToken"
+                      value={authToken}
+                      onChange={(e) => setAuthToken(e.target.value)}
+                      placeholder="••••••••"
+                      className={inputClassName}
+                    />
+                  </div>
+                )}
+
+                {authType === 'basic' && (
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="authCredentials" className="text-[12px] text-foreground/50 w-16 text-right">Credentials</label>
+                    <input
+                      type="password"
+                      id="authCredentials"
+                      value={authCredentials}
+                      onChange={(e) => setAuthCredentials(e.target.value)}
+                      placeholder="username:password"
+                      className={inputClassName}
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* Advanced fields */}
               <div className="space-y-2.5 pt-2">
