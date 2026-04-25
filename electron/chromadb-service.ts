@@ -103,7 +103,11 @@ class ChromaDBService {
 
         const headers: Record<string, string> = {}
         if (profile.authType === 'token' && profile.authToken) {
-          headers['Authorization'] = `Bearer ${profile.authToken}`
+          if (profile.authTokenHeader === 'x-chroma-token') {
+            headers['X-Chroma-Token'] = profile.authToken
+          } else {
+            headers['Authorization'] = `Bearer ${profile.authToken}`
+          }
         } else if (profile.authType === 'basic' && profile.authCredentials) {
           headers['Authorization'] = `Basic ${Buffer.from(profile.authCredentials).toString('base64')}`
         }
@@ -140,7 +144,7 @@ class ChromaDBService {
     const authMode = isCloud
       ? (profile.apiKey ? 'Chroma Cloud API key' : 'no API key')
       : profile.authType === 'token'
-        ? 'token auth'
+        ? `token auth via ${profile.authTokenHeader === 'x-chroma-token' ? 'X-Chroma-Token' : 'Authorization: Bearer'}`
         : profile.authType === 'basic'
           ? 'basic auth'
           : 'no auth'

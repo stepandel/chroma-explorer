@@ -38,6 +38,7 @@ export interface ConnectionProfile {
   // Authentication for self-hosted servers
   authType?: 'none' | 'token' | 'basic'
   authToken?: string // Bearer token for token auth
+  authTokenHeader?: 'authorization' | 'x-chroma-token' // header to send token in (default: 'authorization')
   authCredentials?: string // "username:password" for basic auth
 
   createdAt: number // Timestamp

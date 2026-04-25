@@ -25,6 +25,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const [apiKey, setApiKey] = useState('')
   const [authType, setAuthType] = useState<'none' | 'token' | 'basic'>('none')
   const [authToken, setAuthToken] = useState('')
+  const [authTokenHeader, setAuthTokenHeader] = useState<'authorization' | 'x-chroma-token'>('authorization')
   const [authCredentials, setAuthCredentials] = useState('')
   const [error, setError] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
@@ -112,6 +113,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       setApiKey(profile.apiKey || '')
       setAuthType(profile.authType || 'none')
       setAuthToken(profile.authToken || '')
+      setAuthTokenHeader(profile.authTokenHeader || 'authorization')
       setAuthCredentials(profile.authCredentials || '')
     }
   }
@@ -124,6 +126,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     setApiKey('')
     setAuthType('none')
     setAuthToken('')
+    setAuthTokenHeader('authorization')
     setAuthCredentials('')
   }
 
@@ -208,6 +211,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       if (apiKey.trim()) profile.apiKey = apiKey.trim()
       if (authType !== 'none') profile.authType = authType
       if (authToken.trim()) profile.authToken = authToken.trim()
+      if (authType === 'token' && authTokenHeader !== 'authorization') profile.authTokenHeader = authTokenHeader
       if (authCredentials.trim()) profile.authCredentials = authCredentials.trim()
 
       // Test connection first before saving or proceeding
@@ -316,17 +320,31 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                 </div>
 
                 {authType === 'token' && (
-                  <div className="flex items-center gap-3">
-                    <label htmlFor="authToken" className="text-[12px] text-foreground/50 w-16 text-right">Token</label>
-                    <input
-                      type="password"
-                      id="authToken"
-                      value={authToken}
-                      onChange={(e) => setAuthToken(e.target.value)}
-                      placeholder="••••••••"
-                      className={inputClassName}
-                    />
-                  </div>
+                  <>
+                    <div className="flex items-center gap-3">
+                      <label htmlFor="authTokenHeader" className="text-[12px] text-foreground/50 w-16 text-right">Header</label>
+                      <select
+                        id="authTokenHeader"
+                        value={authTokenHeader}
+                        onChange={(e) => setAuthTokenHeader(e.target.value as 'authorization' | 'x-chroma-token')}
+                        className={inputClassName}
+                      >
+                        <option value="authorization">Authorization: Bearer</option>
+                        <option value="x-chroma-token">X-Chroma-Token</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label htmlFor="authToken" className="text-[12px] text-foreground/50 w-16 text-right">Token</label>
+                      <input
+                        type="password"
+                        id="authToken"
+                        value={authToken}
+                        onChange={(e) => setAuthToken(e.target.value)}
+                        placeholder="••••••••"
+                        className={inputClassName}
+                      />
+                    </div>
+                  </>
                 )}
 
                 {authType === 'basic' && (
