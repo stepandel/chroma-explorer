@@ -20,3 +20,5 @@ release/
 
 # Build cache
 .electron-builder-cache/
+
+.tickets
