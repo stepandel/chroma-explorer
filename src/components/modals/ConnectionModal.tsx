@@ -408,19 +408,21 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
             </div>
 
             {/* Error + Action anchored to bottom */}
-            <div className="pt-4 flex items-center justify-end gap-3">
+            <div className="pt-4 space-y-2">
               {error && (
-                <div className="flex-1 text-[11px] text-destructive truncate">
+                <div className="text-[11px] text-destructive break-words leading-snug">
                   {error}
                 </div>
               )}
-              <button
-                type="submit"
-                disabled={isConnecting}
-                className="h-7 px-5 text-[12px] font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isConnecting ? 'Connecting...' : 'Connect'}
-              </button>
+              <div className="flex items-center justify-end">
+                <button
+                  type="submit"
+                  disabled={isConnecting}
+                  className="h-7 px-5 text-[12px] font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isConnecting ? 'Connecting...' : 'Connect'}
+                </button>
+              </div>
             </div>
           </form>
         </div>
