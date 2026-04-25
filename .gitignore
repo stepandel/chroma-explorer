@@ -22,3 +22,6 @@ release/
 .electron-builder-cache/
 
 .tickets
+
+# Local test ChromaDB persistence
+test-db/

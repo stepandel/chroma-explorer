@@ -34,7 +34,13 @@
     "build": "vite build && electron-builder --dir",
     "build:release": "vite build && electron-builder",
     "preview": "vite preview",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "test:db": "node scripts/run-test-db.mjs --auth=none",
+    "test:db:token": "node scripts/run-test-db.mjs --auth=token",
+    "test:db:basic": "node scripts/run-test-db.mjs --auth=basic",
+    "test:db:seed": "node scripts/seed-test-db.mjs --auth=none",
+    "test:db:seed:token": "node scripts/seed-test-db.mjs --auth=token",
+    "test:db:seed:basic": "node scripts/seed-test-db.mjs --auth=basic"
   },
   "keywords": [
     "electron",
