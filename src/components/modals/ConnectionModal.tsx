@@ -265,7 +265,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         <div className="flex-1 flex flex-col px-10 pb-5">
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col max-w-sm mx-auto w-full">
             {/* Form fields */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-4 overflow-y-auto">
               {/* Primary fields */}
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
