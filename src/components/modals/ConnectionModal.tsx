@@ -318,7 +318,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
             {/* Form fields */}
             <div className="flex-1 space-y-4 overflow-y-auto">
               {/* Connection type selector */}
-              <div className="grid grid-cols-2 gap-1 p-0.5 rounded bg-black/[0.06] dark:bg-white/[0.08]">
+              <div className="grid grid-cols-2 gap-0.5 p-0.5 rounded bg-black/[0.06] dark:bg-white/[0.08]">
                 {([
                   { value: 'self-hosted', label: 'Self-hosted' },
                   { value: 'cloud', label: 'Chroma Cloud' },
@@ -329,9 +329,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                       type="button"
                       key={opt.value}
                       onClick={() => handleConnectionTypeChange(opt.value)}
-                      className={`h-6 text-[12px] rounded transition-colors ${
+                      className={`h-5 text-[11px] rounded-sm transition-colors ${
                         active
-                          ? 'bg-white/90 dark:bg-white/[0.16] text-foreground shadow-sm'
+                          ? 'bg-black/[0.08] dark:bg-white/[0.12] text-foreground'
                           : 'text-foreground/50 hover:text-foreground/70'
                       }`}
                     >
