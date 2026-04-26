@@ -81,12 +81,22 @@ class ChromaDBService {
         : (parsedUrl?.hostname.endsWith('trychroma.com') ?? false)
 
       if (isCloud) {
-        const cloudConfig = {
+        const cloudConfig: {
+          tenant?: string
+          database?: string
+          apiKey?: string
+          host?: string
+          port?: number
+        } = {
           tenant: profile.tenant,
           database: profile.database,
           apiKey: profile.apiKey,
         }
-        resolvedTarget = `Chroma Cloud (${parsedUrl?.hostname ?? 'api.trychroma.com'})`
+        if (parsedUrl) {
+          cloudConfig.host = parsedUrl.hostname
+          if (parsedUrl.port) cloudConfig.port = parseInt(parsedUrl.port, 10)
+        }
+        resolvedTarget = `Chroma Cloud (${parsedUrl?.host ?? 'api.trychroma.com'})`
         this.client = new CloudClient(cloudConfig)
       } else {
         if (!parsedUrl) {

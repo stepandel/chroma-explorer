@@ -16,6 +16,7 @@ function getSystemTheme(): ResolvedTheme {
 }
 
 const CLOUD_URL = 'https://api.trychroma.com'
+const SELF_HOSTED_DEFAULT_URL = 'http://localhost:8000'
 
 function inferConnectionType(profile: ConnectionProfile): 'cloud' | 'self-hosted' {
   if (profile.connectionType) return profile.connectionType
@@ -32,7 +33,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const [selectedProfileId, setSelectedProfileId] = useState<string>('')
   const [connectionType, setConnectionType] = useState<'cloud' | 'self-hosted'>('self-hosted')
   const [profileName, setProfileName] = useState('')
-  const [url, setUrl] = useState('http://localhost:8000')
+  const [url, setUrl] = useState(SELF_HOSTED_DEFAULT_URL)
   const [tenant, setTenant] = useState('')
   const [database, setDatabase] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -77,6 +78,19 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       unsubscribe()
     }
   }, [])
+
+  const handleConnectionTypeChange = (newType: 'cloud' | 'self-hosted') => {
+    if (newType === connectionType) return
+    // Swap URL defaults between modes so the user isn't left staring at a
+    // localhost URL after picking Cloud (or an empty field after picking
+    // Self-hosted). A custom URL is left alone.
+    if (newType === 'cloud' && url.trim() === SELF_HOSTED_DEFAULT_URL) {
+      setUrl('')
+    } else if (newType === 'self-hosted' && !url.trim()) {
+      setUrl(SELF_HOSTED_DEFAULT_URL)
+    }
+    setConnectionType(newType)
+  }
 
   const handleContextMenu = useCallback((e: React.MouseEvent, profileId: string) => {
     e.preventDefault()
@@ -135,7 +149,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const resetForm = () => {
     setConnectionType('self-hosted')
     setProfileName('')
-    setUrl('http://localhost:8000')
+    setUrl(SELF_HOSTED_DEFAULT_URL)
     setTenant('')
     setDatabase('')
     setApiKey('')
@@ -191,6 +205,13 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       if (!apiKey.trim()) {
         return 'API key is required for Chroma Cloud'
       }
+      if (url.trim()) {
+        try {
+          new URL(url)
+        } catch {
+          return `Please enter a valid URL (or leave blank to use ${CLOUD_URL})`
+        }
+      }
       return null
     }
 
@@ -224,7 +245,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
         id: selectedProfileId || crypto.randomUUID(),
         name: profileName || `Connection-${Date.now()}`,
         connectionType,
-        url: connectionType === 'cloud' ? CLOUD_URL : url.trim(),
+        url: connectionType === 'cloud' ? (url.trim() || CLOUD_URL) : url.trim(),
         createdAt: Date.now(),
       }
 
@@ -307,7 +328,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                     <button
                       type="button"
                       key={opt.value}
-                      onClick={() => setConnectionType(opt.value)}
+                      onClick={() => handleConnectionTypeChange(opt.value)}
                       className={`h-6 text-[12px] rounded transition-colors ${
                         active
                           ? 'bg-white/90 dark:bg-white/[0.16] text-foreground shadow-sm'
@@ -334,20 +355,18 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   />
                 </div>
 
-                {connectionType === 'self-hosted' && (
-                  <div className="flex items-center gap-3">
-                    <label htmlFor="url" className="text-[12px] text-foreground/50 w-16 text-right">URL</label>
-                    <input
-                      type="text"
-                      id="url"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="http://localhost:8000"
-                      required
-                      className={inputClassName}
-                    />
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  <label htmlFor="url" className="text-[12px] text-foreground/50 w-16 text-right">URL</label>
+                  <input
+                    type="text"
+                    id="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder={connectionType === 'cloud' ? CLOUD_URL : 'http://localhost:8000'}
+                    required={connectionType === 'self-hosted'}
+                    className={inputClassName}
+                  />
+                </div>
               </div>
 
               {/* Auth section - self-hosted only */}
