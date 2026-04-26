@@ -27,13 +27,19 @@ export interface ConnectionProfile {
   id: string // UUID
   name: string // User-friendly name (e.g., "Production Server")
 
-  // Connection URL (required)
+  // Which deployment shape this profile targets. Legacy profiles without
+  // this field are inferred from the URL (api.trychroma.com → cloud).
+  connectionType?: 'cloud' | 'self-hosted'
+
+  // Connection URL (required for self-hosted; cloud profiles use api.trychroma.com)
   url: string // e.g., "http://localhost:8000" or "https://api.trychroma.com"
 
-  // Optional fields for remote/cloud connections
-  tenant?: string // Chroma Cloud tenant ID
-  database?: string // Chroma Cloud database name
-  apiKey?: string // API key for authentication
+  // Tenant + database — universal in Chroma 1.5+ (cloud and self-hosted)
+  tenant?: string
+  database?: string
+
+  // Cloud-only credential
+  apiKey?: string // Chroma Cloud API key
 
   // Authentication for self-hosted servers
   authType?: 'none' | 'token' | 'basic'

@@ -15,9 +15,22 @@ function getSystemTheme(): ResolvedTheme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+const CLOUD_URL = 'https://api.trychroma.com'
+
+function inferConnectionType(profile: ConnectionProfile): 'cloud' | 'self-hosted' {
+  if (profile.connectionType) return profile.connectionType
+  try {
+    const host = new URL(profile.url).hostname
+    return host.endsWith('trychroma.com') ? 'cloud' : 'self-hosted'
+  } catch {
+    return 'self-hosted'
+  }
+}
+
 export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalProps) {
   const [profiles, setProfiles] = useState<ConnectionProfile[]>([])
   const [selectedProfileId, setSelectedProfileId] = useState<string>('')
+  const [connectionType, setConnectionType] = useState<'cloud' | 'self-hosted'>('self-hosted')
   const [profileName, setProfileName] = useState('')
   const [url, setUrl] = useState('http://localhost:8000')
   const [tenant, setTenant] = useState('')
@@ -106,6 +119,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
 
     const profile = profiles.find(p => p.id === profileId)
     if (profile) {
+      setConnectionType(inferConnectionType(profile))
       setProfileName(profile.name)
       setUrl(profile.url)
       setTenant(profile.tenant || '')
@@ -119,6 +133,7 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   }
 
   const resetForm = () => {
+    setConnectionType('self-hosted')
     setProfileName('')
     setUrl('http://localhost:8000')
     setTenant('')
@@ -172,6 +187,13 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       return 'Profile name is required'
     }
 
+    if (connectionType === 'cloud') {
+      if (!apiKey.trim()) {
+        return 'API key is required for Chroma Cloud'
+      }
+      return null
+    }
+
     if (!url.trim()) {
       return 'URL is required'
     }
@@ -201,18 +223,22 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
       const profile: ConnectionProfile = {
         id: selectedProfileId || crypto.randomUUID(),
         name: profileName || `Connection-${Date.now()}`,
-        url: url.trim(),
+        connectionType,
+        url: connectionType === 'cloud' ? CLOUD_URL : url.trim(),
         createdAt: Date.now(),
       }
 
-      // Add optional fields if provided
       if (tenant.trim()) profile.tenant = tenant.trim()
       if (database.trim()) profile.database = database.trim()
-      if (apiKey.trim()) profile.apiKey = apiKey.trim()
-      if (authType !== 'none') profile.authType = authType
-      if (authToken.trim()) profile.authToken = authToken.trim()
-      if (authType === 'token' && authTokenHeader !== 'authorization') profile.authTokenHeader = authTokenHeader
-      if (authCredentials.trim()) profile.authCredentials = authCredentials.trim()
+
+      if (connectionType === 'cloud') {
+        if (apiKey.trim()) profile.apiKey = apiKey.trim()
+      } else {
+        if (authType !== 'none') profile.authType = authType
+        if (authToken.trim()) profile.authToken = authToken.trim()
+        if (authType === 'token' && authTokenHeader !== 'authorization') profile.authTokenHeader = authTokenHeader
+        if (authCredentials.trim()) profile.authCredentials = authCredentials.trim()
+      }
 
       // Test connection first before saving or proceeding
       try {
@@ -270,6 +296,30 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col max-w-sm mx-auto w-full">
             {/* Form fields */}
             <div className="flex-1 space-y-4 overflow-y-auto">
+              {/* Connection type selector */}
+              <div className="grid grid-cols-2 gap-1 p-0.5 rounded bg-black/[0.06] dark:bg-white/[0.08]">
+                {([
+                  { value: 'self-hosted', label: 'Self-hosted' },
+                  { value: 'cloud', label: 'Chroma Cloud' },
+                ] as const).map((opt) => {
+                  const active = connectionType === opt.value
+                  return (
+                    <button
+                      type="button"
+                      key={opt.value}
+                      onClick={() => setConnectionType(opt.value)}
+                      className={`h-6 text-[12px] rounded transition-colors ${
+                        active
+                          ? 'bg-white/90 dark:bg-white/[0.16] text-foreground shadow-sm'
+                          : 'text-foreground/50 hover:text-foreground/70'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+
               {/* Primary fields */}
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
@@ -284,91 +334,90 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   />
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <label htmlFor="url" className="text-[12px] text-foreground/50 w-16 text-right">URL</label>
-                  <input
-                    type="text"
-                    id="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="http://localhost:8000"
-                    required
-                    className={inputClassName}
-                  />
-                </div>
-              </div>
-
-              {/* Auth section - applies to self-hosted servers (with or without tenant/database) */}
-              <div className="space-y-2.5 pt-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Auth</span>
-                  <div className="flex-1 h-px bg-foreground/10" />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <label htmlFor="authType" className="text-[12px] text-foreground/50 w-16 text-right">Type</label>
-                  <select
-                    id="authType"
-                    value={authType}
-                    onChange={(e) => setAuthType(e.target.value as 'none' | 'token' | 'basic')}
-                    className={inputClassName}
-                  >
-                    <option value="none">None</option>
-                    <option value="token">Token</option>
-                    <option value="basic">Basic</option>
-                  </select>
-                </div>
-
-                {authType === 'token' && (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <label htmlFor="authTokenHeader" className="text-[12px] text-foreground/50 w-16 text-right">Header</label>
-                      <select
-                        id="authTokenHeader"
-                        value={authTokenHeader}
-                        onChange={(e) => setAuthTokenHeader(e.target.value as 'authorization' | 'x-chroma-token')}
-                        className={inputClassName}
-                      >
-                        <option value="authorization">Authorization: Bearer</option>
-                        <option value="x-chroma-token">X-Chroma-Token</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <label htmlFor="authToken" className="text-[12px] text-foreground/50 w-16 text-right">Token</label>
-                      <input
-                        type="password"
-                        id="authToken"
-                        value={authToken}
-                        onChange={(e) => setAuthToken(e.target.value)}
-                        placeholder="••••••••"
-                        className={inputClassName}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {authType === 'basic' && (
+                {connectionType === 'self-hosted' && (
                   <div className="flex items-center gap-3">
-                    <label htmlFor="authCredentials" className="text-[12px] text-foreground/50 w-16 text-right">Credentials</label>
+                    <label htmlFor="url" className="text-[12px] text-foreground/50 w-16 text-right">URL</label>
                     <input
-                      type="password"
-                      id="authCredentials"
-                      value={authCredentials}
-                      onChange={(e) => setAuthCredentials(e.target.value)}
-                      placeholder="username:password"
+                      type="text"
+                      id="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="http://localhost:8000"
+                      required
                       className={inputClassName}
                     />
                   </div>
                 )}
               </div>
 
-              {/* Advanced fields */}
-              <div className="space-y-2.5 pt-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Cloud</span>
-                  <div className="flex-1 h-px bg-foreground/10" />
-                </div>
+              {/* Auth section - self-hosted only */}
+              {connectionType === 'self-hosted' && (
+                <div className="space-y-2.5 pt-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-foreground/30 w-16 text-right uppercase tracking-wider">Auth</span>
+                    <div className="flex-1 h-px bg-foreground/10" />
+                  </div>
 
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="authType" className="text-[12px] text-foreground/50 w-16 text-right">Type</label>
+                    <select
+                      id="authType"
+                      value={authType}
+                      onChange={(e) => setAuthType(e.target.value as 'none' | 'token' | 'basic')}
+                      className={inputClassName}
+                    >
+                      <option value="none">None</option>
+                      <option value="token">Token</option>
+                      <option value="basic">Basic</option>
+                    </select>
+                  </div>
+
+                  {authType === 'token' && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <label htmlFor="authTokenHeader" className="text-[12px] text-foreground/50 w-16 text-right">Header</label>
+                        <select
+                          id="authTokenHeader"
+                          value={authTokenHeader}
+                          onChange={(e) => setAuthTokenHeader(e.target.value as 'authorization' | 'x-chroma-token')}
+                          className={inputClassName}
+                        >
+                          <option value="authorization">Authorization: Bearer</option>
+                          <option value="x-chroma-token">X-Chroma-Token</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <label htmlFor="authToken" className="text-[12px] text-foreground/50 w-16 text-right">Token</label>
+                        <input
+                          type="password"
+                          id="authToken"
+                          value={authToken}
+                          onChange={(e) => setAuthToken(e.target.value)}
+                          placeholder="••••••••"
+                          className={inputClassName}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {authType === 'basic' && (
+                    <div className="flex items-center gap-3">
+                      <label htmlFor="authCredentials" className="text-[12px] text-foreground/50 w-16 text-right">Credentials</label>
+                      <input
+                        type="password"
+                        id="authCredentials"
+                        value={authCredentials}
+                        onChange={(e) => setAuthCredentials(e.target.value)}
+                        placeholder="username:password"
+                        className={inputClassName}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tenant/Database — universal for Chroma 1.5+; API Key only for Cloud */}
+              <div className="space-y-2.5 pt-2">
                 <div className="flex items-center gap-3">
                   <label htmlFor="tenant" className="text-[12px] text-foreground/50 w-16 text-right">Tenant</label>
                   <input
@@ -393,17 +442,19 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   />
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <label htmlFor="apiKey" className="text-[12px] text-foreground/50 w-16 text-right">API Key</label>
-                  <input
-                    type="password"
-                    id="apiKey"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="••••••••"
-                    className={inputClassName}
-                  />
-                </div>
+                {connectionType === 'cloud' && (
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="apiKey" className="text-[12px] text-foreground/50 w-16 text-right">API Key</label>
+                    <input
+                      type="password"
+                      id="apiKey"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="••••••••"
+                      className={inputClassName}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -468,7 +519,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                       {profile.name}
                     </div>
                     <div className="text-[10px] text-foreground/30 truncate">
-                      {profile.url.replace(/^https?:\/\//, '')}
+                      {inferConnectionType(profile) === 'cloud'
+                        ? 'Chroma Cloud'
+                        : profile.url.replace(/^https?:\/\//, '')}
                     </div>
                   </button>
                 )

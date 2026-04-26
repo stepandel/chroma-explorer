@@ -67,8 +67,8 @@ class ChromaDBService {
     let isCloud = false
 
     try {
-      // Route by URL host, not by presence of tenant/database — self-hosted
-      // Chroma 1.5+ is multi-tenant too and uses ChromaClient with headers.
+      // Trust the explicit connectionType when present; legacy profiles
+      // (saved before this field existed) fall back to URL-based inference.
       let parsedUrl: URL | null = null
       try {
         parsedUrl = new URL(profile.url)
@@ -76,7 +76,9 @@ class ChromaDBService {
         parsedUrl = null
       }
 
-      isCloud = parsedUrl?.hostname.endsWith('trychroma.com') ?? false
+      isCloud = profile.connectionType
+        ? profile.connectionType === 'cloud'
+        : (parsedUrl?.hostname.endsWith('trychroma.com') ?? false)
 
       if (isCloud) {
         const cloudConfig = {
