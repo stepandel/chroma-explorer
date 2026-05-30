@@ -19,6 +19,7 @@ Run these before handing off changes:
 pnpm typecheck
 pnpm lint
 pnpm test
+pnpm check
 ```
 
 For changes that affect Electron startup, Chroma connections, or document flows,
@@ -39,4 +40,3 @@ pnpm test:smoke
   existing large files.
 - Add or update docs when a pattern is introduced so future agents can discover
   the rule without external context.
-

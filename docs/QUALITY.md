@@ -9,7 +9,7 @@ agents and humans to run locally and in CI.
 - `pnpm lint`: static checks for architecture and risky patterns.
 - `pnpm test`: unit tests for contract and pure logic.
 - `pnpm test:smoke`: Electron startup and core UI smoke coverage.
-- `pnpm ci`: local equivalent of the default CI check set.
+- `pnpm check`: local equivalent of the default CI check set.
 
 ## Current Coverage Targets
 
@@ -29,4 +29,3 @@ When repeated review comments or bugs appear, encode them in this order:
 
 Track recurring debt by adding a dated note to this file or a focused doc under
 `docs/`.
-

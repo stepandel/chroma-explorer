@@ -35,7 +35,7 @@
     "lint": "node scripts/lint-architecture.mjs",
     "test": "vitest run",
     "test:smoke": "vite build && playwright test --config=playwright.smoke.config.ts",
-    "ci": "pnpm typecheck && pnpm lint && pnpm test",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
     "build": "pnpm typecheck && vite build && electron-builder --dir",
     "build:release": "pnpm typecheck && vite build && electron-builder",
     "preview": "vite preview",
