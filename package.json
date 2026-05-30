@@ -23,6 +23,7 @@
       "dist-electron/**/*",
       "dist/**/*"
     ],
+    "afterPack": "scripts/after-pack.cjs",
     "publish": {
       "provider": "github",
       "owner": "stepandel",
