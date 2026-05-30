@@ -1,4 +1,3 @@
-import { shell } from 'electron'
 import type { Metadata, Where } from 'chromadb'
 
 export type JsonRecord = Record<string, unknown>
@@ -489,8 +488,4 @@ export function validateExternalUrl(value: unknown): string {
     throw new Error('url must use http: or https:')
   }
   return parsed.toString()
-}
-
-export async function openValidatedExternalUrl(value: unknown): Promise<void> {
-  await shell.openExternal(validateExternalUrl(value))
 }

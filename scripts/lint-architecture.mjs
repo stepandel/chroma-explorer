@@ -50,8 +50,8 @@ for (const file of srcFiles.filter((file) => /\.[tj]sx?$/.test(file))) {
 for (const file of electronFiles.filter((file) => /\.[tj]s$/.test(file))) {
   const text = await readFile(file, 'utf8')
 
-  if (relative(file) !== 'electron/ipc-contract.ts' && /shell\.openExternal\(/.test(text)) {
-    fail(file, 'shell.openExternal must go through validateExternalUrl from electron/ipc-contract.ts')
+  if (relative(file) !== 'electron/external-url.ts' && /shell\.openExternal\(/.test(text)) {
+    fail(file, 'shell.openExternal must go through openValidatedExternalUrl from electron/external-url.ts')
   }
 }
 
@@ -71,4 +71,3 @@ if (failures.length > 0) {
 }
 
 console.log('Architecture lint passed')
-

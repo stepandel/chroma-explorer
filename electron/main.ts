@@ -14,7 +14,6 @@ import { windowManager } from './window-manager'
 import { createApplicationMenu, updateThemeMenu } from './menu'
 import { CopyProgress } from './types'
 import {
-  openValidatedExternalUrl,
   parseApiKeys,
   parseCollectionName,
   parseConnectionProfile,
@@ -29,6 +28,7 @@ import {
   parseTheme,
   parseUpdateDocumentParams,
 } from './ipc-contract'
+import { openValidatedExternalUrl } from './external-url'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
 import { initAnalytics, track } from './analytics'
 

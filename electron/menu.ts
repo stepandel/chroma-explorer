@@ -3,7 +3,7 @@ import { windowManager } from './window-manager'
 import { connectionStore } from './connection-store'
 import { checkForUpdates } from './auto-updater'
 import { settingsStore, Theme } from './settings-store'
-import { openValidatedExternalUrl } from './ipc-contract'
+import { openValidatedExternalUrl } from './external-url'
 
 // Helper to send menu events to the focused window
 function sendToFocusedWindow(channel: string, ...args: unknown[]) {
