@@ -1,8 +1,8 @@
 import { shell } from 'electron'
-import type { Metadata } from 'chromadb'
+import type { Metadata, Where } from 'chromadb'
 
 export type JsonRecord = Record<string, unknown>
-export type WhereClause = Record<string, unknown>
+export type WhereClause = Where
 
 export type EmbeddingFunctionType =
   | 'default'
@@ -381,7 +381,7 @@ export function parseSearchDocumentsParams(value: unknown): SearchDocumentsParam
     collectionName: parseString(record.collectionName, 'params.collectionName'),
     queryText: parseOptionalString(record.queryText, 'params.queryText'),
     nResults: parseOptionalNumber(record.nResults, 'params.nResults'),
-    metadataFilter: record.metadataFilter === undefined ? undefined : parseRecord(record.metadataFilter, 'params.metadataFilter'),
+    metadataFilter: record.metadataFilter === undefined ? undefined : parseRecord(record.metadataFilter, 'params.metadataFilter') as WhereClause,
     ids: record.ids === undefined ? undefined : parseStringArray(record.ids, 'params.ids'),
     limit: parseOptionalNumber(record.limit, 'params.limit'),
     offset: parseOptionalNumber(record.offset, 'params.offset'),
