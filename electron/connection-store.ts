@@ -1,7 +1,7 @@
 import Store from 'electron-store'
 import { app } from 'electron'
 import path from 'path'
-import { existsSync } from 'fs'
+import { existsSync, rmSync } from 'fs'
 import { ConnectionProfile, EmbeddingFunctionOverride } from './types'
 import { getEncryptionKey } from './secure-key-manager'
 
@@ -65,6 +65,7 @@ function getStore(): Store<StoreSchema> {
           embeddingOverrides: {},
         },
         encryptionKey: getEncryptionKey(),
+        clearInvalidConfig: true,
       })
 
       // Test if we can read the store (will throw if encryption key is wrong)
@@ -80,12 +81,13 @@ function getStore(): Store<StoreSchema> {
       if (existsSync(storePath)) {
         console.warn('[ConnectionStore] Removing corrupted store file to start fresh')
         try {
-          const { unlinkSync } = require('fs')
-          unlinkSync(storePath)
+          rmSync(storePath, { force: true })
         } catch {
           // Ignore deletion errors
         }
       }
+
+      store = null
 
       // Create a fresh store
       store = new Store<StoreSchema>({
@@ -96,6 +98,7 @@ function getStore(): Store<StoreSchema> {
           embeddingOverrides: {},
         },
         encryptionKey: getEncryptionKey(),
+        clearInvalidConfig: true,
       })
     }
   }

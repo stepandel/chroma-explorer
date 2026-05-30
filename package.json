@@ -32,8 +32,13 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && electron-builder --dir",
-    "build:release": "vite build && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "lint": "node scripts/lint-architecture.mjs",
+    "test": "vitest run",
+    "test:smoke": "vite build && playwright test --config=playwright.smoke.config.ts",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "build": "pnpm typecheck && vite build && electron-builder --dir",
+    "build:release": "pnpm typecheck && vite build && electron-builder",
     "preview": "vite preview",
     "postinstall": "electron-builder install-app-deps",
     "test:db": "node scripts/run-test-db.mjs --auth=none",
@@ -51,6 +56,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.0.3",
     "@types/react": "^19.2.7",
@@ -64,7 +70,8 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.0",
     "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6"
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "@aptabase/electron": "^0.3.1",

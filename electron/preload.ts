@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import {
+import type {
   ConnectionProfile,
   CollectionInfo,
   DocumentRecord,
@@ -14,8 +14,6 @@ import {
   CopyProgress,
   EmbeddingFunctionOverride,
 } from './types'
-
-console.log('Preload script is running!')
 
 contextBridge.exposeInMainWorld('electronAPI', {
   chromadb: {
@@ -398,10 +396,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
   onRefresh: (callback: () => void): (() => void) => {
-    const handler = () => {
-      console.log('Preload received app:refresh event')
-      callback()
-    }
+    const handler = () => callback()
     ipcRenderer.on('app:refresh', handler)
     return () => ipcRenderer.removeListener('app:refresh', handler)
   },
@@ -409,8 +404,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Auto-dispatch window event when app:refresh IPC is received
 ipcRenderer.on('app:refresh', () => {
-  console.log('Preload: app:refresh received, dispatching chroma:refresh window event')
   window.dispatchEvent(new CustomEvent('chroma:refresh'))
 })
-
-console.log('Preload script finished, electronAPI exposed:', typeof window !== 'undefined' ? !!(window as any).electronAPI : 'window not defined')

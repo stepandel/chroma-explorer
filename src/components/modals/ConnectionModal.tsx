@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, useCallback } from 'react'
-import { ConnectionProfile } from '../../../electron/types'
+import type { ConnectionProfile } from '@/types/electron'
 
 interface ConnectionModalProps {
   isOpen: boolean

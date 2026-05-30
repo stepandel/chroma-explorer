@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import ConnectionModal from '../components/modals/ConnectionModal'
-import { ConnectionProfile } from '../../electron/types'
+import type { ConnectionProfile } from '@/types/electron'
 
 export function SetupWindow() {
   // Make body transparent for vibrancy effect

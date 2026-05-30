@@ -1,7 +1,10 @@
-import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'electron'
 
 // Set app name before anything else (affects menu bar, about dialog, etc.)
 app.name = 'Chroma Explorer'
+if (process.env.CHROMA_EXPLORER_USER_DATA_DIR) {
+  app.setPath('userData', process.env.CHROMA_EXPLORER_USER_DATA_DIR)
+}
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'
@@ -9,7 +12,23 @@ import { connectionStore } from './connection-store'
 import { settingsStore, ApiKeys, Theme } from './settings-store'
 import { windowManager } from './window-manager'
 import { createApplicationMenu, updateThemeMenu } from './menu'
-import { ConnectionProfile, SearchDocumentsParams, UpdateDocumentParams, CreateDocumentParams, DeleteDocumentsParams, CreateDocumentsBatchParams, CreateCollectionParams, CopyCollectionParams } from './types'
+import { CopyProgress } from './types'
+import {
+  openValidatedExternalUrl,
+  parseApiKeys,
+  parseCollectionName,
+  parseConnectionProfile,
+  parseCopyCollectionParams,
+  parseCreateCollectionParams,
+  parseCreateDocumentParams,
+  parseCreateDocumentsBatchParams,
+  parseDeleteDocumentsParams,
+  parseEmbeddingOverride,
+  parseProfileId,
+  parseSearchDocumentsParams,
+  parseTheme,
+  parseUpdateDocumentParams,
+} from './ipc-contract'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
 import { initAnalytics, track } from './analytics'
 
@@ -27,8 +46,10 @@ process.env.VITE_PUBLIC = app.isPackaged
   : path.join(process.env.DIST, '../public')
 
 // Set up IPC handlers
-ipcMain.handle('chromadb:connect', async (_event, profileId: string, profile: ConnectionProfile) => {
+ipcMain.handle('chromadb:connect', async (_event, rawProfileId: unknown, rawProfile: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const profile = parseConnectionProfile(rawProfile)
     await chromaDBConnectionPool.connect(profileId, profile)
     track('chroma_connected')
     return { success: true }
@@ -38,8 +59,9 @@ ipcMain.handle('chromadb:connect', async (_event, profileId: string, profile: Co
   }
 })
 
-ipcMain.handle('chromadb:listCollections', async (_event, profileId: string) => {
+ipcMain.handle('chromadb:listCollections', async (_event, rawProfileId: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -52,8 +74,10 @@ ipcMain.handle('chromadb:listCollections', async (_event, profileId: string) => 
   }
 })
 
-ipcMain.handle('chromadb:getDocuments', async (_event, profileId: string, collectionName: string) => {
+ipcMain.handle('chromadb:getDocuments', async (_event, rawProfileId: unknown, rawCollectionName: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const collectionName = parseCollectionName(rawCollectionName)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -66,8 +90,10 @@ ipcMain.handle('chromadb:getDocuments', async (_event, profileId: string, collec
   }
 })
 
-ipcMain.handle('chromadb:searchDocuments', async (_event, profileId: string, params: SearchDocumentsParams) => {
+ipcMain.handle('chromadb:searchDocuments', async (_event, rawProfileId: unknown, rawParams: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const params = parseSearchDocumentsParams(rawParams)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -82,8 +108,10 @@ ipcMain.handle('chromadb:searchDocuments', async (_event, profileId: string, par
   }
 })
 
-ipcMain.handle('chromadb:updateDocument', async (_event, profileId: string, params: UpdateDocumentParams) => {
+ipcMain.handle('chromadb:updateDocument', async (_event, rawProfileId: unknown, rawParams: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const params = parseUpdateDocumentParams(rawParams)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -99,8 +127,10 @@ ipcMain.handle('chromadb:updateDocument', async (_event, profileId: string, para
   }
 })
 
-ipcMain.handle('chromadb:createDocument', async (_event, profileId: string, params: CreateDocumentParams) => {
+ipcMain.handle('chromadb:createDocument', async (_event, rawProfileId: unknown, rawParams: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const params = parseCreateDocumentParams(rawParams)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -116,8 +146,10 @@ ipcMain.handle('chromadb:createDocument', async (_event, profileId: string, para
   }
 })
 
-ipcMain.handle('chromadb:deleteDocuments', async (_event, profileId: string, params: DeleteDocumentsParams) => {
+ipcMain.handle('chromadb:deleteDocuments', async (_event, rawProfileId: unknown, rawParams: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const params = parseDeleteDocumentsParams(rawParams)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -133,8 +165,10 @@ ipcMain.handle('chromadb:deleteDocuments', async (_event, profileId: string, par
   }
 })
 
-ipcMain.handle('chromadb:createDocumentsBatch', async (_event, profileId: string, params: CreateDocumentsBatchParams) => {
+ipcMain.handle('chromadb:createDocumentsBatch', async (_event, rawProfileId: unknown, rawParams: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const params = parseCreateDocumentsBatchParams(rawParams)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -152,15 +186,18 @@ ipcMain.handle('chromadb:createDocumentsBatch', async (_event, profileId: string
   }
 })
 
-ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, params: CreateCollectionParams) => {
+ipcMain.handle('chromadb:createCollection', async (_event, rawProfileId: unknown, rawParams: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const params = parseCreateCollectionParams(rawParams)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
     }
     const collection = await service.createCollection(params)
+    const metadataDistance = params.metadata?.['hnsw:space']
     track('collection_created', {
-      distanceFunction: params.hnsw?.space || params.metadata?.['hnsw:space'] || 'default'
+      distanceFunction: typeof metadataDistance === 'string' ? metadataDistance : params.hnsw?.space || 'default'
     })
     return { success: true, data: collection }
   } catch (error) {
@@ -169,8 +206,10 @@ ipcMain.handle('chromadb:createCollection', async (_event, profileId: string, pa
   }
 })
 
-ipcMain.handle('chromadb:deleteCollection', async (_event, profileId: string, collectionName: string) => {
+ipcMain.handle('chromadb:deleteCollection', async (_event, rawProfileId: unknown, rawCollectionName: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const collectionName = parseCollectionName(rawCollectionName)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -184,8 +223,11 @@ ipcMain.handle('chromadb:deleteCollection', async (_event, profileId: string, co
   }
 })
 
-ipcMain.handle('chromadb:copyCollection', async (event, profileId: string, params: CopyCollectionParams) => {
+ipcMain.handle('chromadb:copyCollection', async (event, rawProfileId: unknown, rawParams: unknown) => {
+  let profileId = ''
   try {
+    profileId = parseProfileId(rawProfileId)
+    const params = parseCopyCollectionParams(rawParams)
     const service = chromaDBConnectionPool.getConnection(profileId)
     if (!service) {
       return { success: false, error: 'Not connected to ChromaDB' }
@@ -199,7 +241,7 @@ ipcMain.handle('chromadb:copyCollection', async (event, profileId: string, param
     const embeddingOverride = connectionStore.getEmbeddingOverride(profileId, params.sourceCollectionName)
 
     // Progress callback sends updates to renderer
-    const onProgress = (progress: any) => {
+    const onProgress = (progress: CopyProgress) => {
       event.sender.send('chromadb:copyProgress', progress)
     }
 
@@ -222,7 +264,8 @@ ipcMain.handle('chromadb:copyCollection', async (event, profileId: string, param
   }
 })
 
-ipcMain.handle('chromadb:cancelCopy', async (_event, profileId: string) => {
+ipcMain.handle('chromadb:cancelCopy', async (_event, rawProfileId: unknown) => {
+  const profileId = parseProfileId(rawProfileId)
   const controller = activeCopyOperations.get(profileId)
   if (controller) {
     controller.abort()
@@ -347,8 +390,9 @@ ipcMain.handle('profiles:getAll', async () => {
   }
 })
 
-ipcMain.handle('profiles:save', async (_event, profile: ConnectionProfile) => {
+ipcMain.handle('profiles:save', async (_event, rawProfile: unknown) => {
   try {
+    const profile = parseConnectionProfile(rawProfile)
     connectionStore.saveProfile(profile)
     return { success: true }
   } catch (error) {
@@ -357,8 +401,9 @@ ipcMain.handle('profiles:save', async (_event, profile: ConnectionProfile) => {
   }
 })
 
-ipcMain.handle('profiles:delete', async (_event, id: string) => {
+ipcMain.handle('profiles:delete', async (_event, rawId: unknown) => {
   try {
+    const id = parseProfileId(rawId)
     connectionStore.deleteProfile(id)
     return { success: true }
   } catch (error) {
@@ -377,8 +422,9 @@ ipcMain.handle('profiles:getLastActive', async () => {
   }
 })
 
-ipcMain.handle('profiles:setLastActive', async (_event, id: string | null) => {
+ipcMain.handle('profiles:setLastActive', async (_event, rawId: unknown) => {
   try {
+    const id = rawId === null ? null : parseProfileId(rawId)
     connectionStore.setLastActiveProfileId(id)
     return { success: true }
   } catch (error) {
@@ -387,8 +433,10 @@ ipcMain.handle('profiles:setLastActive', async (_event, id: string | null) => {
   }
 })
 
-ipcMain.handle('profiles:getEmbeddingOverride', async (_event, profileId: string, collectionName: string) => {
+ipcMain.handle('profiles:getEmbeddingOverride', async (_event, rawProfileId: unknown, rawCollectionName: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const collectionName = parseCollectionName(rawCollectionName)
     const override = connectionStore.getEmbeddingOverride(profileId, collectionName)
     return { success: true, data: override }
   } catch (error) {
@@ -397,8 +445,11 @@ ipcMain.handle('profiles:getEmbeddingOverride', async (_event, profileId: string
   }
 })
 
-ipcMain.handle('profiles:setEmbeddingOverride', async (_event, profileId: string, collectionName: string, override: any) => {
+ipcMain.handle('profiles:setEmbeddingOverride', async (_event, rawProfileId: unknown, rawCollectionName: unknown, rawOverride: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const collectionName = parseCollectionName(rawCollectionName)
+    const override = parseEmbeddingOverride(rawOverride)
     connectionStore.setEmbeddingOverride(profileId, collectionName, override)
     return { success: true }
   } catch (error) {
@@ -407,8 +458,10 @@ ipcMain.handle('profiles:setEmbeddingOverride', async (_event, profileId: string
   }
 })
 
-ipcMain.handle('profiles:clearEmbeddingOverride', async (_event, profileId: string, collectionName: string) => {
+ipcMain.handle('profiles:clearEmbeddingOverride', async (_event, rawProfileId: unknown, rawCollectionName: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
+    const collectionName = parseCollectionName(rawCollectionName)
     connectionStore.clearEmbeddingOverride(profileId, collectionName)
     return { success: true }
   } catch (error) {
@@ -418,8 +471,9 @@ ipcMain.handle('profiles:clearEmbeddingOverride', async (_event, profileId: stri
 })
 
 // Window management IPC handlers
-ipcMain.handle('window:create-connection', async (_event, profile: ConnectionProfile) => {
+ipcMain.handle('window:create-connection', async (_event, rawProfile: unknown) => {
   try {
+    const profile = parseConnectionProfile(rawProfile)
     const { window: win, windowId } = windowManager.createConnectionWindow(profile)
     return { success: true, data: { windowId } }
   } catch (error) {
@@ -486,8 +540,9 @@ ipcMain.handle('window:close-current', async (event) => {
   }
 })
 
-ipcMain.handle('window:get-profile', async (_event, profileId: string) => {
+ipcMain.handle('window:get-profile', async (_event, rawProfileId: unknown) => {
   try {
+    const profileId = parseProfileId(rawProfileId)
     // Try to get from cache first (for unsaved profiles)
     const cachedProfile = windowManager.getCachedProfile(profileId)
     if (cachedProfile) {
@@ -520,8 +575,9 @@ ipcMain.handle('settings:getApiKeys', async () => {
   }
 })
 
-ipcMain.handle('settings:setApiKeys', async (_event, apiKeys: ApiKeys) => {
+ipcMain.handle('settings:setApiKeys', async (_event, rawApiKeys: unknown) => {
   try {
+    const apiKeys: ApiKeys = parseApiKeys(rawApiKeys)
     settingsStore.setApiKeys(apiKeys)
     return { success: true }
   } catch (error) {
@@ -540,8 +596,9 @@ ipcMain.handle('settings:getTheme', async () => {
   }
 })
 
-ipcMain.handle('settings:setTheme', async (event, theme: Theme) => {
+ipcMain.handle('settings:setTheme', async (event, rawTheme: unknown) => {
   try {
+    const theme: Theme = parseTheme(rawTheme)
     settingsStore.setTheme(theme)
     // Broadcast theme change to all windows except the sender
     const senderWindow = BrowserWindow.fromWebContents(event.sender)
@@ -570,9 +627,9 @@ ipcMain.handle('settings:openWindow', async () => {
 })
 
 // Shell IPC handlers
-ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+ipcMain.handle('shell:openExternal', async (_event, rawUrl: unknown) => {
   try {
-    await shell.openExternal(url)
+    await openValidatedExternalUrl(rawUrl)
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to open URL'

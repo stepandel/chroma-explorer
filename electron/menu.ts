@@ -1,8 +1,9 @@
-import { BrowserWindow, Menu, app, shell } from 'electron'
+import { BrowserWindow, Menu, app } from 'electron'
 import { windowManager } from './window-manager'
 import { connectionStore } from './connection-store'
 import { checkForUpdates } from './auto-updater'
 import { settingsStore, Theme } from './settings-store'
+import { openValidatedExternalUrl } from './ipc-contract'
 
 // Helper to send menu events to the focused window
 function sendToFocusedWindow(channel: string, ...args: unknown[]) {
@@ -364,32 +365,32 @@ function buildMenuTemplate(): Electron.MenuItemConstructorOptions[] {
         {
           label: 'Chroma Documentation',
           click: async () => {
-            await shell.openExternal('https://docs.trychroma.com/')
+            await openValidatedExternalUrl('https://docs.trychroma.com/')
           },
         },
         {
           label: 'Chroma Website',
           click: async () => {
-            await shell.openExternal('https://www.trychroma.com/')
+            await openValidatedExternalUrl('https://www.trychroma.com/')
           },
         },
         { type: 'separator' },
         {
           label: 'Chroma Explorer Website',
           click: async () => {
-            await shell.openExternal('https://chroma-explorer.com/')
+            await openValidatedExternalUrl('https://chroma-explorer.com/')
           },
         },
         {
           label: 'Report an Issue...',
           click: async () => {
-            await shell.openExternal('https://github.com/stepandel/chroma-explorer/issues')
+            await openValidatedExternalUrl('https://github.com/stepandel/chroma-explorer/issues')
           },
         },
         {
           label: 'Propose a Feature...',
           click: async () => {
-            await shell.openExternal('https://github.com/stepandel/chroma-explorer/issues')
+            await openValidatedExternalUrl('https://github.com/stepandel/chroma-explorer/issues')
           },
         },
         { type: 'separator' },
