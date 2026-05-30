@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { ConnectionProfile, DocumentRecord, SearchDocumentsParams } from '../../electron/types'
+import type { ConnectionProfile, DocumentRecord, SearchDocumentsParams } from '@/types/electron'
 import { useCollectionsQuery, useConnectMutation, useRefreshCollectionsMutation } from '../hooks/useChromaQueries'
 import { useQueryClient } from '@tanstack/react-query'
 

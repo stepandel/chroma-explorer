@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import {
+import type {
   ConnectionProfile,
   CollectionInfo,
   DocumentRecord,

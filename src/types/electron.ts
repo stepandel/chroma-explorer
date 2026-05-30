@@ -1,0 +1,21 @@
+export type {
+  CollectionInfo,
+  ConnectionProfile,
+  CopyCollectionParams,
+  CopyCollectionResult,
+  CopyProgress,
+  CreateCollectionParams,
+  CreateDocumentParams,
+  CreateDocumentsBatchParams,
+  DeleteDocumentsParams,
+  DocumentRecord,
+  ElectronAPI,
+  EmbeddingFunctionOverride,
+  EmbeddingFunctionType,
+  HNSWConfig,
+  SearchDocumentsParams,
+  UpdateDocumentParams,
+  UpdateInfo,
+  UpdateStatus,
+} from '../../electron/ipc-contract'
+
