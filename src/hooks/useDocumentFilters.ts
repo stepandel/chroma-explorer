@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { DocumentFilters, MetadataFilter, MetadataOperator } from '../types/filters'
 import type { SearchDocumentsParams } from '@/types/electron'
+import type { Where } from 'chromadb'
 
 export interface UseDocumentFiltersReturn {
   filters: DocumentFilters
@@ -43,7 +44,7 @@ function inferSingleValue(value: string): MetadataFilterValue {
   return value
 }
 
-export function buildWhereClause(metadataFilters: MetadataFilter[]): Record<string, unknown> | undefined {
+export function buildWhereClause(metadataFilters: MetadataFilter[]): Where | undefined {
   if (metadataFilters.length === 0) return undefined
 
   if (metadataFilters.length === 1) {
@@ -52,7 +53,7 @@ export function buildWhereClause(metadataFilters: MetadataFilter[]): Record<stri
       [filter.key]: {
         [filter.operator]: inferValueType(filter.value),
       },
-    }
+    } as Where
   }
 
   // Multiple filters - combine with $and
@@ -61,7 +62,7 @@ export function buildWhereClause(metadataFilters: MetadataFilter[]): Record<stri
       [filter.key]: {
         [filter.operator]: inferValueType(filter.value),
       },
-    })),
+    } as Where)),
   }
 }
 

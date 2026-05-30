@@ -7,6 +7,7 @@ import {
   ChromaForbiddenError,
   ChromaUnauthorizedError,
   Metadata,
+  Where,
 } from 'chromadb'
 import {
   ConnectionProfile,
@@ -24,29 +25,8 @@ import {
   EmbeddingFunctionOverride,
 } from './types'
 import { EmbeddingFunctionFactory } from './embedding-function-factory'
-
-// Helper to convert EmbeddingFunctionOverride to the format expected by the factory
-function buildEfConfigFromOverride(override: EmbeddingFunctionOverride): CollectionInfo['embeddingFunction'] {
-  const config: Record<string, unknown> = {}
-
-  if (override.modelName) {
-    config.model_name = override.modelName
-  }
-
-  if (override.url) {
-    config.url = override.url
-  }
-
-  if (override.accountId) {
-    config.account_id = override.accountId
-  }
-
-  return {
-    name: override.type,
-    type: 'known',
-    config,
-  }
-}
+import { buildCollectionMetadata, buildEfConfigFromOverride, extractEmbeddingFunction } from './chromadb-metadata'
+import { addToCollection, ChromaAddPayload } from './chromadb-payloads'
 
 class ChromaDBService {
   private client: ChromaClient | CloudClient | null = null
@@ -213,31 +193,7 @@ class ChromaDBService {
       collectionsList.map(async (collection: Collection) => {
         const count = await collection.count()
 
-        // Extract embedding function info from configuration
-        // Note: API returns snake_case (embedding_function), client interface uses camelCase
-        const config = collection.configuration as any
-        const efConfig = config?.embedding_function ?? config?.embeddingFunction
-        let embeddingFunction: CollectionInfo['embeddingFunction'] = null
-
-        if (efConfig) {
-          if (efConfig.type === 'known') {
-            embeddingFunction = {
-              name: efConfig.name,
-              type: 'known',
-              config: efConfig.config as Record<string, unknown> | undefined
-            }
-          } else if (efConfig.type === 'legacy') {
-            embeddingFunction = {
-              name: 'legacy',
-              type: 'legacy'
-            }
-          } else {
-            embeddingFunction = {
-              name: 'unknown',
-              type: 'unknown'
-            }
-          }
-        }
+        const embeddingFunction = extractEmbeddingFunction(collection)
 
         return {
           name: collection.name,
@@ -311,7 +267,7 @@ class ChromaDBService {
       const queryOptions: {
         queryTexts: string[]
         nResults?: number
-        where?: Record<string, any>
+        where?: Where
         include: ('documents' | 'metadatas' | 'embeddings' | 'distances')[]
       } = {
         queryTexts: [params.queryText],
@@ -343,7 +299,7 @@ class ChromaDBService {
 
     const getOptions: {
       ids?: string[]
-      where?: Record<string, any>
+      where?: Where
       limit?: number
       offset?: number
       include: ('documents' | 'metadatas' | 'embeddings')[]
@@ -463,12 +419,7 @@ class ChromaDBService {
     })
 
     // Build add payload
-    const addPayload: {
-      ids: string[]
-      documents?: string[]
-      metadatas?: Metadata[]
-      embeddings?: number[][]
-    } = {
+    const addPayload: ChromaAddPayload = {
       ids: [params.id],
     }
 
@@ -487,7 +438,7 @@ class ChromaDBService {
       addPayload.embeddings = [params.embedding]
     }
 
-    await collection.add(addPayload as any)
+    await addToCollection(collection, addPayload)
   }
 
   async deleteDocuments(params: DeleteDocumentsParams): Promise<void> {
@@ -556,11 +507,7 @@ class ChromaDBService {
       const batch = params.documents.slice(start, end)
 
       try {
-        const addPayload: {
-          ids: string[]
-          documents?: string[]
-          metadatas?: Metadata[]
-        } = {
+        const addPayload: ChromaAddPayload = {
           ids: batch.map(d => d.id),
         }
 
@@ -576,7 +523,7 @@ class ChromaDBService {
           addPayload.metadatas = batch.map(d => (d.metadata || {}) as Metadata)
         }
 
-        await collection.add(addPayload as any)
+        await addToCollection(collection, addPayload)
         createdIds.push(...batch.map(d => d.id))
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
@@ -633,35 +580,18 @@ class ChromaDBService {
       )
     }
 
-    // Build collection metadata including HNSW config
-    const collectionMetadata: Record<string, unknown> = { ...params.metadata }
-
-    // Add HNSW configuration to metadata if provided
-    if (params.hnsw) {
-      if (params.hnsw.space) collectionMetadata['hnsw:space'] = params.hnsw.space
-      if (params.hnsw.efConstruction !== undefined) collectionMetadata['hnsw:construction_ef'] = params.hnsw.efConstruction
-      if (params.hnsw.efSearch !== undefined) collectionMetadata['hnsw:search_ef'] = params.hnsw.efSearch
-      if (params.hnsw.maxNeighbors !== undefined) collectionMetadata['hnsw:M'] = params.hnsw.maxNeighbors
-      if (params.hnsw.numThreads !== undefined) collectionMetadata['hnsw:num_threads'] = params.hnsw.numThreads
-      if (params.hnsw.batchSize !== undefined) collectionMetadata['hnsw:batch_size'] = params.hnsw.batchSize
-      if (params.hnsw.syncThreshold !== undefined) collectionMetadata['hnsw:sync_threshold'] = params.hnsw.syncThreshold
-      if (params.hnsw.resizeFactor !== undefined) collectionMetadata['hnsw:resize_factor'] = params.hnsw.resizeFactor
-    }
+    const collectionMetadata = buildCollectionMetadata(params.metadata, params.hnsw)
 
     // Create the collection - only pass embeddingFunction if it was successfully created
     const collection = await this.client.createCollection({
       name: params.name,
       embeddingFunction: embeddingFunction,
-      metadata: Object.keys(collectionMetadata).length > 0 ? collectionMetadata as Metadata : undefined,
+      metadata: collectionMetadata,
     })
 
     // Optionally add first document
     if (params.firstDocument) {
-      const addPayload: {
-        ids: string[]
-        documents?: string[]
-        metadatas?: Metadata[]
-      } = {
+      const addPayload: ChromaAddPayload = {
         ids: [params.firstDocument.id],
       }
 
@@ -676,7 +606,7 @@ class ChromaDBService {
 
       // Only add if we have documents (required by ChromaDB unless providing embeddings)
       if (addPayload.documents && addPayload.documents.length > 0 && addPayload.documents[0]) {
-        await collection.add(addPayload as any)
+        await addToCollection(collection, addPayload)
       } else {
         console.warn('[ChromaDB Service] Skipping first document - no document text provided')
       }
@@ -728,7 +658,7 @@ class ChromaDBService {
       // Build embedding function config
       let efConfig: CollectionInfo['embeddingFunction'] = null
       if (params.embeddingFunction) {
-        efConfig = buildEfConfigFromOverride(params.embeddingFunction as EmbeddingFunctionOverride)
+        efConfig = buildEfConfigFromOverride(params.embeddingFunction)
       } else if (embeddingOverride) {
         efConfig = buildEfConfigFromOverride(embeddingOverride)
       }
@@ -739,25 +669,13 @@ class ChromaDBService {
         efConfig
       )
 
-      // Build collection metadata including HNSW config
-      const collectionMetadata: Record<string, unknown> = { ...params.metadata }
-
-      if (params.hnsw) {
-        if (params.hnsw.space) collectionMetadata['hnsw:space'] = params.hnsw.space
-        if (params.hnsw.efConstruction !== undefined) collectionMetadata['hnsw:construction_ef'] = params.hnsw.efConstruction
-        if (params.hnsw.efSearch !== undefined) collectionMetadata['hnsw:search_ef'] = params.hnsw.efSearch
-        if (params.hnsw.maxNeighbors !== undefined) collectionMetadata['hnsw:M'] = params.hnsw.maxNeighbors
-        if (params.hnsw.numThreads !== undefined) collectionMetadata['hnsw:num_threads'] = params.hnsw.numThreads
-        if (params.hnsw.batchSize !== undefined) collectionMetadata['hnsw:batch_size'] = params.hnsw.batchSize
-        if (params.hnsw.syncThreshold !== undefined) collectionMetadata['hnsw:sync_threshold'] = params.hnsw.syncThreshold
-        if (params.hnsw.resizeFactor !== undefined) collectionMetadata['hnsw:resize_factor'] = params.hnsw.resizeFactor
-      }
+      const collectionMetadata = buildCollectionMetadata(params.metadata, params.hnsw)
 
       // Create the target collection
       const targetCollection = await this.client.createCollection({
         name: params.targetName,
         embeddingFunction,
-        metadata: Object.keys(collectionMetadata).length > 0 ? collectionMetadata as Metadata : undefined,
+        metadata: collectionMetadata,
       })
 
       // Phase 2: Fetch source documents
@@ -827,12 +745,7 @@ class ChromaDBService {
         })
 
         // Build batch add payload
-        const batchPayload: {
-          ids: string[]
-          documents?: (string | null)[]
-          metadatas?: (Metadata | null)[]
-          embeddings?: (number[] | null)[]
-        } = {
+        const batchPayload: ChromaAddPayload = {
           ids: allDocs.ids.slice(start, end),
         }
 
@@ -849,7 +762,7 @@ class ChromaDBService {
           batchPayload.embeddings = allDocs.embeddings.slice(start, end)
         }
 
-        await targetCollection.add(batchPayload as any)
+        await addToCollection(targetCollection, batchPayload)
         copiedDocuments = end
       }
 
