@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'e
 
 // Set app name before anything else (affects menu bar, about dialog, etc.)
 app.name = 'Chroma Explorer'
+if (process.env.CHROMA_EXPLORER_USER_DATA_DIR) {
+  app.setPath('userData', process.env.CHROMA_EXPLORER_USER_DATA_DIR)
+}
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'
