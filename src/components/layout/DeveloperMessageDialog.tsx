@@ -1,5 +1,5 @@
 import { type FormEvent, useMemo, useState } from 'react'
-import { ExternalLink, MessageCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, MessageCircle, Send } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,8 +15,9 @@ interface DeveloperMessageDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-const feedbackUrl = 'https://www.chroma-explorer.com/feedback'
+const feedbackEndpoint = 'https://www.chroma-explorer.com/api/feedback'
 const fieldClassName = 'w-full rounded-md border border-input bg-background px-2.5 py-2 text-[12px] leading-5 shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary'
+type SubmissionState = 'idle' | 'submitting' | 'sent' | 'error'
 
 export function DeveloperMessageDialog({
   open,
@@ -26,29 +27,48 @@ export function DeveloperMessageDialog({
   const [missing, setMissing] = useState('')
   const [email, setEmail] = useState('')
   const [openToCall, setOpenToCall] = useState(false)
+  const [submissionState, setSubmissionState] = useState<SubmissionState>('idle')
 
   const canSubmit = useMemo(
-    () => [useCase, missing, email].some((value) => value.trim().length > 0) || openToCall,
-    [email, missing, openToCall, useCase]
+    () =>
+      submissionState !== 'submitting' &&
+      ([useCase, missing, email].some((value) => value.trim().length > 0) || openToCall),
+    [email, missing, openToCall, submissionState, useCase]
   )
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!canSubmit) return
 
-    const params = new URLSearchParams()
-    const appendIfPresent = (key: string, value: string) => {
-      const trimmed = value.trim()
-      if (trimmed.length > 0) params.set(key, trimmed)
+    setSubmissionState('submitting')
+
+    try {
+      const response = await fetch(feedbackEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          useCase: useCase.trim(),
+          missing: missing.trim(),
+          email: email.trim(),
+          openToCall,
+          source: 'chroma-explorer-app',
+          submittedAt: new Date().toISOString(),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Feedback request failed with ${response.status}`)
+      }
+
+      setSubmissionState('sent')
+      setUseCase('')
+      setMissing('')
+      setEmail('')
+      setOpenToCall(false)
+    } catch (error) {
+      console.error('Failed to submit feedback', error)
+      setSubmissionState('error')
     }
-
-    appendIfPresent('useCase', useCase)
-    appendIfPresent('missing', missing)
-    appendIfPresent('email', email)
-    if (openToCall) params.set('openToCall', 'yes')
-
-    const url = params.size > 0 ? `${feedbackUrl}?${params.toString()}` : feedbackUrl
-    await window.electronAPI.shell.openExternal(url)
-    onOpenChange(false)
   }
 
   return (
@@ -77,7 +97,10 @@ export function DeveloperMessageDialog({
               <textarea
                 id="developer-message-use-case"
                 value={useCase}
-                onChange={(event) => setUseCase(event.target.value)}
+                onChange={(event) => {
+                  setUseCase(event.target.value)
+                  setSubmissionState('idle')
+                }}
                 rows={3}
                 className={`${fieldClassName} resize-none`}
                 placeholder="Browsing local collections, debugging embeddings, managing documents..."
@@ -91,7 +114,10 @@ export function DeveloperMessageDialog({
               <textarea
                 id="developer-message-missing"
                 value={missing}
-                onChange={(event) => setMissing(event.target.value)}
+                onChange={(event) => {
+                  setMissing(event.target.value)
+                  setSubmissionState('idle')
+                }}
                 rows={3}
                 className={`${fieldClassName} resize-none`}
                 placeholder="Anything confusing, slow, repetitive, or not quite there yet."
@@ -106,7 +132,10 @@ export function DeveloperMessageDialog({
                 id="developer-message-email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  setSubmissionState('idle')
+                }}
                 className={fieldClassName}
                 placeholder="you@example.com"
               />
@@ -119,11 +148,28 @@ export function DeveloperMessageDialog({
               <input
                 type="checkbox"
                 checked={openToCall}
-                onChange={(event) => setOpenToCall(event.target.checked)}
+                onChange={(event) => {
+                  setOpenToCall(event.target.checked)
+                  setSubmissionState('idle')
+                }}
                 className="h-4 w-4 rounded border-input accent-primary"
               />
               I am open to a short follow-up call
             </label>
+
+            {submissionState === 'sent' && (
+              <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Feedback sent. Thank you.
+              </div>
+            )}
+
+            {submissionState === 'error' && (
+              <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Could not send feedback. Please try again in a moment.
+              </div>
+            )}
           </div>
 
           <DialogFooter className="border-t border-border/70 px-5 py-4 sm:justify-between sm:space-x-0">
@@ -136,8 +182,8 @@ export function DeveloperMessageDialog({
               Maybe later
             </Button>
             <Button type="submit" size="sm" disabled={!canSubmit}>
-              <ExternalLink className="h-3.5 w-3.5" />
-              Send feedback
+              <Send className="h-3.5 w-3.5" />
+              {submissionState === 'submitting' ? 'Sending...' : 'Send feedback'}
             </Button>
           </DialogFooter>
         </form>
