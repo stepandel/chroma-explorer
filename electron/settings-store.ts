@@ -23,6 +23,7 @@ export type Theme = 'light' | 'dark' | 'system'
 interface SettingsSchema {
   apiKeys: ApiKeys
   theme: Theme
+  errorReportingEnabled: boolean
 }
 
 // Legacy store schema (v1 - before theme was added)
@@ -75,6 +76,7 @@ function getStore(): Store<SettingsSchema> {
         defaults: {
           apiKeys: {},
           theme: 'system',
+          errorReportingEnabled: false,
         },
         encryptionKey: getEncryptionKey(),
         clearInvalidConfig: true,
@@ -100,6 +102,7 @@ function getStore(): Store<SettingsSchema> {
         defaults: {
           apiKeys: {},
           theme: 'system',
+          errorReportingEnabled: false,
         },
         encryptionKey: getEncryptionKey(),
         clearInvalidConfig: true,
@@ -146,6 +149,14 @@ export class SettingsStore {
 
   setTheme(theme: Theme): void {
     getStore().set('theme', theme)
+  }
+
+  isErrorReportingEnabled(): boolean {
+    return getStore().get('errorReportingEnabled', false)
+  }
+
+  setErrorReportingEnabled(enabled: boolean): void {
+    getStore().set('errorReportingEnabled', enabled)
   }
 }
 

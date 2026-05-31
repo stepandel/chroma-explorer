@@ -26,6 +26,7 @@ import {
   parseCreateDocumentsBatchParams,
   parseDeleteDocumentsParams,
   parseEmbeddingOverride,
+  parseErrorReportingEnabled,
   parseProfileId,
   parseSearchDocumentsParams,
   parseTheme,
@@ -35,10 +36,12 @@ import { openValidatedExternalUrl } from './external-url'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
 import { initAnalytics, track } from './analytics'
 import { configureTransformersCache } from './transformers-cache'
+import { initErrorMonitoring, setErrorMonitoringEnabled } from './error-monitoring'
 
 // Inject stored API keys into process.env at startup
 configureTransformersCache()
 settingsStore.injectIntoProcessEnv()
+initErrorMonitoring(settingsStore.isErrorReportingEnabled())
 
 // Track active copy operations per profile for cancellation
 const activeCopyOperations: Map<string, AbortController> = new Map()
@@ -617,6 +620,35 @@ ipcMain.handle('settings:setTheme', async (event, rawTheme: unknown) => {
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to set theme'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('settings:getErrorReportingEnabled', async () => {
+  try {
+    return { success: true, data: settingsStore.isErrorReportingEnabled() }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get error reporting setting'
+    return { success: false, error: message }
+  }
+})
+
+ipcMain.handle('settings:setErrorReportingEnabled', async (event, rawEnabled: unknown) => {
+  try {
+    const enabled = parseErrorReportingEnabled(rawEnabled)
+    settingsStore.setErrorReportingEnabled(enabled)
+    setErrorMonitoringEnabled(enabled)
+
+    const senderWindow = BrowserWindow.fromWebContents(event.sender)
+    BrowserWindow.getAllWindows().forEach(win => {
+      if (win !== senderWindow) {
+        win.webContents.send('settings:error-reporting-changed', enabled)
+      }
+    })
+
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to set error reporting setting'
     return { success: false, error: message }
   }
 })

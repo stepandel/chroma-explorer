@@ -34,6 +34,8 @@ export default defineConfig({
         vite: {
           define: {
             'process.env.APTABASE_APP_KEY': JSON.stringify(env.APTABASE_APP_KEY || ''),
+            'process.env.SENTRY_DSN': JSON.stringify(env.SENTRY_DSN || ''),
+            'process.env.VITE_SENTRY_DSN': JSON.stringify(env.VITE_SENTRY_DSN || env.SENTRY_DSN || ''),
             'process.env.CHROMA_EXPLORER_RELEASE': JSON.stringify(env.CHROMA_EXPLORER_RELEASE || ''),
           },
           build: {
