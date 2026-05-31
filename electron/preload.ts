@@ -1,3 +1,4 @@
+import '@sentry/electron/preload'
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   ConnectionProfile,

@@ -43,6 +43,10 @@ function getSentryDsn(): string {
   return process.env.SENTRY_DSN || process.env.VITE_SENTRY_DSN || ''
 }
 
+function getSentryRelease(): string {
+  return process.env.SENTRY_RELEASE || `chroma-explorer@${app.getVersion()}`
+}
+
 export function initErrorMonitoring(enabled: boolean): void {
   if (initialized || Sentry.isInitialized()) {
     initialized = true
@@ -60,7 +64,7 @@ export function initErrorMonitoring(enabled: boolean): void {
   Sentry.init({
     dsn,
     environment: app.isPackaged ? 'production' : 'development',
-    release: `chroma-explorer@${app.getVersion()}`,
+    release: getSentryRelease(),
     sendDefaultPii: false,
     tracesSampleRate: 0,
     beforeBreadcrumb(breadcrumb) {
