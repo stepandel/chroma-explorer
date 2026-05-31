@@ -170,7 +170,7 @@ export function DeveloperMessageDialog({
                 }}
                 rows={2}
                 className={`${fieldClassName} resize-none`}
-                placeholder="An AI app, internal search, evaluation tooling, a data pipeline..."
+                placeholder="RAG system, agent memory, search engine, chatbot..."
               />
             </div>
 
