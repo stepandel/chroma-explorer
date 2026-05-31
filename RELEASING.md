@@ -53,6 +53,13 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
 4. **Sanity check** the release page and try the autoupdater from the
    prior version if possible.
 
+## Autoupdater behavior
+
+The macOS **Check for Updates...** app menu item runs the update flow in the
+main process and uses native Electron dialogs to report the result, download the
+update, and offer **Restart and Install**. The menu flow temporarily disables
+auto-download so the user confirms before the download starts.
+
 ## Known gotchas
 
 - **Only arm64 is built.** Electron-builder reads its config from the

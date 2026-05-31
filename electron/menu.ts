@@ -1,7 +1,7 @@
 import { BrowserWindow, Menu, app } from 'electron'
 import { windowManager } from './window-manager'
 import { connectionStore } from './connection-store'
-import { checkForUpdates } from './auto-updater'
+import { checkForUpdatesFromMenu } from './auto-updater'
 import { settingsStore, Theme } from './settings-store'
 import { openValidatedExternalUrl } from './external-url'
 
@@ -102,8 +102,8 @@ function buildMenuTemplate(): Electron.MenuItemConstructorOptions[] {
         },
         {
           label: 'Check for Updates...',
-          click: () => {
-            checkForUpdates()
+          click: (_menuItem, browserWindow) => {
+            checkForUpdatesFromMenu(browserWindow instanceof BrowserWindow ? browserWindow : null)
           },
         },
         { type: 'separator' },
