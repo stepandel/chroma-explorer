@@ -4,10 +4,14 @@ import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useD
 import { useClipboard } from '../../context/ClipboardContext'
 import { SHORTCUTS, matchesShortcut } from '../../constants/keyboard-shortcuts'
 import DocumentsTable from './DocumentsTable'
-import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
+import {
+  QueryMetadataFilter,
+  QueryScope,
+  buildChromaWhereClause,
+} from '../../types/filters'
 import { TypedMetadataRecord, TypedMetadataField, typedMetadataToChromaFormat, validateMetadataValue } from '../../types/metadata'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
-import { FilterRow } from '../filters/FilterRow'
+import { QueryToolbar } from '../filters/QueryToolbar'
 
 interface DraftDocument {
   id: string
@@ -41,14 +45,6 @@ interface DocumentsViewProps {
   onIsFirstDocumentChange?: (isFirst: boolean) => void
 }
 
-function createDefaultFilterRow(): FilterRowType {
-  return {
-    id: crypto.randomUUID(),
-    type: 'search',
-    searchValue: '',
-  }
-}
-
 export default function DocumentsView({
   collectionName,
   selectedDocumentIds,
@@ -65,8 +61,17 @@ export default function DocumentsView({
   onIsFirstDocumentChange,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
-  const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
+  const [scope, setScope] = useState<QueryScope>('query')
+  const [searchText, setSearchText] = useState('')
+  const [idSearch, setIdSearch] = useState('')
   const [nResults, setNResults] = useState(10)
+  const [metadataFilters, setMetadataFilters] = useState<QueryMetadataFilter[]>([])
+
+  // "Committed" search text and ID. Only updated when the toolbar fires onSearch
+  // (300ms debounce after typing, or immediately on Enter). Keeps queries from
+  // refetching on every keystroke.
+  const [committedSearchText, setCommittedSearchText] = useState('')
+  const [committedIdSearch, setCommittedIdSearch] = useState('')
 
   // Draft documents state - supports single new document or multiple pasted documents
   const [draftDocuments, setDraftDocuments] = useState<DraftDocument[]>([])
@@ -154,65 +159,26 @@ export default function DocumentsView({
 
   // Reset filters and deletion marks when collection changes
   useEffect(() => {
-    setFilterRows([createDefaultFilterRow()])
+    setScope('query')
+    setSearchText('')
+    setIdSearch('')
+    setCommittedSearchText('')
+    setCommittedIdSearch('')
+    setMetadataFilters([])
     setNResults(10)
     setMarkedForDeletion(new Set())
     setDraftDocuments([])
     setDraftError(null)
   }, [collectionName])
 
-  // Build search params from filter rows
+  // Build search params from the toolbar state. `metadataFilter` updates immediately
+  // as filters change; `queryText` uses the committed (debounced) value.
   const searchParams = useMemo(() => {
-    // Extract search query from search-type rows
-    const searchRow = filterRows.find(r => r.type === 'search' && r.searchValue?.trim())
-    const queryText = searchRow?.searchValue?.trim() || undefined
-
-    // Helper to parse filter value based on operator
-    const parseFilterValue = (value: string, operator: string): string | number | string[] | number[] => {
-      const trimmed = value.trim()
-
-      // Handle array operators ($in, $nin)
-      if (operator === '$in' || operator === '$nin') {
-        const items = trimmed.split(',').map(s => s.trim()).filter(Boolean)
-        // Try to parse as numbers if all items are numeric
-        const asNumbers = items.map(Number)
-        if (asNumbers.every(n => !isNaN(n))) {
-          return asNumbers
-        }
-        return items
-      }
-
-      // For comparison operators, try to parse as number
-      if (['$gt', '$gte', '$lt', '$lte'].includes(operator)) {
-        const num = Number(trimmed)
-        if (!isNaN(num)) {
-          return num
-        }
-      }
-
-      // For equality operators, try number first, fall back to string
-      if (operator === '$eq' || operator === '$ne') {
-        const num = Number(trimmed)
-        if (!isNaN(num) && trimmed !== '') {
-          return num
-        }
-      }
-
-      return trimmed
-    }
-
-    // Extract metadata filters from metadata-type rows
-    const metadataRows = filterRows.filter(
-      r => r.type === 'metadata' && r.metadataKey?.trim() && r.metadataValue?.trim()
-    )
-    const metadataFilter = metadataRows.length > 0
-      ? metadataRows.reduce((acc, row) => ({
-          ...acc,
-          [row.metadataKey!]: {
-            [row.operator || '$eq']: parseFilterValue(row.metadataValue!, row.operator || '$eq')
-          },
-        }), {})
+    const queryText = scope === 'query'
+      ? committedSearchText.trim() || undefined
       : undefined
+
+    const metadataFilter = buildChromaWhereClause(metadataFilters)
 
     return {
       collectionName,
@@ -220,7 +186,7 @@ export default function DocumentsView({
       nResults,
       metadataFilter,
     }
-  }, [collectionName, filterRows, nResults])
+  }, [collectionName, scope, committedSearchText, nResults, metadataFilters])
 
   // Use React Query for documents with debouncing via staleTime
   const {
@@ -233,11 +199,10 @@ export default function DocumentsView({
   const rawDocuments = queryData?.documents ?? []
   const fetchTimeMs = queryData?.fetchTimeMs ?? null
 
-  // Extract ID filter value for client-side filtering
+  // Extract ID filter value for client-side filtering (case-insensitive contains match)
   const idFilterValue = useMemo(() => {
-    const selectRow = filterRows.find(r => r.type === 'select' && r.selectValue?.trim())
-    return selectRow?.selectValue?.trim().toLowerCase() || ''
-  }, [filterRows])
+    return scope === 'id' ? committedIdSearch.trim().toLowerCase() : ''
+  }, [scope, committedIdSearch])
 
   // Apply client-side ID filter (case-insensitive "includes" match)
   const documents = useMemo(() => {
@@ -260,36 +225,33 @@ export default function DocumentsView({
     return Array.from(fields).sort()
   }, [documents])
 
-  // Filter row handlers
-  const handleFilterRowChange = useCallback((id: string, updates: Partial<FilterRowType>) => {
-    setFilterRows(prev => prev.map(row =>
-      row.id === id ? { ...row, ...updates } : row
-    ))
-  }, [])
+  // Commit the current search text/ID so the query refetches (called debounced or on Enter)
+  const handleSearch = useCallback(() => {
+    setCommittedSearchText(searchText)
+    setCommittedIdSearch(idSearch)
+  }, [searchText, idSearch])
 
-  const handleAddFilterRow = useCallback(() => {
-    setFilterRows(prev => [...prev, {
-      id: crypto.randomUUID(),
-      type: 'metadata',
-      metadataKey: '',
-      operator: '$eq' as MetadataOperator,
-      metadataValue: '',
-    }])
-  }, [])
-
-  const handleRemoveFilterRow = useCallback((id: string) => {
-    setFilterRows(prev => {
-      const filtered = prev.filter(row => row.id !== id)
-      // Always keep at least one row
-      return filtered.length > 0 ? filtered : [createDefaultFilterRow()]
+  // Field types inferred from the currently loaded documents — used by the
+  // metadata filter row to pick operators and placeholders.
+  const metadataFieldTypes = useMemo(() => {
+    const types: Record<string, 'string' | 'number' | 'boolean'> = {}
+    documents.forEach(doc => {
+      if (doc.metadata) {
+        Object.entries(doc.metadata).forEach(([key, value]) => {
+          if (key in types) return
+          if (typeof value === 'number') types[key] = 'number'
+          else if (typeof value === 'boolean') types[key] = 'boolean'
+          else types[key] = 'string'
+        })
+      }
     })
-  }, [])
+    return types
+  }, [documents])
 
-  const hasActiveFilters = filterRows.some(row =>
-    (row.type === 'search' && row.searchValue?.trim()) ||
-    (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim()) ||
-    (row.type === 'select' && row.selectValue?.trim())
-  )
+  const hasActiveFilters =
+    (scope === 'query' && committedSearchText.trim().length > 0) ||
+    (scope === 'id' && committedIdSearch.trim().length > 0) ||
+    metadataFilters.some(f => f.field.trim() && f.value.trim())
 
   // Draft document handlers
   const handleStartCreate = useCallback(() => {
@@ -641,12 +603,14 @@ export default function DocumentsView({
 
   // Clear all filters handler
   const handleClearAllFilters = useCallback(() => {
-    setFilterRows([createDefaultFilterRow()])
+    setScope('query')
+    setSearchText('')
+    setIdSearch('')
+    setCommittedSearchText('')
+    setCommittedIdSearch('')
+    setMetadataFilters([])
     setNResults(10)
   }, [])
-
-  // Ref for focusing search input
-  const searchInputRef = { current: null as HTMLInputElement | null }
 
   // Menu event listeners (from native app menu)
   useEffect(() => {
@@ -846,24 +810,23 @@ export default function DocumentsView({
           </span>
         </div>
 
-        {/* Row 2: Filters */}
-        <div className="px-4 py-2 pb-3 space-y-2">
-          {/* Filter rows */}
-          {filterRows.map((row, index) => (
-            <FilterRow
-              key={row.id}
-              row={row}
-              isFirst={index === 0}
-              isLast={index === filterRows.length - 1}
-              canRemove={filterRows.length > 1}
-              onChange={handleFilterRowChange}
-              onAdd={handleAddFilterRow}
-              onRemove={handleRemoveFilterRow}
-              nResults={nResults}
-              onNResultsChange={setNResults}
-              metadataFields={metadataFields}
-            />
-          ))}
+        {/* Row 2: Query Toolbar */}
+        <div className="px-4 py-2 pb-3">
+          <QueryToolbar
+            scope={scope}
+            searchText={searchText}
+            idSearch={idSearch}
+            nResults={nResults}
+            filters={metadataFilters}
+            availableFields={metadataFields}
+            fieldTypes={metadataFieldTypes}
+            onScopeChange={setScope}
+            onSearchTextChange={setSearchText}
+            onIdSearchChange={setIdSearch}
+            onNResultsChange={setNResults}
+            onFiltersChange={setMetadataFilters}
+            onSearch={handleSearch}
+          />
         </div>
       </div>
 
