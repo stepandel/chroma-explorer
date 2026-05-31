@@ -1,4 +1,5 @@
 import { useState, FormEvent, useEffect, useCallback } from 'react'
+import { TriangleAlert } from 'lucide-react'
 import type { ConnectionProfile } from '@/types/electron'
 
 interface ConnectionModalProps {
@@ -486,8 +487,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                 <button
                   type="button"
                   onClick={() => window.electronAPI.window.openDeveloperMessage()}
-                  className="h-7 px-2 text-[12px] font-medium rounded text-foreground/50 hover:bg-black/[0.04] hover:text-foreground/70 dark:hover:bg-white/[0.06] transition-colors"
+                  className="inline-flex h-7 items-center gap-1.5 rounded border border-yellow-500/30 bg-yellow-500/15 px-2 text-[12px] font-medium text-yellow-700 transition-colors hover:bg-yellow-500/20 dark:text-yellow-400"
                 >
+                  <TriangleAlert className="h-3.5 w-3.5" />
                   Message from developer
                 </button>
                 <button
