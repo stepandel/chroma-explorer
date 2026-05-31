@@ -175,7 +175,7 @@ export function QueryToolbar({
           </select>
         </div>
 
-        {filters.length === 0 && (
+        {filters.length === 0 && availableFields.length > 0 && (
           <button
             onClick={handleAddFilter}
             className={`${buttonClassName} text-muted-foreground`}
