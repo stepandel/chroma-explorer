@@ -74,8 +74,8 @@ API keys for embedding providers can be configured in **Settings** (Cmd+,). Keys
 
 ### Feedback Collection
 
-The in-app feedback form posts directly to Forminit. Set the public form ID at
-build time:
+The in-app feedback form posts directly to Forminit form `742yqqcnm5o`. To
+point a custom build at a different public form, set the form ID at build time:
 
 ```bash
 VITE_FORMINIT_FORM_ID=your-form-id pnpm build

@@ -15,7 +15,8 @@ interface DeveloperMessageDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-const forminitFormId = import.meta.env.VITE_FORMINIT_FORM_ID?.trim() ?? ''
+const defaultForminitFormId = '742yqqcnm5o'
+const forminitFormId = import.meta.env.VITE_FORMINIT_FORM_ID?.trim() || defaultForminitFormId
 const feedbackEndpoint = forminitFormId ? `https://forminit.com/f/${forminitFormId}` : ''
 const fieldClassName = 'w-full rounded-md border border-input bg-background px-2.5 py-2 text-[12px] leading-5 shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary'
 type SubmissionState = 'idle' | 'submitting' | 'sent' | 'error'
