@@ -212,7 +212,7 @@ class WindowManager {
 
     const win = new BrowserWindow({
       width: 520,
-      height: 680,
+      height: 740,
       minWidth: 460,
       minHeight: 560,
       resizable: true,
