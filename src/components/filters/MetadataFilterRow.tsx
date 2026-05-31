@@ -64,13 +64,14 @@ export function MetadataFilterRow({
     <div className="flex gap-2 items-center" data-testid="metadata-filter-row">
       {availableFields.length > 0 ? (
         <select
+          aria-label="Metadata filter field"
           value={filter.field}
           onChange={(e) => handleFieldChange(e.target.value)}
           className={`w-28 ${selectClassName}`}
           style={inputStyle}
           data-testid="filter-field-select"
         >
-          <option value="">Select field...</option>
+          <option value="">Select field…</option>
           {availableFields.map((field) => (
             <option key={field} value={field}>
               {field}
@@ -80,6 +81,7 @@ export function MetadataFilterRow({
       ) : (
         <input
           type="text"
+          aria-label="Metadata filter field"
           value={filter.field}
           onChange={(e) => onChange(filter.id, { field: e.target.value })}
           onKeyDown={handleKeyDown}
@@ -91,6 +93,7 @@ export function MetadataFilterRow({
       )}
 
       <select
+        aria-label="Metadata filter operator"
         value={filter.operator}
         onChange={(e) => onChange(filter.id, { operator: e.target.value as MetadataOperator })}
         className={`w-16 ${selectClassName}`}
@@ -106,6 +109,7 @@ export function MetadataFilterRow({
 
       <input
         type="text"
+        aria-label="Metadata filter value"
         value={filter.value}
         onChange={(e) => onChange(filter.id, { value: e.target.value })}
         onKeyDown={handleKeyDown}
@@ -116,6 +120,8 @@ export function MetadataFilterRow({
       />
 
       <button
+        type="button"
+        aria-label="Remove metadata filter"
         onClick={() => onRemove(filter.id)}
         className={`${buttonClassName} text-muted-foreground hover:text-destructive`}
         title="Remove filter"
@@ -126,6 +132,8 @@ export function MetadataFilterRow({
 
       {isLast && onAdd && (
         <button
+          type="button"
+          aria-label="Add metadata filter"
           onClick={onAdd}
           className={`${buttonClassName} text-muted-foreground`}
           title="Add filter"

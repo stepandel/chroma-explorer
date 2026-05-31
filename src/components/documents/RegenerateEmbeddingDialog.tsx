@@ -47,6 +47,7 @@ export function RegenerateEmbeddingDialog({
           <div className="px-4 pb-4 flex gap-2">
             {/* Secondary button - subtle rounded rect */}
             <button
+              type="button"
               onClick={() => onConfirm(false)}
               disabled={isLoading}
               className={cn(
@@ -67,6 +68,7 @@ export function RegenerateEmbeddingDialog({
             </button>
             {/* Primary button - blue filled */}
             <button
+              type="button"
               onClick={() => onConfirm(true)}
               disabled={isLoading}
               className={cn(

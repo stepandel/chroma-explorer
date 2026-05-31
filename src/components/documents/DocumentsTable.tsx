@@ -410,6 +410,7 @@ export default function DocumentsTable({
           <p className="text-destructive">{error}</p>
           {isApiKeyError && (
             <button
+              type="button"
               onClick={handleOpenSettings}
               className="mt-3 h-7 px-3 text-[12px] font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
@@ -455,6 +456,7 @@ export default function DocumentsTable({
                         header.getContext()
                       )}
                   <div
+                    aria-hidden="true"
                     onMouseDown={header.getResizeHandler()}
                     onTouchStart={header.getResizeHandler()}
                     className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-primary/40 ${
@@ -464,7 +466,7 @@ export default function DocumentsTable({
                 </th>
               ))}
               {/* Filler column to extend table structure */}
-              <th style={{ background: 'var(--canvas-background)' }}></th>
+              <th aria-label="Filler column" style={{ background: 'var(--canvas-background)' }}></th>
             </tr>
           ))}
         </thead>
@@ -497,10 +499,11 @@ export default function DocumentsTable({
                 className="pl-3 py-0.5 align-top "
                 style={{ width: table.getHeaderGroups()[0]?.headers[idColIndex]?.getSize() }}
               >
-                <input
-                  ref={draftIndex === 0 ? draftIdInputRef : undefined}
-                  type="text"
-                  value={draft.id}
+                  <input
+                    ref={draftIndex === 0 ? draftIdInputRef : undefined}
+                    type="text"
+                    aria-label={`Draft document ${draftIndex + 1} ID`}
+                    value={draft.id}
                   onChange={(e) => onDraftChange({ ...draft, id: e.target.value }, draftIndex)}
                   placeholder="Enter document ID"
                   className="w-full text-xs font-mono bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
@@ -511,9 +514,10 @@ export default function DocumentsTable({
                 className="pl-3 py-0.5 align-top "
                 style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
               >
-                <input
-                  type="text"
-                  value={draft.document}
+                  <input
+                    type="text"
+                    aria-label={`Draft document ${draftIndex + 1} text`}
+                    value={draft.document}
                   onChange={(e) => onDraftChange({ ...draft, document: e.target.value }, draftIndex)}
                   placeholder="Enter document text"
                   className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
@@ -527,9 +531,10 @@ export default function DocumentsTable({
                     key={`draft-${draftIndex}-${key}`}
                     className="pl-3 py-0.5 align-top "
                   >
-                    <input
-                      type="text"
-                      value={field?.value || ''}
+                      <input
+                        type="text"
+                      aria-label={`${key} metadata for draft document ${draftIndex + 1}`}
+                        value={field?.value || ''}
                       onChange={(e) => onDraftChange({
                         ...draft,
                         metadata: {
@@ -544,7 +549,7 @@ export default function DocumentsTable({
                 )
               })}
               {/* Filler cell */}
-              <td className=""></td>
+              <td aria-label="Filler cell" className=""></td>
             </tr>
           )})}
           {table.getRowModel().rows.map((row, index) => {
@@ -608,10 +613,11 @@ export default function DocumentsTable({
                     className="pl-3 py-0.5 align-top "
                     style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
                   >
-                    <input
-                      ref={editingInputRef}
-                      type="text"
-                      value={editingState.document}
+                      <input
+                        ref={editingInputRef}
+                        type="text"
+                      aria-label={`Document text for ${row.original.id}`}
+                        value={editingState.document}
                       onChange={(e) => handleEditChange('document', e.target.value)}
                       onKeyDown={handleEditKeyDown}
                       onBlur={saveEditing}
@@ -627,9 +633,10 @@ export default function DocumentsTable({
                         key={`edit-${key}`}
                         className="pl-3 py-0.5 align-top "
                       >
-                        <input
-                          type="text"
-                          value={displayValue}
+                          <input
+                            type="text"
+                          aria-label={`${key} metadata for ${row.original.id}`}
+                            value={displayValue}
                           onChange={(e) => handleEditChange(key, e.target.value)}
                           onKeyDown={handleEditKeyDown}
                           onBlur={saveEditing}
@@ -640,7 +647,7 @@ export default function DocumentsTable({
                     )
                   })}
                   {/* Filler cell */}
-                  <td className=""></td>
+                  <td aria-label="Filler cell" className=""></td>
                 </tr>
               )
             }
@@ -666,7 +673,7 @@ export default function DocumentsTable({
                   </td>
                 ))}
                 {/* Filler cell to extend table structure */}
-                <td className=""></td>
+                <td aria-label="Filler cell" className=""></td>
               </tr>
             )
           })}

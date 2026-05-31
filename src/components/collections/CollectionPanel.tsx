@@ -256,6 +256,7 @@ export function CollectionPanel() {
           <div className="relative flex-1">
             <input
               type="text"
+              aria-label="Search collections"
               placeholder="Search collections..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -264,21 +265,25 @@ export function CollectionPanel() {
             />
             {searchTerm && (
               <button
+                type="button"
+                aria-label="Clear collection search"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs w-4 h-4 flex items-center justify-center"
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs size-4 flex items-center justify-center"
               >
                 ✕
               </button>
             )}
           </div>
           <button
+            type="button"
+            aria-label="Create new collection"
             onClick={handleCreateClick}
             disabled={!!draftCollection}
-            className="h-6 w-6 flex-shrink-0 flex items-center justify-center rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed transition-colors translate-y-px"
+            className="size-6 flex-shrink-0 flex items-center justify-center rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed transition-colors translate-y-px"
             style={inputStyle}
             title="Create new collection"
           >
-            <Plus className="h-2 w-2" />
+            <Plus className="size-2" />
           </button>
         </div>
       </div>
@@ -286,7 +291,7 @@ export function CollectionPanel() {
       {/* Collections List */}
       <div className="flex-1 overflow-y-auto" onContextMenu={handlePanelContextMenu}>
         {collectionsLoading && (
-          <div className="p-4 text-sm text-muted-foreground">Loading collections...</div>
+          <div className="p-4 text-sm text-muted-foreground">Loading collections…</div>
         )}
 
         {collectionsError && (
@@ -316,6 +321,7 @@ export function CollectionPanel() {
             <div className="w-full px-3 py-1.5 bg-black/[0.08] dark:bg-white/[0.10] rounded-md">
               <input
                 type="text"
+                aria-label="Collection name"
                 value={draftCollection.name}
                 onChange={(e) => updateDraft({ name: e.target.value })}
                 placeholder="Collection name..."
@@ -349,6 +355,7 @@ export function CollectionPanel() {
 
               return (
                 <button
+                  type="button"
                   key={collection.id}
                   onClick={() => handleCollectionClick(collection.name)}
                   onContextMenu={(e) => handleContextMenu(e, collection.name)}
@@ -369,6 +376,7 @@ export function CollectionPanel() {
         <div className="px-4 py-2 bg-black/[0.02] dark:bg-white/[0.02]">
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
               onClick={() => setMarkedForDeletion(null)}
               disabled={deleteMutation.isPending}
               className="h-6 px-2.5 text-[11px] rounded-md bg-black/[0.06] dark:bg-white/[0.10] hover:bg-black/[0.10] dark:hover:bg-white/[0.15] text-sidebar-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -376,11 +384,12 @@ export function CollectionPanel() {
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleCommitDeletion}
               disabled={deleteMutation.isPending}
               className="h-6 px-2.5 text-[11px] rounded-md bg-destructive/75 hover:bg-destructive/90 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {deleteMutation.isPending ? '...' : 'Delete'}
+              {deleteMutation.isPending ? '…' : 'Delete'}
             </button>
           </div>
         </div>

@@ -122,6 +122,7 @@ export function QueryToolbar({
       {/* Main query row */}
       <div className="flex gap-2 items-center w-full">
         <select
+          aria-label="Search scope"
           value={scope}
           onChange={(e) => onScopeChange(e.target.value as QueryScope)}
           className={`w-28 ${selectClassName}`}
@@ -135,6 +136,7 @@ export function QueryToolbar({
         {scope === 'id' ? (
           <input
             type="text"
+            aria-label="Document ID search"
             value={idSearch}
             onChange={handleIdSearchChange}
             onKeyDown={handleKeyDown}
@@ -146,6 +148,7 @@ export function QueryToolbar({
         ) : (
           <input
             type="text"
+            aria-label="Document search query"
             value={searchText}
             onChange={handleSearchTextChange}
             onKeyDown={handleKeyDown}
@@ -159,6 +162,7 @@ export function QueryToolbar({
         <div className="flex items-center gap-1">
           <span className="text-[11px] text-muted-foreground">Limit:</span>
           <select
+            aria-label="Result limit"
             value={nResults.toString()}
             onChange={(e) => onNResultsChange(parseInt(e.target.value, 10))}
             className={selectClassName}
@@ -177,6 +181,7 @@ export function QueryToolbar({
 
         {filters.length === 0 && availableFields.length > 0 && (
           <button
+            type="button"
             onClick={handleAddFilter}
             className={`${buttonClassName} text-muted-foreground`}
             data-testid="add-filter-button"

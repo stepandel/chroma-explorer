@@ -46,7 +46,7 @@ export function TopBar() {
     }
   }
 
-  const iconButtonClass = "h-7 w-7 p-0 flex items-center justify-center rounded-md hover:bg-black/[0.06] dark:hover:bg-white/[0.08] transition-colors"
+  const iconButtonClass = "size-7 p-0 flex items-center justify-center rounded-md hover:bg-black/[0.06] dark:hover:bg-white/[0.08] transition-colors"
   const updateLabel = updateState === 'downloading' ? 'Updating…' : 'Update'
 
   return (
@@ -64,7 +64,7 @@ export function TopBar() {
 
       {/* Center - Connection info */}
       <div className="flex-1 flex items-center justify-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Connected" />
+        <div className="size-1.5 rounded-full bg-emerald-500" title="Connected" />
         <span className="text-[12px] font-medium text-foreground/80">
           {currentProfile?.name || 'Connected'}
         </span>
@@ -79,6 +79,7 @@ export function TopBar() {
         {updateState && (
           <>
             <button
+              type="button"
               onClick={handleUpdate}
               disabled={updateState === 'downloading'}
               className="h-6 px-2 inline-flex items-center justify-center rounded-md text-[11px] font-medium bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:active:scale-100"
@@ -96,42 +97,46 @@ export function TopBar() {
           </>
         )}
         <button
+          type="button"
           onClick={() => setShowDeveloperMessage(true)}
           className={iconButtonClass}
           title="Message from the developer"
         >
-          <MessageCircle className="h-3.5 w-3.5 text-foreground/60" />
+          <MessageCircle className="size-3.5 text-foreground/60" />
         </button>
         <div className="w-px h-4 bg-foreground/10 mx-1" />
         <button
+          type="button"
           onClick={() => setLeftPanelOpen(!leftPanelOpen)}
           className={iconButtonClass}
           title="Toggle sidebar"
         >
           {leftPanelOpen ? (
-            <PanelLeft className="h-4 w-4 text-foreground/70" />
+            <PanelLeft className="size-4 text-foreground/70" />
           ) : (
-            <PanelLeftDashed className="h-4 w-4 text-foreground/40" />
+            <PanelLeftDashed className="size-4 text-foreground/40" />
           )}
         </button>
         <button
+          type="button"
           onClick={() => setRightPanelOpen(!rightPanelOpen)}
           className={iconButtonClass}
           title="Toggle inspector"
         >
           {rightPanelOpen ? (
-            <PanelRight className="h-4 w-4 text-foreground/70" />
+            <PanelRight className="size-4 text-foreground/70" />
           ) : (
-            <PanelRightDashed className="h-4 w-4 text-foreground/40" />
+            <PanelRightDashed className="size-4 text-foreground/40" />
           )}
         </button>
         <div className="w-px h-4 bg-foreground/10 mx-1" />
         <button
+          type="button"
           onClick={handleDisconnect}
           className={`${iconButtonClass} hover:bg-destructive/10 hover:text-destructive`}
           title="Disconnect"
         >
-          <Power className="h-3.5 w-3.5 text-foreground/50" />
+          <Power className="size-3.5 text-foreground/50" />
         </button>
       </div>
       <DeveloperMessageDialog
