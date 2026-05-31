@@ -256,6 +256,7 @@ export function DeveloperMessageDialog({
               type="button"
               variant="ghost"
               size="sm"
+              className="underline-offset-2 hover:underline"
               onClick={() => window.electronAPI.shell.openExternal(bugReportUrl)}
             >
               Need to report a bug?
