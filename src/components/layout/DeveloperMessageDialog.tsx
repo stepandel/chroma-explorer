@@ -159,7 +159,7 @@ export function DeveloperMessageDialog({
           <div className="space-y-4 px-5 py-5">
             <div className="space-y-1.5">
               <label htmlFor="developer-message-building" className="text-[11px] font-medium text-muted-foreground">
-                What are you building?
+                What are you building? (optional)
               </label>
               <textarea
                 id="developer-message-building"
@@ -176,7 +176,7 @@ export function DeveloperMessageDialog({
 
             <div className="space-y-1.5">
               <label htmlFor="developer-message-use-case" className="text-[11px] font-medium text-muted-foreground">
-                What are you using Chroma Explorer for?
+                What are you using Chroma Explorer for? (optional)
               </label>
               <textarea
                 id="developer-message-use-case"
@@ -193,7 +193,7 @@ export function DeveloperMessageDialog({
 
             <div className="space-y-1.5">
               <label htmlFor="developer-message-missing" className="text-[11px] font-medium text-muted-foreground">
-                What feels missing or could work better?
+                What feels missing or could work better? (optional)
               </label>
               <textarea
                 id="developer-message-missing"
@@ -210,7 +210,7 @@ export function DeveloperMessageDialog({
 
             <div className="space-y-1.5">
               <label htmlFor="developer-message-email" className="text-[11px] font-medium text-muted-foreground">
-                Email for follow-up, optional
+                Email for follow-up (optional)
               </label>
               <input
                 id="developer-message-email"
@@ -238,7 +238,7 @@ export function DeveloperMessageDialog({
                 }}
                 className="h-4 w-4 rounded border-input accent-primary"
               />
-              I am open to a short follow-up call
+              I am open to a short follow-up call (optional)
             </label>
 
             {submissionState === 'sent' && (
