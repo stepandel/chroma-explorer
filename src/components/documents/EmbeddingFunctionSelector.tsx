@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Button } from '../ui/button'
@@ -14,6 +14,14 @@ interface EmbeddingFunctionSelectorProps {
   embeddingDimension?: number | null
 }
 
+function getSelectedEmbeddingId(currentOverride: EmbeddingFunctionOverride | null) {
+  if (!currentOverride) return ''
+  const match = EMBEDDING_FUNCTIONS.find(
+    ef => ef.type === currentOverride.type && ef.modelName === currentOverride.modelName
+  )
+  return match?.id || ''
+}
+
 export function EmbeddingFunctionSelector({
   collectionName,
   currentOverride,
@@ -23,20 +31,15 @@ export function EmbeddingFunctionSelector({
   embeddingDimension,
 }: EmbeddingFunctionSelectorProps) {
   const [open, setOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState<string>('')
+  const [selectedId, setSelectedId] = useState(() => getSelectedEmbeddingId(currentOverride))
   const [saving, setSaving] = useState(false)
 
-  // Set initial selection based on current override
-  useEffect(() => {
-    if (currentOverride) {
-      const match = EMBEDDING_FUNCTIONS.find(
-        ef => ef.type === currentOverride.type && ef.modelName === currentOverride.modelName
-      )
-      setSelectedId(match?.id || '')
-    } else {
-      setSelectedId('')
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setSelectedId(getSelectedEmbeddingId(currentOverride))
     }
-  }, [currentOverride, open])
+    setOpen(nextOpen)
+  }
 
   const selectedEF = EMBEDDING_FUNCTIONS.find(ef => ef.id === selectedId)
 
@@ -70,9 +73,10 @@ export function EmbeddingFunctionSelector({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
+          type="button"
           data-embedding-selector
           className={`text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity ${
             currentOverride
@@ -112,7 +116,7 @@ export function EmbeddingFunctionSelector({
                 onChange={(e) => setSelectedId(e.target.value)}
                 className="w-full h-[22px] appearance-none rounded-[5px] border-none bg-white/10 dark:bg-white/5 pl-2 pr-6 text-[13px] text-foreground shadow-[0_0.5px_1px_rgba(0,0,0,0.1),inset_0_0.5px_0.5px_rgba(255,255,255,0.1)] ring-1 ring-black/10 dark:ring-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-default"
               >
-                <option value="">Select...</option>
+                <option value="">Select…</option>
                 {EMBEDDING_FUNCTION_GROUPS.map(group => (
                   <optgroup key={group} label={group}>
                     {EMBEDDING_FUNCTIONS.filter(ef => ef.group === group).map(ef => (
@@ -123,7 +127,7 @@ export function EmbeddingFunctionSelector({
                   </optgroup>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/70" />
+              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground/70" />
             </div>
           </div>
 
@@ -152,7 +156,7 @@ export function EmbeddingFunctionSelector({
               <div className={`mx-1 text-[11px] px-2.5 py-2 rounded-[5px] space-y-0.5 ${containerClass}`}>
                 {selectedEF && (
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${hasDimensionMismatch ? 'bg-[#FF3B30] dark:bg-[#FF453A]' : 'bg-[#007AFF] dark:bg-[#0A84FF]'}`} />
+                    <div className={`size-1.5 rounded-full ${hasDimensionMismatch ? 'bg-[#FF3B30] dark:bg-[#FF453A]' : 'bg-[#007AFF] dark:bg-[#0A84FF]'}`} />
                     <span className={`font-medium text-[10px] ${accentColor}`}>
                       {hasDimensionMismatch ? 'Dimension Mismatch' : 'Client Override'}
                     </span>
@@ -190,7 +194,7 @@ export function EmbeddingFunctionSelector({
             onClick={handleSave}
             disabled={!selectedEF || saving}
           >
-            {saving ? 'Saving...' : 'Apply'}
+            {saving ? 'Saving…' : 'Apply'}
           </Button>
         </div>
       </PopoverContent>

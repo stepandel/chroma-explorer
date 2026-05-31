@@ -41,9 +41,10 @@ export function MetadataFilterInput({ onAdd }: MetadataFilterInputProps) {
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium">Metadata Filter</label>
+      <span className="block text-sm font-medium">Metadata Filter</span>
       <div className="flex gap-2">
         <input
+          aria-label="Metadata key"
           type="text"
           value={key}
           onChange={(e) => setKey(e.target.value)}
@@ -53,6 +54,7 @@ export function MetadataFilterInput({ onAdd }: MetadataFilterInputProps) {
           style={inputStyle}
         />
         <select
+          aria-label="Metadata operator"
           value={operator}
           onChange={(e) => setOperator(e.target.value as MetadataOperator)}
           className={selectClassName}
@@ -65,6 +67,7 @@ export function MetadataFilterInput({ onAdd }: MetadataFilterInputProps) {
           ))}
         </select>
         <input
+          aria-label="Metadata value"
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -74,6 +77,7 @@ export function MetadataFilterInput({ onAdd }: MetadataFilterInputProps) {
           style={inputStyle}
         />
         <button
+          type="button"
           onClick={handleAdd}
           disabled={!key.trim() || !value.trim()}
           className="h-6 text-[11px] px-2 rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"

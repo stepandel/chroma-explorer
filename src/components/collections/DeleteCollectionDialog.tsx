@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 
@@ -23,12 +23,12 @@ export function DeleteCollectionDialog({
 }: DeleteCollectionDialogProps) {
   const [confirmInput, setConfirmInput] = useState('')
 
-  // Reset input when dialog opens/closes
-  useEffect(() => {
-    if (!open) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
       setConfirmInput('')
     }
-  }, [open])
+    onOpenChange(nextOpen)
+  }
 
   const isConfirmValid = confirmInput === collectionName
 
@@ -39,7 +39,7 @@ export function DeleteCollectionDialog({
   }
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Portal>
         {/* Subtle overlay */}
         <DialogPrimitive.Overlay
@@ -70,10 +70,11 @@ export function DeleteCollectionDialog({
 
             {/* Confirmation input */}
             <div className="mt-3">
-              <label className="text-[10px] text-muted-foreground">
+              <label htmlFor="delete-collection-confirm" className="text-[10px] text-muted-foreground">
                 Type <span className="font-mono text-foreground">{collectionName}</span> to confirm
               </label>
               <input
+                id="delete-collection-confirm"
                 type="text"
                 value={confirmInput}
                 onChange={(e) => setConfirmInput(e.target.value)}
@@ -99,6 +100,7 @@ export function DeleteCollectionDialog({
           <div className="px-4 pb-4 flex gap-2">
             {/* Secondary button - subtle rounded rect */}
             <button
+              type="button"
               onClick={() => onOpenChange(false)}
               disabled={isDeleting}
               className={cn(
@@ -119,6 +121,7 @@ export function DeleteCollectionDialog({
             </button>
             {/* Destructive button - red filled */}
             <button
+              type="button"
               onClick={handleConfirm}
               disabled={!isConfirmValid || isDeleting}
               className={cn(
@@ -132,7 +135,7 @@ export function DeleteCollectionDialog({
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-offset-1"
               )}
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? 'Deleting…' : 'Delete'}
             </button>
           </div>
         </DialogPrimitive.Content>

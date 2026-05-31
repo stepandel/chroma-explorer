@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation, useCreateDocumentsBatchMutation, useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
 import { useClipboard } from '../../context/ClipboardContext'
@@ -66,6 +66,7 @@ export default function DocumentsView({
   const [idSearch, setIdSearch] = useState('')
   const [nResults, setNResults] = useState(10)
   const [metadataFilters, setMetadataFilters] = useState<QueryMetadataFilter[]>([])
+  const collectionNameRef = useRef(collectionName)
 
   // "Committed" search text and ID. Only updated when the toolbar fires onSearch
   // (300ms debounce after typing, or immediately on Enter). Keeps queries from
@@ -157,10 +158,8 @@ export default function DocumentsView({
     setEmbeddingOverride(null)
   }, [currentProfile?.id, collectionName])
 
-  // Reset filters and deletion marks when collection changes. nResults is
-  // deliberately preserved so the user's chosen page size carries across
-  // collections.
-  useEffect(() => {
+  if (collectionNameRef.current !== collectionName) {
+    collectionNameRef.current = collectionName
     setScope('query')
     setSearchText('')
     setIdSearch('')
@@ -170,7 +169,7 @@ export default function DocumentsView({
     setMarkedForDeletion(new Set())
     setDraftDocuments([])
     setDraftError(null)
-  }, [collectionName])
+  }
 
   // Build search params from the toolbar state. `metadataFilter` updates immediately
   // as filters change; `queryText` uses the committed (debounced) value.
@@ -862,9 +861,10 @@ export default function DocumentsView({
       {/* Bottom Toolbar */}
       <div className="px-4 py-1.5 flex items-center justify-between">
         <button
+          type="button"
           onClick={handleStartCreate}
           disabled={hasDrafts || markedForDeletion.size > 0}
-          className="h-6 w-6 p-0 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="size-6 p-0 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
           title="Add document"
         >
           +
@@ -879,6 +879,7 @@ export default function DocumentsView({
             </span>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={handleCancelDraft}
                 disabled={createMutation.isPending || createBatchMutation.isPending}
                 className="h-6 px-2 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -886,11 +887,12 @@ export default function DocumentsView({
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSaveDraft}
                 disabled={createMutation.isPending || createBatchMutation.isPending || draftDocuments.some(d => !d.id.trim())}
                 className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {(createMutation.isPending || createBatchMutation.isPending) ? 'Saving...' : (draftDocuments.length === 1 ? 'Save' : 'Save All')}
+                {(createMutation.isPending || createBatchMutation.isPending) ? 'Saving…' : (draftDocuments.length === 1 ? 'Save' : 'Save All')}
               </button>
             </div>
           </div>
@@ -901,6 +903,7 @@ export default function DocumentsView({
               {markedForDeletion.size} marked for deletion
             </span>
             <button
+              type="button"
               onClick={() => setMarkedForDeletion(new Set())}
               disabled={deleteMutation.isPending}
               className="h-6 px-2 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -908,11 +911,12 @@ export default function DocumentsView({
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleCommitDeletions}
               disabled={deleteMutation.isPending}
               className="h-6 px-2 text-[11px] rounded-md bg-red-500 hover:bg-red-600 active:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
             </button>
           </div>
         )}
