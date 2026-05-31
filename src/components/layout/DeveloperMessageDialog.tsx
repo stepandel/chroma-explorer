@@ -158,23 +158,6 @@ export function DeveloperMessageDialog({
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 px-5 py-5">
             <div className="space-y-1.5">
-              <label htmlFor="developer-message-use-case" className="text-[11px] font-medium text-muted-foreground">
-                What are you using Chroma Explorer for?
-              </label>
-              <textarea
-                id="developer-message-use-case"
-                value={useCase}
-                onChange={(event) => {
-                  setUseCase(event.target.value)
-                  setSubmissionState('idle')
-                }}
-                rows={3}
-                className={`${fieldClassName} resize-none`}
-                placeholder="Browsing local collections, debugging embeddings, managing documents..."
-              />
-            </div>
-
-            <div className="space-y-1.5">
               <label htmlFor="developer-message-building" className="text-[11px] font-medium text-muted-foreground">
                 What are you building?
               </label>
@@ -188,6 +171,23 @@ export function DeveloperMessageDialog({
                 rows={2}
                 className={`${fieldClassName} resize-none`}
                 placeholder="An AI app, internal search, evaluation tooling, a data pipeline..."
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="developer-message-use-case" className="text-[11px] font-medium text-muted-foreground">
+                What are you using Chroma Explorer for?
+              </label>
+              <textarea
+                id="developer-message-use-case"
+                value={useCase}
+                onChange={(event) => {
+                  setUseCase(event.target.value)
+                  setSubmissionState('idle')
+                }}
+                rows={3}
+                className={`${fieldClassName} resize-none`}
+                placeholder="Browsing local collections, debugging embeddings, managing documents..."
               />
             </div>
 
