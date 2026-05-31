@@ -86,6 +86,7 @@ export function CopyProgressDialog({
           <div className="px-4 pb-4 flex gap-2">
             {isWorking && (
               <button
+                type="button"
                 onClick={onCancel}
                 className={cn(
                   "flex-1 h-[22px] px-3 text-[12px] font-normal",
@@ -105,6 +106,7 @@ export function CopyProgressDialog({
             )}
             {(isComplete || isError || isCancelled) && (
               <button
+                type="button"
                 onClick={() => onOpenChange(false)}
                 className={cn(
                   "flex-1 h-[22px] px-3 text-[12px] font-medium",
@@ -116,7 +118,7 @@ export function CopyProgressDialog({
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
                 )}
               >
-                Done
+                Close
               </button>
             )}
           </div>

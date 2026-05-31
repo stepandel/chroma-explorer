@@ -278,7 +278,7 @@ export function CollectionConfigView() {
                 </optgroup>
               ))}
             </select>
-            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground pointer-events-none" />
           </div>
           {selectedEf && <p className="text-[10px] text-muted-foreground">{selectedEf.modelName}</p>}
         </div>
@@ -309,7 +309,7 @@ export function CollectionConfigView() {
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            {showAdvanced ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
             HNSW Index Settings
           </button>
 
@@ -317,9 +317,9 @@ export function CollectionConfigView() {
             <div className="space-y-3 pl-4">
               {/* Distance Function */}
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-muted-foreground">
-                  Distance Function
-                </label>
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    Distance Function
+                  </span>
                 <div className="flex gap-3">
                   {(['l2', 'cosine', 'ip'] as const).map((space) => (
                     <label key={space} className="flex items-center gap-1 cursor-pointer">
@@ -329,7 +329,7 @@ export function CollectionConfigView() {
                         value={space}
                         checked={draftCollection.hnsw.space === space}
                         onChange={() => updateDraft({ hnsw: { ...draftCollection.hnsw, space } })}
-                        className="h-3 w-3"
+                          className="size-3"
                       />
                       <span className="text-[10px] text-foreground">
                         {space === 'l2' ? 'L2 (Euclidean)' : space === 'cosine' ? 'Cosine' : 'Inner Product'}
@@ -342,10 +342,11 @@ export function CollectionConfigView() {
               {/* EF Construction & Max Neighbors */}
               <div className="flex gap-3">
                 <div className="flex-1 space-y-1">
-                  <label className="text-[11px] font-medium text-muted-foreground">
+                  <label htmlFor="hnsw-ef-construction" className="text-[11px] font-medium text-muted-foreground">
                     EF Construction
                   </label>
                   <input
+                    id="hnsw-ef-construction"
                     type="number"
                     value={draftCollection.hnsw.efConstruction}
                     onChange={(e) => updateDraft({ hnsw: { ...draftCollection.hnsw, efConstruction: e.target.value } })}
@@ -356,10 +357,11 @@ export function CollectionConfigView() {
                   <p className="text-[10px] text-muted-foreground">Default: 100</p>
                 </div>
                 <div className="flex-1 space-y-1">
-                  <label className="text-[11px] font-medium text-muted-foreground">
+                  <label htmlFor="hnsw-max-neighbors" className="text-[11px] font-medium text-muted-foreground">
                     Max Neighbors (M)
                   </label>
                   <input
+                    id="hnsw-max-neighbors"
                     type="number"
                     value={draftCollection.hnsw.maxNeighbors}
                     onChange={(e) => updateDraft({ hnsw: { ...draftCollection.hnsw, maxNeighbors: e.target.value } })}
@@ -382,7 +384,7 @@ export function CollectionConfigView() {
               type="checkbox"
               checked={showFirstDocument}
               onChange={(e) => handleFirstDocumentToggle(e.target.checked)}
-              className="rounded border-input h-3.5 w-3.5"
+              className="rounded border-input size-3.5"
             />
             <span className="text-[11px] font-medium text-foreground">Add first document</span>
           </label>
@@ -391,11 +393,12 @@ export function CollectionConfigView() {
             <div className="space-y-3 pl-5">
               {/* Document ID */}
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-muted-foreground">
-                  Document ID
-                </label>
-                <input
-                  type="text"
+                  <label htmlFor="first-document-id" className="text-[11px] font-medium text-muted-foreground">
+                    Document ID
+                  </label>
+                  <input
+                    id="first-document-id"
+                    type="text"
                   value={draftCollection.firstDocument.id}
                   onChange={(e) =>
                     updateDraft({
@@ -409,11 +412,12 @@ export function CollectionConfigView() {
 
               {/* Document Text */}
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-muted-foreground">
-                  Document Text
-                </label>
-                <textarea
-                  value={draftCollection.firstDocument.document}
+                  <label htmlFor="first-document-text" className="text-[11px] font-medium text-muted-foreground">
+                    Document Text
+                  </label>
+                  <textarea
+                    id="first-document-text"
+                    value={draftCollection.firstDocument.document}
                   onChange={(e) =>
                     updateDraft({
                       firstDocument: { ...draftCollection.firstDocument!, document: e.target.value },
@@ -429,7 +433,7 @@ export function CollectionConfigView() {
               {/* Metadata Fields */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-medium text-muted-foreground">Metadata</label>
+                    <span className="text-[11px] font-medium text-muted-foreground">Metadata</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -449,7 +453,7 @@ export function CollectionConfigView() {
                     }}
                     className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <Plus className="h-3 w-3" />
+                      <Plus className="size-3" />
                     Add
                   </button>
                 </div>
@@ -463,9 +467,10 @@ export function CollectionConfigView() {
                       return (
                         <div key={index} className="space-y-0.5">
                           <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              value={key}
+                              <input
+                                type="text"
+                                aria-label={`Metadata key ${key}`}
+                                value={key}
                               onChange={(e) => {
                                 const newKey = e.target.value
                                 if (newKey === key) return
@@ -482,8 +487,9 @@ export function CollectionConfigView() {
                               style={inputStyle}
                             />
                             <div className="relative flex items-center">
-                              <select
-                                value={field.type}
+                                <select
+                                  aria-label={`Metadata type for ${key}`}
+                                  value={field.type}
                                 onChange={(e) => {
                                   updateDraft({
                                     firstDocument: {
@@ -502,11 +508,12 @@ export function CollectionConfigView() {
                                 <option value="number">num</option>
                                 <option value="boolean">bool</option>
                               </select>
-                              <ChevronDown className="absolute right-0.5 h-2.5 w-2.5 text-muted-foreground pointer-events-none" />
+                                <ChevronDown className="absolute right-0.5 size-2.5 text-muted-foreground pointer-events-none" />
                             </div>
-                            <input
-                              type="text"
-                              value={field.value}
+                              <input
+                                type="text"
+                                aria-label={`Metadata value for ${key}`}
+                                value={field.value}
                               onChange={(e) => {
                                 updateDraft({
                                   firstDocument: {
@@ -524,8 +531,9 @@ export function CollectionConfigView() {
                               }`}
                               style={inputStyle}
                             />
-                            <button
-                              type="button"
+                              <button
+                                type="button"
+                                aria-label={`Remove metadata field ${key}`}
                               onClick={() => {
                                 const { [key]: _, ...rest } = draftCollection.firstDocument!.metadata
                                 updateDraft({
@@ -537,7 +545,7 @@ export function CollectionConfigView() {
                               }}
                               className="flex items-center justify-center p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                             >
-                              <X className="h-3 w-3" />
+                                <X className="size-3" />
                             </button>
                           </div>
                           {displayError && (
@@ -566,6 +574,7 @@ export function CollectionConfigView() {
         </div>
         <div className="flex items-center gap-1.5">
           <button
+            type="button"
             onClick={cancelCreation}
             disabled={isCreating || isCopying}
             className="h-6 px-2 text-[11px] rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
@@ -575,19 +584,21 @@ export function CollectionConfigView() {
           </button>
           {isCopyMode ? (
             <button
+              type="button"
               onClick={handleCopyCollection}
               disabled={isCopying || !draftCollection.name.trim()}
               className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isCopying ? 'Copying...' : 'Copy Collection'}
+              {isCopying ? 'Copying…' : 'Copy Collection'}
             </button>
           ) : (
             <button
+              type="button"
               onClick={saveDraft}
               disabled={isCreating || !draftCollection.name.trim()}
               className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isCreating ? 'Creating...' : 'Create'}
+              {isCreating ? 'Creating…' : 'Create'}
             </button>
           )}
         </div>

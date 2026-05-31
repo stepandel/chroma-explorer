@@ -14,6 +14,15 @@ interface DocumentRecord {
   embedding: number[] | null
 }
 
+function getDocumentDraftKey(document: DocumentRecord) {
+  return JSON.stringify([
+    document.id,
+    document.document,
+    document.metadata,
+    document.embedding,
+  ])
+}
+
 interface DocumentDetailPanelProps {
   document: DocumentRecord
   collectionName: string
@@ -31,12 +40,21 @@ export default function DocumentDetailPanel({
   isFirstDocument = false,
   onDraftChange,
 }: DocumentDetailPanelProps) {
+  const documentId = document.id
+  const documentText = document.document
+  const documentMetadata = document.metadata
+  const documentEmbedding = document.embedding
+
   // Draft state
-  const [draftDocument, setDraftDocument] = useState(document.document)
-  const [draftMetadata, setDraftMetadata] = useState(document.metadata)
+  const [draftDocument, setDraftDocument] = useState(documentText)
+  const [draftMetadata, setDraftMetadata] = useState(documentMetadata)
   const [draftEmbedding, setDraftEmbedding] = useState<string>('')
   const [embeddingError, setEmbeddingError] = useState<string | null>(null)
   const [isEditingEmbedding, setIsEditingEmbedding] = useState(false)
+  const documentDraftKeyRef = useRef<string | null>(null)
+  if (documentDraftKeyRef.current === null) {
+    documentDraftKeyRef.current = getDocumentDraftKey(document)
+  }
 
   // Regenerate embedding dialog state
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false)
@@ -72,37 +90,38 @@ export default function DocumentDetailPanel({
 
   // Check if there are unsaved changes
   // For drafts (new documents), always consider dirty since they need to be saved
-  const hasDocumentChanges = draftDocument !== document.document
-  const hasMetadataChanges = JSON.stringify(draftMetadata) !== JSON.stringify(document.metadata)
+  const hasDocumentChanges = draftDocument !== documentText
+  const hasMetadataChanges = JSON.stringify(draftMetadata) !== JSON.stringify(documentMetadata)
   const hasEmbeddingChanges = (() => {
-    if (!draftEmbedding && !document.embedding) return false
-    if (!draftEmbedding || !document.embedding) return true
+    if (!draftEmbedding && !documentEmbedding) return false
+    if (!draftEmbedding || !documentEmbedding) return true
     try {
       const parsed = JSON.parse(draftEmbedding)
-      return JSON.stringify(parsed) !== JSON.stringify(document.embedding)
+      return JSON.stringify(parsed) !== JSON.stringify(documentEmbedding)
     } catch {
       return true
     }
   })()
   const hasDirtyChanges = isDraft || hasDocumentChanges || hasMetadataChanges || hasEmbeddingChanges
 
-  // Reset drafts when document changes
-  useEffect(() => {
-    setDraftDocument(document.document)
-    setDraftMetadata(document.metadata)
-    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding) : '')
+  const currentDocumentDraftKey = getDocumentDraftKey(document)
+  if (currentDocumentDraftKey !== documentDraftKeyRef.current) {
+    documentDraftKeyRef.current = currentDocumentDraftKey
+    setDraftDocument(documentText)
+    setDraftMetadata(documentMetadata)
+    setDraftEmbedding(documentEmbedding ? JSON.stringify(documentEmbedding) : '')
     setEmbeddingError(null)
     setIsEditingEmbedding(false)
-  }, [document.id, document.document, document.metadata, document.embedding])
+  }
 
   // Handle cancel/revert all changes
   const handleCancel = useCallback(() => {
-    setDraftDocument(document.document)
-    setDraftMetadata(document.metadata)
-    setDraftEmbedding(document.embedding ? JSON.stringify(document.embedding) : '')
+    setDraftDocument(documentText)
+    setDraftMetadata(documentMetadata)
+    setDraftEmbedding(documentEmbedding ? JSON.stringify(documentEmbedding) : '')
     setEmbeddingError(null)
     setIsEditingEmbedding(false)
-  }, [document.document, document.metadata, document.embedding])
+  }, [documentText, documentMetadata, documentEmbedding])
 
   // Handle save all changes
   const handleSave = useCallback(async () => {
@@ -118,7 +137,7 @@ export default function DocumentDetailPanel({
         documentId: string
         metadata?: Metadata
         embedding?: number[]
-      } = { documentId: document.id }
+      } = { documentId }
 
       if (hasMetadataChanges && draftMetadata) {
         updates.metadata = draftMetadata as Metadata
@@ -145,7 +164,7 @@ export default function DocumentDetailPanel({
       }
     }
   }, [
-    document.id,
+    documentId,
     hasDocumentChanges,
     hasMetadataChanges,
     hasEmbeddingChanges,
@@ -164,7 +183,7 @@ export default function DocumentDetailPanel({
         embedding?: number[]
         regenerateEmbedding?: boolean
       } = {
-        documentId: document.id,
+        documentId,
         document: draftDocument ?? undefined,
         regenerateEmbedding: regenerate,
       }
@@ -213,7 +232,7 @@ export default function DocumentDetailPanel({
       }
     } else {
       // For existing documents, try to preserve original type
-      const originalValue = document.metadata?.[key]
+      const originalValue = documentMetadata?.[key]
       let parsedValue: unknown = value
 
       if (typeof originalValue === 'number') {
@@ -361,7 +380,8 @@ export default function DocumentDetailPanel({
         {isDraft ? (
           <input
             type="text"
-            value={document.id}
+            aria-label="Document ID"
+            value={documentId}
             onChange={(e) => {
               if (onDraftChange) {
                 onDraftChange({ id: e.target.value })
@@ -372,7 +392,7 @@ export default function DocumentDetailPanel({
           />
         ) : (
           <div className="p-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-md">
-            <code className="text-xs font-mono break-all">{document.id}</code>
+            <code className="text-xs font-mono break-all">{documentId}</code>
           </div>
         )}
       </section>
@@ -381,6 +401,7 @@ export default function DocumentDetailPanel({
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-1">document</h3>
         <textarea
+          aria-label="Document text"
           rows={1}
           value={draftDocument ?? ''}
           onChange={(e) => {
@@ -415,7 +436,7 @@ export default function DocumentDetailPanel({
                 : String(value)
               : ''
           )
-          const originalValue = document.metadata?.[key]
+          const originalValue = documentMetadata?.[key]
           const isDirty = isDraft ? true : value !== originalValue
           // Validate typed fields for all drafts (not just first document)
           const validationError = isDraft && typedField ? validateMetadataValue(typedField.value, typedField.type) : null
@@ -428,14 +449,16 @@ export default function DocumentDetailPanel({
                 <div className="flex items-center gap-1 mb-1">
                   <input
                     type="text"
+                    aria-label={`Metadata key ${key}`}
                     value={key}
                     onChange={(e) => handleMetadataKeyRename(key, e.target.value)}
                     className="flex-1 text-xs font-semibold text-muted-foreground bg-transparent border-none outline-none focus:text-foreground"
                   />
                   {typedField && (
                     <div className="relative">
-                      <select
-                        value={typedField.type}
+                        <select
+                          aria-label={`Metadata type for ${key}`}
+                          value={typedField.type}
                         onChange={(e) => handleMetadataTypeChange(key, e.target.value as MetadataValueType)}
                         className="h-5 pl-1.5 pr-5 appearance-none rounded-md bg-black/[0.05] dark:bg-white/[0.08] text-[10px] focus:outline-none focus:ring-1 focus:ring-ring/50 cursor-pointer"
                       >
@@ -443,22 +466,24 @@ export default function DocumentDetailPanel({
                         <option value="number">num</option>
                         <option value="boolean">bool</option>
                       </select>
-                      <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-2.5 w-2.5 text-muted-foreground pointer-events-none" />
+                        <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 size-2.5 text-muted-foreground pointer-events-none" />
                     </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveMetadataField(key)}
-                    className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove metadata field ${key}`}
+                      onClick={() => handleRemoveMetadataField(key)}
+                      className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <X className="size-3" />
+                    </button>
                 </div>
               ) : (
                 // Regular mode - just the label
                 <h3 className="text-xs font-semibold text-muted-foreground mb-1">{key}</h3>
               )}
               <textarea
+                aria-label={`Metadata value for ${key}`}
                 rows={1}
                 value={displayValue}
                 onChange={(e) => {
@@ -483,14 +508,14 @@ export default function DocumentDetailPanel({
       {/* Add metadata field button - only for first document drafts */}
       {isDraft && isFirstDocument && (
         <section>
-          <button
-            type="button"
-            onClick={handleAddMetadataField}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add metadata field
-          </button>
+              <button
+                type="button"
+                onClick={handleAddMetadataField}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Plus className="size-3.5" />
+                Add metadata field
+              </button>
         </section>
       )}
 
@@ -502,6 +527,7 @@ export default function DocumentDetailPanel({
             <div>
               <textarea
                 ref={embeddingTextareaRef}
+                aria-label="Embedding vector"
                 value={draftEmbedding}
                 onChange={(e) => {
                   setDraftEmbedding(e.target.value)
@@ -516,20 +542,21 @@ export default function DocumentDetailPanel({
               )}
             </div>
           ) : (
-            <div
-              onClick={() => setIsEditingEmbedding(true)}
-              className={`cursor-pointer ${getFieldStyle(hasEmbeddingChanges)}`}
-            >
-              <EmbeddingCell embedding={document.embedding} />
-            </div>
-          )}
+              <button
+                type="button"
+                onClick={() => setIsEditingEmbedding(true)}
+                className={`cursor-pointer ${getFieldStyle(hasEmbeddingChanges)}`}
+              >
+                <EmbeddingCell embedding={documentEmbedding} />
+              </button>
+            )}
         </section>
       )}
 
       {/* Dirty indicator */}
       {hasDirtyChanges && (
         <div className="text-xs text-muted-foreground text-center py-2">
-          {isPending ? 'Saving...' : 'Unsaved changes — ⌘↵ to save, ⌘Z to revert'}
+            {isPending ? 'Saving…' : 'Unsaved changes — ⌘↵ to save, ⌘Z to revert'}
         </div>
       )}
 

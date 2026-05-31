@@ -1,4 +1,5 @@
 import { useState, FormEvent, useEffect, useCallback } from 'react'
+import { TriangleAlert } from 'lucide-react'
 import type { ConnectionProfile } from '@/types/electron'
 
 interface ConnectionModalProps {
@@ -45,12 +46,19 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
   const [isConnecting, setIsConnecting] = useState(false)
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => getSystemTheme())
 
-  // Load saved profiles on mount
-  useEffect(() => {
-    if (isOpen) {
-      loadProfiles()
+  const loadProfiles = useCallback(async () => {
+    try {
+      const savedProfiles = await window.electronAPI.profiles.getAll()
+      setProfiles(savedProfiles)
+    } catch (err) {
+      console.error('Failed to load profiles:', err)
     }
-  }, [isOpen])
+  }, [])
+
+  // Load saved profiles on mount so the modal is ready when opened.
+  useEffect(() => {
+    loadProfiles()
+  }, [loadProfiles])
 
   // Load and listen to theme changes
   useEffect(() => {
@@ -111,15 +119,6 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
     })
     return unsubscribe
   }, [profiles]) // Re-subscribe when profiles change so handlers have latest data
-
-  const loadProfiles = async () => {
-    try {
-      const savedProfiles = await window.electronAPI.profiles.getAll()
-      setProfiles(savedProfiles)
-    } catch (err) {
-      console.error('Failed to load profiles:', err)
-    }
-  }
 
   const handleProfileSelect = (profileId: string) => {
     setSelectedProfileId(profileId)
@@ -484,7 +483,15 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   {error}
                 </div>
               )}
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => window.electronAPI.window.openDeveloperMessage()}
+                  className="inline-flex h-7 items-center gap-1.5 rounded border border-yellow-500/30 bg-yellow-500/15 px-2 text-[12px] font-medium text-yellow-700 transition-colors hover:bg-yellow-500/20 dark:text-yellow-400"
+                >
+                  <TriangleAlert className="h-3.5 w-3.5" />
+                  Message from developer
+                </button>
                 <button
                   type="submit"
                   disabled={isConnecting}
@@ -522,8 +529,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
               {profiles.map((profile) => {
                 const isSelected = selectedProfileId === profile.id
                 return (
-                  <button
-                    key={profile.id}
+                    <button
+                      type="button"
+                      key={profile.id}
                     onClick={() => handleProfileSelect(profile.id)}
                     onContextMenu={(e) => handleContextMenu(e, profile.id)}
                     className={`w-full px-3 py-1.5 text-left transition-colors ${
@@ -551,8 +559,9 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
 
         {/* New connection button */}
         <div className="p-2">
-          <button
-            onClick={() => handleProfileSelect('')}
+            <button
+              type="button"
+              onClick={() => handleProfileSelect('')}
             className={`w-full h-6 text-[11px] rounded transition-colors ${
               !selectedProfileId
                 ? 'bg-black/[0.08] dark:bg-white/[0.10] text-foreground/70'

@@ -74,6 +74,18 @@ API keys for embedding providers can be configured in **Settings** (Cmd+,). Keys
 
 Error reporting is opt-in from **Settings > Privacy**. See `docs/TELEMETRY.md` for release configuration and privacy rules.
 
+### Feedback Collection
+
+The in-app feedback form posts directly to Forminit form `742yqqcnm5o`. To
+point a custom build at a different public form, set the form ID at build time:
+
+```bash
+VITE_FORMINIT_FORM_ID=your-form-id pnpm build
+```
+
+Do not put a Forminit API key in the renderer. The desktop app uses Forminit's
+unauthenticated submission endpoint so no private token ships to users.
+
 ## License
 
 MIT

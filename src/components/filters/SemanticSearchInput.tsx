@@ -12,9 +12,10 @@ export function SemanticSearchInput({
 }: SemanticSearchInputProps) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium">Semantic Search</label>
+      <label htmlFor="semantic-search-input" className="block text-sm font-medium">Semantic Search</label>
       <div className="relative">
         <input
+          id="semantic-search-input"
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -24,8 +25,9 @@ export function SemanticSearchInput({
         />
         {value && (
           <button
+            type="button"
             onClick={() => onChange('')}
-            className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs w-4 h-4 flex items-center justify-center"
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs size-4 flex items-center justify-center"
             aria-label="Clear search"
           >
             ✕

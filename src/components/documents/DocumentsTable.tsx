@@ -335,7 +335,7 @@ export default function DocumentsTable({
           const value = info.getValue() as string | null
           return (
             <div className="text-xs text-foreground">
-              <div className="line-clamp-2">
+              <div className="line-clamp-1">
                 {value || <span className="text-muted-foreground italic">No document</span>}
               </div>
             </div>
@@ -356,11 +356,11 @@ export default function DocumentsTable({
           <div className="text-xs text-foreground">
             {value !== undefined && value !== null ? (
               typeof value === 'object' ? (
-                <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto line-clamp-2">
+                <pre className="text-xs bg-secondary/50 p-1 rounded overflow-x-auto line-clamp-1">
                   {JSON.stringify(value, null, 2)}
                 </pre>
               ) : (
-                <div className="line-clamp-2">
+                <div className="line-clamp-1">
                   {String(value)}
                 </div>
               )
@@ -410,6 +410,7 @@ export default function DocumentsTable({
           <p className="text-destructive">{error}</p>
           {isApiKeyError && (
             <button
+              type="button"
               onClick={handleOpenSettings}
               className="mt-3 h-7 px-3 text-[12px] font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
@@ -455,6 +456,7 @@ export default function DocumentsTable({
                         header.getContext()
                       )}
                   <div
+                    aria-hidden="true"
                     onMouseDown={header.getResizeHandler()}
                     onTouchStart={header.getResizeHandler()}
                     className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-primary/40 ${
@@ -464,7 +466,7 @@ export default function DocumentsTable({
                 </th>
               ))}
               {/* Filler column to extend table structure */}
-              <th style={{ background: 'var(--canvas-background)' }}></th>
+              <th aria-label="Filler column" style={{ background: 'var(--canvas-background)' }}></th>
             </tr>
           ))}
         </thead>
@@ -477,7 +479,7 @@ export default function DocumentsTable({
             return (
             <tr
               key={`draft-${draftIndex}`}
-              className={`cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-primary/15 dark:bg-primary/25' : 'bg-primary/5 dark:bg-primary/10'}`}
+              className={`h-8 cursor-pointer ${selectedDocumentIds.has(draft.id) ? 'bg-primary/15 dark:bg-primary/25' : 'bg-primary/5 dark:bg-primary/10'}`}
               onClick={(e) => handleRowClick(e, draft.id, draftIndex)}
               onDoubleClick={(e) => handleRowDoubleClick(e, draft.id)}
               onMouseDown={(e) => handleMouseDown(e, draftIndex)}
@@ -497,10 +499,11 @@ export default function DocumentsTable({
                 className="pl-3 py-0.5 align-top "
                 style={{ width: table.getHeaderGroups()[0]?.headers[idColIndex]?.getSize() }}
               >
-                <input
-                  ref={draftIndex === 0 ? draftIdInputRef : undefined}
-                  type="text"
-                  value={draft.id}
+                  <input
+                    ref={draftIndex === 0 ? draftIdInputRef : undefined}
+                    type="text"
+                    aria-label={`Draft document ${draftIndex + 1} ID`}
+                    value={draft.id}
                   onChange={(e) => onDraftChange({ ...draft, id: e.target.value }, draftIndex)}
                   placeholder="Enter document ID"
                   className="w-full text-xs font-mono bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
@@ -511,9 +514,10 @@ export default function DocumentsTable({
                 className="pl-3 py-0.5 align-top "
                 style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
               >
-                <input
-                  type="text"
-                  value={draft.document}
+                  <input
+                    type="text"
+                    aria-label={`Draft document ${draftIndex + 1} text`}
+                    value={draft.document}
                   onChange={(e) => onDraftChange({ ...draft, document: e.target.value }, draftIndex)}
                   placeholder="Enter document text"
                   className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/50"
@@ -527,9 +531,10 @@ export default function DocumentsTable({
                     key={`draft-${draftIndex}-${key}`}
                     className="pl-3 py-0.5 align-top "
                   >
-                    <input
-                      type="text"
-                      value={field?.value || ''}
+                      <input
+                        type="text"
+                      aria-label={`${key} metadata for draft document ${draftIndex + 1}`}
+                        value={field?.value || ''}
                       onChange={(e) => onDraftChange({
                         ...draft,
                         metadata: {
@@ -544,7 +549,7 @@ export default function DocumentsTable({
                 )
               })}
               {/* Filler cell */}
-              <td className=""></td>
+              <td aria-label="Filler cell" className=""></td>
             </tr>
           )})}
           {table.getRowModel().rows.map((row, index) => {
@@ -557,16 +562,22 @@ export default function DocumentsTable({
             // Row index in allDocIds (drafts take indices 0 to draftCount-1)
             const rowIndex = draftCount > 0 ? index + draftCount : index
 
-            // Determine row background - calmer, macOS-style selection with subtle zebra
+            // Determine row background — uses CSS vars for theme support, with a
+            // hover tone on plain rows (selection / editing / deletion suppress it
+            // since those have their own emphasis).
             let rowBgClass: string
+            let rowHoverClass = 'hover:bg-[var(--table-row-hover)]'
             if (isEditing) {
               rowBgClass = 'bg-primary/8'
+              rowHoverClass = ''
             } else if (isMarkedForDeletion) {
               rowBgClass = isSelected ? 'bg-destructive/20' : 'bg-destructive/12'
+              rowHoverClass = 'hover:bg-destructive/30'
             } else if (isSelected) {
               rowBgClass = 'bg-primary/15 dark:bg-primary/25'
+              rowHoverClass = ''
             } else {
-              rowBgClass = adjustedIndex % 2 === 1 ? 'bg-black/[0.04] dark:bg-white/[0.04]' : ''
+              rowBgClass = adjustedIndex % 2 === 1 ? 'bg-[var(--table-row-alt)]' : ''
             }
 
             // Column indices depend on whether distance column is shown
@@ -578,7 +589,7 @@ export default function DocumentsTable({
               return (
                 <tr
                   key={row.id}
-                  className={`transition-colors cursor-pointer ${rowBgClass}`}
+                  className={`h-8 transition-colors cursor-pointer ${rowBgClass} ${rowHoverClass}`}
                   onContextMenu={(e) => onDocumentContextMenu?.(e, row.original.id)}
                 >
                   {/* Distance cell - display only when distance column is visible */}
@@ -608,10 +619,11 @@ export default function DocumentsTable({
                     className="pl-3 py-0.5 align-top "
                     style={{ width: table.getHeaderGroups()[0]?.headers[docColIndex]?.getSize() }}
                   >
-                    <input
-                      ref={editingInputRef}
-                      type="text"
-                      value={editingState.document}
+                      <input
+                        ref={editingInputRef}
+                        type="text"
+                      aria-label={`Document text for ${row.original.id}`}
+                        value={editingState.document}
                       onChange={(e) => handleEditChange('document', e.target.value)}
                       onKeyDown={handleEditKeyDown}
                       onBlur={saveEditing}
@@ -627,9 +639,10 @@ export default function DocumentsTable({
                         key={`edit-${key}`}
                         className="pl-3 py-0.5 align-top "
                       >
-                        <input
-                          type="text"
-                          value={displayValue}
+                          <input
+                            type="text"
+                          aria-label={`${key} metadata for ${row.original.id}`}
+                            value={displayValue}
                           onChange={(e) => handleEditChange(key, e.target.value)}
                           onKeyDown={handleEditKeyDown}
                           onBlur={saveEditing}
@@ -640,7 +653,7 @@ export default function DocumentsTable({
                     )
                   })}
                   {/* Filler cell */}
-                  <td className=""></td>
+                  <td aria-label="Filler cell" className=""></td>
                 </tr>
               )
             }
@@ -649,7 +662,7 @@ export default function DocumentsTable({
             return (
               <tr
                 key={row.id}
-                className={`transition-colors cursor-pointer ${rowBgClass}`}
+                className={`h-8 transition-colors cursor-pointer ${rowBgClass} ${rowHoverClass}`}
                 onClick={(e) => handleRowClick(e, row.original.id, rowIndex)}
                 onDoubleClick={(e) => handleRowDoubleClick(e, row.original.id)}
                 onMouseDown={(e) => handleMouseDown(e, rowIndex)}
@@ -666,7 +679,7 @@ export default function DocumentsTable({
                   </td>
                 ))}
                 {/* Filler cell to extend table structure */}
-                <td className=""></td>
+                <td aria-label="Filler cell" className=""></td>
               </tr>
             )
           })}

@@ -47,6 +47,7 @@ function setupCSP(windowSession: Electron.Session): void {
 interface WindowRegistry {
   setup: BrowserWindow | null
   settings: BrowserWindow | null
+  developerMessage: BrowserWindow | null
   connections: Map<string, { window: BrowserWindow; profileId: string }>
 }
 
@@ -54,6 +55,7 @@ class WindowManager {
   private registry: WindowRegistry = {
     setup: null,
     settings: null,
+    developerMessage: null,
     connections: new Map(),
   }
 
@@ -196,6 +198,56 @@ class WindowManager {
     return this.registry.settings && !this.registry.settings.isDestroyed()
       ? this.registry.settings
       : null
+  }
+
+  /**
+   * Create or focus the developer message window.
+   */
+  createDeveloperMessageWindow(): BrowserWindow {
+    if (this.registry.developerMessage && !this.registry.developerMessage.isDestroyed()) {
+      this.registry.developerMessage.focus()
+      this.registry.developerMessage.show()
+      return this.registry.developerMessage
+    }
+
+    const win = new BrowserWindow({
+      width: 520,
+      height: 740,
+      minWidth: 460,
+      minHeight: 560,
+      resizable: true,
+      minimizable: true,
+      maximizable: false,
+      titleBarStyle: 'hiddenInset',
+      title: 'Message from Developer',
+      center: true,
+      transparent: true,
+      vibrancy: 'under-window',
+      visualEffectState: 'active',
+      backgroundColor: getThemeBackgroundColor(),
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.mjs'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    })
+
+    setupCSP(win.webContents.session)
+
+    if (process.env.VITE_DEV_SERVER_URL) {
+      win.loadURL(this.getWindowUrl({ type: 'developer-message' }))
+    } else {
+      win.loadFile(path.join(process.env.DIST!, 'index.html'), {
+        query: { type: 'developer-message' },
+      })
+    }
+
+    win.on('closed', () => {
+      this.registry.developerMessage = null
+    })
+
+    this.registry.developerMessage = win
+    return win
   }
 
   /**

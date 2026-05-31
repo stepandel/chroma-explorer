@@ -1,13 +1,17 @@
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useDocumentsQuery, useCollectionsQuery, useCreateDocumentMutation, useDeleteDocumentsMutation, useCreateDocumentsBatchMutation, useUpdateDocumentMutation } from '../../hooks/useChromaQueries'
 import { useClipboard } from '../../context/ClipboardContext'
 import { SHORTCUTS, matchesShortcut } from '../../constants/keyboard-shortcuts'
 import DocumentsTable from './DocumentsTable'
-import { FilterRow as FilterRowType, MetadataOperator } from '../../types/filters'
+import {
+  QueryMetadataFilter,
+  QueryScope,
+  buildChromaWhereClause,
+} from '../../types/filters'
 import { TypedMetadataRecord, TypedMetadataField, typedMetadataToChromaFormat, validateMetadataValue } from '../../types/metadata'
 import { EmbeddingFunctionSelector } from './EmbeddingFunctionSelector'
-import { FilterRow } from '../filters/FilterRow'
+import { QueryToolbar } from '../filters/QueryToolbar'
 
 interface DraftDocument {
   id: string
@@ -41,14 +45,6 @@ interface DocumentsViewProps {
   onIsFirstDocumentChange?: (isFirst: boolean) => void
 }
 
-function createDefaultFilterRow(): FilterRowType {
-  return {
-    id: crypto.randomUUID(),
-    type: 'search',
-    searchValue: '',
-  }
-}
-
 export default function DocumentsView({
   collectionName,
   selectedDocumentIds,
@@ -65,8 +61,18 @@ export default function DocumentsView({
   onIsFirstDocumentChange,
 }: DocumentsViewProps) {
   const { currentProfile } = useChromaDB()
-  const [filterRows, setFilterRows] = useState<FilterRowType[]>([createDefaultFilterRow()])
-  const [nResults, setNResults] = useState(10)
+  const [scope, setScope] = useState<QueryScope>('query')
+  const [searchText, setSearchText] = useState('')
+  const [idSearch, setIdSearch] = useState('')
+  const [nResults, setNResults] = useState(100)
+  const [metadataFilters, setMetadataFilters] = useState<QueryMetadataFilter[]>([])
+  const collectionNameRef = useRef(collectionName)
+
+  // "Committed" search text and ID. Only updated when the toolbar fires onSearch
+  // (300ms debounce after typing, or immediately on Enter). Keeps queries from
+  // refetching on every keystroke.
+  const [committedSearchText, setCommittedSearchText] = useState('')
+  const [committedIdSearch, setCommittedIdSearch] = useState('')
 
   // Draft documents state - supports single new document or multiple pasted documents
   const [draftDocuments, setDraftDocuments] = useState<DraftDocument[]>([])
@@ -152,67 +158,27 @@ export default function DocumentsView({
     setEmbeddingOverride(null)
   }, [currentProfile?.id, collectionName])
 
-  // Reset filters and deletion marks when collection changes
-  useEffect(() => {
-    setFilterRows([createDefaultFilterRow()])
-    setNResults(10)
+  if (collectionNameRef.current !== collectionName) {
+    collectionNameRef.current = collectionName
+    setScope('query')
+    setSearchText('')
+    setIdSearch('')
+    setCommittedSearchText('')
+    setCommittedIdSearch('')
+    setMetadataFilters([])
     setMarkedForDeletion(new Set())
     setDraftDocuments([])
     setDraftError(null)
-  }, [collectionName])
+  }
 
-  // Build search params from filter rows
+  // Build search params from the toolbar state. `metadataFilter` updates immediately
+  // as filters change; `queryText` uses the committed (debounced) value.
   const searchParams = useMemo(() => {
-    // Extract search query from search-type rows
-    const searchRow = filterRows.find(r => r.type === 'search' && r.searchValue?.trim())
-    const queryText = searchRow?.searchValue?.trim() || undefined
-
-    // Helper to parse filter value based on operator
-    const parseFilterValue = (value: string, operator: string): string | number | string[] | number[] => {
-      const trimmed = value.trim()
-
-      // Handle array operators ($in, $nin)
-      if (operator === '$in' || operator === '$nin') {
-        const items = trimmed.split(',').map(s => s.trim()).filter(Boolean)
-        // Try to parse as numbers if all items are numeric
-        const asNumbers = items.map(Number)
-        if (asNumbers.every(n => !isNaN(n))) {
-          return asNumbers
-        }
-        return items
-      }
-
-      // For comparison operators, try to parse as number
-      if (['$gt', '$gte', '$lt', '$lte'].includes(operator)) {
-        const num = Number(trimmed)
-        if (!isNaN(num)) {
-          return num
-        }
-      }
-
-      // For equality operators, try number first, fall back to string
-      if (operator === '$eq' || operator === '$ne') {
-        const num = Number(trimmed)
-        if (!isNaN(num) && trimmed !== '') {
-          return num
-        }
-      }
-
-      return trimmed
-    }
-
-    // Extract metadata filters from metadata-type rows
-    const metadataRows = filterRows.filter(
-      r => r.type === 'metadata' && r.metadataKey?.trim() && r.metadataValue?.trim()
-    )
-    const metadataFilter = metadataRows.length > 0
-      ? metadataRows.reduce((acc, row) => ({
-          ...acc,
-          [row.metadataKey!]: {
-            [row.operator || '$eq']: parseFilterValue(row.metadataValue!, row.operator || '$eq')
-          },
-        }), {})
+    const queryText = scope === 'query'
+      ? committedSearchText.trim() || undefined
       : undefined
+
+    const metadataFilter = buildChromaWhereClause(metadataFilters)
 
     return {
       collectionName,
@@ -220,7 +186,7 @@ export default function DocumentsView({
       nResults,
       metadataFilter,
     }
-  }, [collectionName, filterRows, nResults])
+  }, [collectionName, scope, committedSearchText, nResults, metadataFilters])
 
   // Use React Query for documents with debouncing via staleTime
   const {
@@ -233,11 +199,10 @@ export default function DocumentsView({
   const rawDocuments = queryData?.documents ?? []
   const fetchTimeMs = queryData?.fetchTimeMs ?? null
 
-  // Extract ID filter value for client-side filtering
+  // Extract ID filter value for client-side filtering (case-insensitive contains match)
   const idFilterValue = useMemo(() => {
-    const selectRow = filterRows.find(r => r.type === 'select' && r.selectValue?.trim())
-    return selectRow?.selectValue?.trim().toLowerCase() || ''
-  }, [filterRows])
+    return scope === 'id' ? committedIdSearch.trim().toLowerCase() : ''
+  }, [scope, committedIdSearch])
 
   // Apply client-side ID filter (case-insensitive "includes" match)
   const documents = useMemo(() => {
@@ -260,36 +225,33 @@ export default function DocumentsView({
     return Array.from(fields).sort()
   }, [documents])
 
-  // Filter row handlers
-  const handleFilterRowChange = useCallback((id: string, updates: Partial<FilterRowType>) => {
-    setFilterRows(prev => prev.map(row =>
-      row.id === id ? { ...row, ...updates } : row
-    ))
-  }, [])
+  // Commit the current search text/ID so the query refetches (called debounced or on Enter)
+  const handleSearch = useCallback(() => {
+    setCommittedSearchText(searchText)
+    setCommittedIdSearch(idSearch)
+  }, [searchText, idSearch])
 
-  const handleAddFilterRow = useCallback(() => {
-    setFilterRows(prev => [...prev, {
-      id: crypto.randomUUID(),
-      type: 'metadata',
-      metadataKey: '',
-      operator: '$eq' as MetadataOperator,
-      metadataValue: '',
-    }])
-  }, [])
-
-  const handleRemoveFilterRow = useCallback((id: string) => {
-    setFilterRows(prev => {
-      const filtered = prev.filter(row => row.id !== id)
-      // Always keep at least one row
-      return filtered.length > 0 ? filtered : [createDefaultFilterRow()]
+  // Field types inferred from the currently loaded documents — used by the
+  // metadata filter row to pick operators and placeholders.
+  const metadataFieldTypes = useMemo(() => {
+    const types: Record<string, 'string' | 'number' | 'boolean'> = {}
+    documents.forEach(doc => {
+      if (doc.metadata) {
+        Object.entries(doc.metadata).forEach(([key, value]) => {
+          if (key in types) return
+          if (typeof value === 'number') types[key] = 'number'
+          else if (typeof value === 'boolean') types[key] = 'boolean'
+          else types[key] = 'string'
+        })
+      }
     })
-  }, [])
+    return types
+  }, [documents])
 
-  const hasActiveFilters = filterRows.some(row =>
-    (row.type === 'search' && row.searchValue?.trim()) ||
-    (row.type === 'metadata' && row.metadataKey?.trim() && row.metadataValue?.trim()) ||
-    (row.type === 'select' && row.selectValue?.trim())
-  )
+  const hasActiveFilters =
+    (scope === 'query' && committedSearchText.trim().length > 0) ||
+    (scope === 'id' && committedIdSearch.trim().length > 0) ||
+    metadataFilters.some(f => f.field.trim() && f.value.trim())
 
   // Draft document handlers
   const handleStartCreate = useCallback(() => {
@@ -639,14 +601,16 @@ export default function DocumentsView({
     }
   }, [documents, onRangeSelect])
 
-  // Clear all filters handler
+  // Clear all filters handler. nResults is treated as a view preference, not
+  // a filter — leave it alone.
   const handleClearAllFilters = useCallback(() => {
-    setFilterRows([createDefaultFilterRow()])
-    setNResults(10)
+    setScope('query')
+    setSearchText('')
+    setIdSearch('')
+    setCommittedSearchText('')
+    setCommittedIdSearch('')
+    setMetadataFilters([])
   }, [])
-
-  // Ref for focusing search input
-  const searchInputRef = { current: null as HTMLInputElement | null }
 
   // Menu event listeners (from native app menu)
   useEffect(() => {
@@ -826,8 +790,8 @@ export default function DocumentsView({
     <div className="flex flex-col h-full">
       {/* Toolbar area - calm floating control surface */}
       <div className="flex-shrink-0 bg-white/60 dark:bg-white/[0.03]">
-        {/* Row 1: Collection name and count */}
-        <div className="px-4 py-2 flex items-center justify-between gap-3">
+        {/* Row 1: Collection name and embedding function */}
+        <div className="px-4 py-2 flex items-center gap-3">
           <div className="flex items-center gap-3 min-w-0 overflow-hidden">
             <h1 className="text-lg font-semibold text-foreground truncate">{collectionName}</h1>
             <div className="flex-shrink-0">
@@ -841,29 +805,25 @@ export default function DocumentsView({
               />
             </div>
           </div>
-          <span className="text-xs text-muted-foreground flex-shrink-0">
-            {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
-          </span>
         </div>
 
-        {/* Row 2: Filters */}
-        <div className="px-4 py-2 pb-3 space-y-2">
-          {/* Filter rows */}
-          {filterRows.map((row, index) => (
-            <FilterRow
-              key={row.id}
-              row={row}
-              isFirst={index === 0}
-              isLast={index === filterRows.length - 1}
-              canRemove={filterRows.length > 1}
-              onChange={handleFilterRowChange}
-              onAdd={handleAddFilterRow}
-              onRemove={handleRemoveFilterRow}
-              nResults={nResults}
-              onNResultsChange={setNResults}
-              metadataFields={metadataFields}
-            />
-          ))}
+        {/* Row 2: Query Toolbar */}
+        <div className="px-4 py-2 pb-3">
+          <QueryToolbar
+            scope={scope}
+            searchText={searchText}
+            idSearch={idSearch}
+            nResults={nResults}
+            filters={metadataFilters}
+            availableFields={metadataFields}
+            fieldTypes={metadataFieldTypes}
+            onScopeChange={setScope}
+            onSearchTextChange={setSearchText}
+            onIdSearchChange={setIdSearch}
+            onNResultsChange={setNResults}
+            onFiltersChange={setMetadataFilters}
+            onSearch={handleSearch}
+          />
         </div>
       </div>
 
@@ -898,9 +858,10 @@ export default function DocumentsView({
       {/* Bottom Toolbar */}
       <div className="px-4 py-1.5 flex items-center justify-between">
         <button
+          type="button"
           onClick={handleStartCreate}
           disabled={hasDrafts || markedForDeletion.size > 0}
-          className="h-6 w-6 p-0 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="size-6 p-0 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
           title="Add document"
         >
           +
@@ -915,6 +876,7 @@ export default function DocumentsView({
             </span>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={handleCancelDraft}
                 disabled={createMutation.isPending || createBatchMutation.isPending}
                 className="h-6 px-2 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -922,11 +884,12 @@ export default function DocumentsView({
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSaveDraft}
                 disabled={createMutation.isPending || createBatchMutation.isPending || draftDocuments.some(d => !d.id.trim())}
                 className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {(createMutation.isPending || createBatchMutation.isPending) ? 'Saving...' : (draftDocuments.length === 1 ? 'Save' : 'Save All')}
+                {(createMutation.isPending || createBatchMutation.isPending) ? 'Saving…' : (draftDocuments.length === 1 ? 'Save' : 'Save All')}
               </button>
             </div>
           </div>
@@ -937,6 +900,7 @@ export default function DocumentsView({
               {markedForDeletion.size} marked for deletion
             </span>
             <button
+              type="button"
               onClick={() => setMarkedForDeletion(new Set())}
               disabled={deleteMutation.isPending}
               className="h-6 px-2 text-[11px] rounded-md bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.10] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -944,11 +908,12 @@ export default function DocumentsView({
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleCommitDeletions}
               disabled={deleteMutation.isPending}
               className="h-6 px-2 text-[11px] rounded-md bg-red-500 hover:bg-red-600 active:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
             </button>
           </div>
         )}

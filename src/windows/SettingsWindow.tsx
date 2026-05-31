@@ -157,6 +157,7 @@ export function SettingsWindow() {
             const isActive = activeTab === tab.id
             return (
               <button
+                type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
@@ -206,7 +207,7 @@ export function SettingsWindow() {
                           className="text-[11px] text-primary/70 hover:text-primary flex items-center gap-1 transition-colors"
                         >
                           Get API key
-                          <ExternalLink className="h-3 w-3" />
+                          <ExternalLink className="size-3" />
                         </button>
                       )}
                     </div>
@@ -219,6 +220,7 @@ export function SettingsWindow() {
                         </span>
                         <div className="relative flex-1">
                           <input
+                            aria-label={`${envVar} API key`}
                             type={visibleKeys.has(envVar) ? 'text' : 'password'}
                             value={apiKeys[envVar] || ''}
                             onChange={(e) => handleKeyChange(envVar, e.target.value)}
@@ -228,13 +230,14 @@ export function SettingsWindow() {
                           />
                           <button
                             type="button"
+                            aria-label={`${visibleKeys.has(envVar) ? 'Hide' : 'Show'} ${envVar} API key`}
                             onClick={() => toggleVisibility(envVar)}
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60 transition-colors"
                           >
                             {visibleKeys.has(envVar) ? (
-                              <EyeOff className="h-3.5 w-3.5" />
+                              <EyeOff className="size-3.5" />
                             ) : (
-                              <Eye className="h-3.5 w-3.5" />
+                              <Eye className="size-3.5" />
                             )}
                           </button>
                         </div>
@@ -304,6 +307,7 @@ export function SettingsWindow() {
                     const isSelected = theme === option.id
                     return (
                       <button
+                        type="button"
                         key={option.id}
                         onClick={() => setTheme(option.id)}
                         className={`
@@ -315,7 +319,7 @@ export function SettingsWindow() {
                         `}
                       >
                         <Icon
-                          className={`h-4 w-4 ${isSelected ? 'text-primary' : 'text-foreground/40'}`}
+                          className={`size-4 ${isSelected ? 'text-primary' : 'text-foreground/40'}`}
                           strokeWidth={1.5}
                         />
                         <div className="flex-1">
@@ -327,7 +331,7 @@ export function SettingsWindow() {
                           </div>
                         </div>
                         {isSelected && (
-                          <Check className="h-4 w-4 text-primary" strokeWidth={2} />
+                          <Check className="size-4 text-primary" strokeWidth={2} />
                         )}
                       </button>
                     )
@@ -376,15 +380,16 @@ export function SettingsWindow() {
       {activeTab === 'api-keys' && (
         <div className="px-6 pt-4 pb-5 flex justify-end shrink-0">
           <button
+            type="button"
             onClick={handleSave}
             disabled={saving}
             className="h-7 px-5 text-[12px] font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? (
-              'Saving...'
+              'Saving…'
             ) : saved ? (
               <span className="flex items-center gap-1">
-                <Check className="h-3 w-3" />
+                <Check className="size-3" />
                 Saved
               </span>
             ) : (

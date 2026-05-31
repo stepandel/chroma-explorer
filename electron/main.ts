@@ -555,6 +555,16 @@ ipcMain.handle('window:get-profile', async (_event, rawProfileId: unknown) => {
   }
 })
 
+ipcMain.handle('window:open-developer-message', async () => {
+  try {
+    windowManager.createDeveloperMessageWindow()
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to open developer message'
+    return { success: false, error: message }
+  }
+})
+
 // Settings IPC handlers
 ipcMain.handle('settings:getApiKeys', async () => {
   try {

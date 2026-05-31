@@ -316,7 +316,7 @@ class ChromaDBService {
 
     // Only specify limit if not "no limit" (0)
     if (params.nResults !== 0) {
-      getOptions.limit = params.limit || 300
+      getOptions.limit = params.nResults || params.limit || 300
     }
     const getResults = await collection.get(getOptions)
 
