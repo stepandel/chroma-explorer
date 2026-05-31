@@ -16,8 +16,13 @@ export async function initRendererErrorMonitoring(): Promise<void> {
 }
 
 export function setRendererErrorMonitoringEnabled(enabled: boolean): void {
-  if (enabled && !initialized && !Sentry.isInitialized()) {
-    Sentry.init()
+  const dsn = import.meta.env.VITE_SENTRY_DSN
+
+  if (enabled && dsn && !initialized && !Sentry.isInitialized()) {
+    Sentry.init({
+      dsn,
+      release: import.meta.env.VITE_SENTRY_RELEASE,
+    })
     initialized = true
     return
   }

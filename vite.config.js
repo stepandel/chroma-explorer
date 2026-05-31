@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Load .env file for build-time environment variables
 const env = loadEnv('', process.cwd(), '')
+const sentryDsn = env.SENTRY_DSN || env.VITE_SENTRY_DSN || ''
 const sentryRelease = env.SENTRY_RELEASE || `chroma-explorer@${process.env.npm_package_version || '0.0.0'}`
 const shouldBuildSourceMaps = Boolean(env.SENTRY_DSN || env.VITE_SENTRY_DSN)
 const shouldUploadSourceMaps = Boolean(env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT)
@@ -39,8 +40,8 @@ export default defineConfig({
         vite: {
           define: {
             'process.env.APTABASE_APP_KEY': JSON.stringify(env.APTABASE_APP_KEY || ''),
-            'process.env.SENTRY_DSN': JSON.stringify(env.SENTRY_DSN || ''),
-            'process.env.VITE_SENTRY_DSN': JSON.stringify(env.VITE_SENTRY_DSN || env.SENTRY_DSN || ''),
+            'process.env.SENTRY_DSN': JSON.stringify(sentryDsn),
+            'process.env.VITE_SENTRY_DSN': JSON.stringify(sentryDsn),
             'process.env.SENTRY_RELEASE': JSON.stringify(sentryRelease),
             'process.env.CHROMA_EXPLORER_RELEASE': JSON.stringify(env.CHROMA_EXPLORER_RELEASE || ''),
           },
@@ -59,7 +60,14 @@ export default defineConfig({
       preload: {
         input: 'electron/preload.ts',
       },
-      renderer: {},
+      renderer: {
+        vite: {
+          define: {
+            'import.meta.env.VITE_SENTRY_DSN': JSON.stringify(sentryDsn),
+            'import.meta.env.VITE_SENTRY_RELEASE': JSON.stringify(sentryRelease),
+          },
+        },
+      },
     }),
     shouldUploadSourceMaps && sentryVitePlugin({
       authToken: env.SENTRY_AUTH_TOKEN,

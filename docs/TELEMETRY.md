@@ -50,6 +50,13 @@ passes those secrets into `pnpm build:release --publish always`. Configure the
 same repository secrets there, along with the existing Apple notarization
 secrets, before publishing production artifacts.
 
+If you do not have source-map upload credentials yet, run Sentry's wizard and use
+the auth token it configures:
+
+```bash
+npx @sentry/wizard@latest -i sourcemaps --saas --org arsent --project electron
+```
+
 ## Production Validation
 
 Before shipping a release:
