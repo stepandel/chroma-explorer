@@ -217,7 +217,7 @@ export function DeveloperMessageForm() {
           type="button"
           variant="ghost"
           size="sm"
-          className="underline-offset-2 hover:underline"
+          className="text-muted-foreground underline-offset-2 hover:bg-transparent hover:text-foreground hover:underline"
           onClick={() => window.electronAPI.shell.openExternal(bugReportUrl)}
         >
           Need to report a bug?
