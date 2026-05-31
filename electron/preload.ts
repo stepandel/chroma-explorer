@@ -275,6 +275,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data
     },
+    checkForUpdatesMenu: async (): Promise<void> => {
+      const result = await ipcRenderer.invoke('updater:check-menu')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
     downloadUpdate: async (): Promise<void> => {
       const result = await ipcRenderer.invoke('updater:download')
       if (!result.success) {

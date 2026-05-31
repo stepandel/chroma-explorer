@@ -245,6 +245,7 @@ export interface ElectronAPI {
   }
   updater: {
     checkForUpdates: () => Promise<unknown>
+    checkForUpdatesMenu: () => Promise<void>
     downloadUpdate: () => Promise<void>
     installUpdate: () => Promise<void>
     onStatus: (callback: (status: UpdateStatus) => void) => () => void

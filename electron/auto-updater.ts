@@ -83,6 +83,17 @@ export function initAutoUpdater() {
     }
   })
 
+  ipcMain.handle('updater:check-menu', async (event) => {
+    try {
+      const senderWindow = BrowserWindow.fromWebContents(event.sender)
+      await checkForUpdatesFromMenu(senderWindow)
+      return { success: true }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to check for updates'
+      return { success: false, error: message }
+    }
+  })
+
   ipcMain.handle('updater:download', async () => {
     try {
       await autoUpdater.downloadUpdate()
