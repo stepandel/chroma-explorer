@@ -78,10 +78,10 @@ export function EmbeddingFunctionSelector({
         <button
           type="button"
           data-embedding-selector
-          className={`text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity ${
+          className={`text-xs px-2 py-0.5 rounded-md cursor-pointer transition-colors ${
             currentOverride
-              ? 'bg-primary/20 text-primary border border-primary/30'
-              : 'text-muted-foreground bg-muted'
+              ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/25'
+              : 'text-muted-foreground bg-black/[0.04] hover:bg-black/[0.08] dark:bg-white/[0.08] dark:hover:bg-white/[0.12]'
           }`}
           title={currentOverride ? 'Override active - Click to change' : 'Click to override embedding function'}
         >
