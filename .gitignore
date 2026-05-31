@@ -5,6 +5,7 @@ dist-electron
 *.log
 .DS_Store
 .env*
+.codex
 
 # Distribution / Release builds
 release/
