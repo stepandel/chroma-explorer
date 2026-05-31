@@ -1,6 +1,6 @@
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { usePanel } from '../../context/PanelContext'
-import { PanelLeft, PanelRight, PanelLeftDashed, PanelRightDashed, Power } from 'lucide-react'
+import { Download, PanelLeft, PanelRight, PanelLeftDashed, PanelRightDashed, Power } from 'lucide-react'
 
 export function TopBar() {
   const { currentProfile } = useChromaDB()
@@ -18,6 +18,10 @@ export function TopBar() {
     }
   }
 
+  const handleCheckForUpdates = async () => {
+    await window.electronAPI.updater.checkForUpdatesMenu()
+  }
+
   const iconButtonClass = "h-7 w-7 p-0 flex items-center justify-center rounded-md hover:bg-black/[0.06] dark:hover:bg-white/[0.08] transition-colors"
 
   return (
@@ -32,6 +36,20 @@ export function TopBar() {
     >
       {/* Left side - spacing for traffic lights */}
       <div className="w-[76px]" />
+
+      {/* Left toolbar buttons */}
+      <div
+        className="flex items-center gap-0.5 pl-1"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
+        <button
+          onClick={handleCheckForUpdates}
+          className={iconButtonClass}
+          title="Check for Updates"
+        >
+          <Download className="h-4 w-4 text-foreground/70" />
+        </button>
+      </div>
 
       {/* Center - Connection info */}
       <div className="flex-1 flex items-center justify-center gap-2">
