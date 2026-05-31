@@ -18,6 +18,7 @@ interface DeveloperMessageDialogProps {
 const defaultForminitFormId = '742yqqcnm5o'
 const forminitFormId = import.meta.env.VITE_FORMINIT_FORM_ID?.trim() || defaultForminitFormId
 const feedbackEndpoint = forminitFormId ? `https://forminit.com/f/${forminitFormId}` : ''
+const developerProfileUrl = 'https://github.com/stepandel'
 const fieldClassName = 'w-full rounded-md border border-input bg-background px-2.5 py-2 text-[12px] leading-5 shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary'
 type SubmissionState = 'idle' | 'submitting' | 'sent' | 'error'
 type ForminitBlock =
@@ -131,7 +132,15 @@ export function DeveloperMessageDialog({
               A note from the developer
             </DialogTitle>
             <DialogDescription className="text-[12px] leading-5 text-muted-foreground">
-              Hi 👋 I&apos;m Stepan, the developer of Chroma Explorer. I&apos;m trying
+              Hi 👋 I&apos;m{' '}
+              <button
+                type="button"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+                onClick={() => window.electronAPI.shell.openExternal(developerProfileUrl)}
+              >
+                Stepan
+              </button>
+              , the developer of Chroma Explorer. I&apos;m trying
               to understand how people are using the app so I can make it better.
               If you&apos;re using it regularly, I&apos;d love to hear what workflow it
               helps with, what feels missing, and what would make it more useful.
