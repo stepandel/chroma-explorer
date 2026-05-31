@@ -136,10 +136,10 @@ export function DeveloperMessageDialog({
           </div>
           <div className="space-y-1.5">
             <DialogTitle className="text-[15px] font-semibold tracking-normal">
-              A note from the developer
+              Hi 👋
             </DialogTitle>
             <DialogDescription className="text-[12px] leading-5 text-muted-foreground">
-              Hi 👋 I&apos;m{' '}
+              I&apos;m{' '}
               <button
                 type="button"
                 className="font-medium text-foreground/80 underline decoration-foreground/25 decoration-dotted underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/45"
