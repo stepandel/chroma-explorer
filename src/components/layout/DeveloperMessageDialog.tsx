@@ -142,7 +142,7 @@ export function DeveloperMessageDialog({
               Hi 👋 I&apos;m{' '}
               <button
                 type="button"
-                className="font-medium text-primary underline-offset-2 hover:underline"
+                className="font-medium text-foreground/80 underline decoration-foreground/25 decoration-dotted underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/45"
                 onClick={() => window.electronAPI.shell.openExternal(developerProfileUrl)}
               >
                 Stepan
