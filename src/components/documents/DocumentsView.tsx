@@ -64,7 +64,7 @@ export default function DocumentsView({
   const [scope, setScope] = useState<QueryScope>('query')
   const [searchText, setSearchText] = useState('')
   const [idSearch, setIdSearch] = useState('')
-  const [nResults, setNResults] = useState(10)
+  const [nResults, setNResults] = useState(100)
   const [metadataFilters, setMetadataFilters] = useState<QueryMetadataFilter[]>([])
   const collectionNameRef = useRef(collectionName)
 
