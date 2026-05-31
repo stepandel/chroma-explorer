@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { usePanel } from '../../context/PanelContext'
-import { PanelLeft, PanelRight, PanelLeftDashed, PanelRightDashed, Power } from 'lucide-react'
+import { MessageCircle, PanelLeft, PanelRight, PanelLeftDashed, PanelRightDashed, Power } from 'lucide-react'
+import { DeveloperMessageDialog } from './DeveloperMessageDialog'
 
 type UpdateAvailability = 'available' | 'downloading' | 'downloaded'
 
@@ -14,6 +15,7 @@ export function TopBar() {
     setRightPanelOpen,
   } = usePanel()
   const [updateState, setUpdateState] = useState<UpdateAvailability | null>(null)
+  const [showDeveloperMessage, setShowDeveloperMessage] = useState(false)
 
   useEffect(() => {
     return window.electronAPI.updater.onStatus((status) => {
@@ -94,6 +96,14 @@ export function TopBar() {
           </>
         )}
         <button
+          onClick={() => setShowDeveloperMessage(true)}
+          className={iconButtonClass}
+          title="Message from the developer"
+        >
+          <MessageCircle className="h-3.5 w-3.5 text-foreground/60" />
+        </button>
+        <div className="w-px h-4 bg-foreground/10 mx-1" />
+        <button
           onClick={() => setLeftPanelOpen(!leftPanelOpen)}
           className={iconButtonClass}
           title="Toggle sidebar"
@@ -124,6 +134,10 @@ export function TopBar() {
           <Power className="h-3.5 w-3.5 text-foreground/50" />
         </button>
       </div>
+      <DeveloperMessageDialog
+        open={showDeveloperMessage}
+        onOpenChange={setShowDeveloperMessage}
+      />
     </header>
   )
 }
