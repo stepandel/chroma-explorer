@@ -19,6 +19,7 @@ const defaultForminitFormId = '742yqqcnm5o'
 const forminitFormId = import.meta.env.VITE_FORMINIT_FORM_ID?.trim() || defaultForminitFormId
 const feedbackEndpoint = forminitFormId ? `https://forminit.com/f/${forminitFormId}` : ''
 const developerProfileUrl = 'https://github.com/stepandel'
+const bugReportUrl = 'https://github.com/stepandel/chroma-explorer/issues/new'
 const fieldClassName = 'w-full rounded-md border border-input bg-background px-2.5 py-2 text-[12px] leading-5 shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary'
 type SubmissionState = 'idle' | 'submitting' | 'sent' | 'error'
 type ForminitBlock =
@@ -251,18 +252,27 @@ export function DeveloperMessageDialog({
           </div>
 
           <DialogFooter className="border-t border-border/70 px-5 py-4 sm:justify-between sm:space-x-0">
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
+              className="text-[12px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              onClick={() => window.electronAPI.shell.openExternal(bugReportUrl)}
             >
-              Maybe later
-            </Button>
-            <Button type="submit" size="sm" disabled={!canSubmit}>
-              <Send className="h-3.5 w-3.5" />
-              {submissionState === 'submitting' ? 'Sending...' : 'Send feedback'}
-            </Button>
+              Need to report a bug?
+            </button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+              >
+                Maybe later
+              </Button>
+              <Button type="submit" size="sm" disabled={!canSubmit}>
+                <Send className="h-3.5 w-3.5" />
+                {submissionState === 'submitting' ? 'Sending...' : 'Send feedback'}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
