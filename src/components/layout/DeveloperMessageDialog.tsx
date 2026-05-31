@@ -259,20 +259,10 @@ export function DeveloperMessageDialog({
             >
               Need to report a bug?
             </button>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-              >
-                Maybe later
-              </Button>
-              <Button type="submit" size="sm" disabled={!canSubmit}>
-                <Send className="h-3.5 w-3.5" />
-                {submissionState === 'submitting' ? 'Sending...' : 'Send feedback'}
-              </Button>
-            </div>
+            <Button type="submit" size="sm" disabled={!canSubmit}>
+              <Send className="h-3.5 w-3.5" />
+              {submissionState === 'submitting' ? 'Sending...' : 'Send feedback'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
