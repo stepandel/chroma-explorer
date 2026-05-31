@@ -14,6 +14,57 @@ interface EmbeddingFunctionSelectorProps {
   embeddingDimension?: number | null
 }
 
+// Tailwind class set for the toolbar chip, picked to match each provider's
+// brand palette. Each entry follows the same shape: bg / text light / text dark
+// / border / hover. Kept as full literals so Tailwind picks them up at build.
+function providerChipColors(provider: string | undefined): string {
+  switch (provider) {
+    case 'default':
+      // Chroma's local default — neutral slate
+      return 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30 hover:bg-slate-500/20'
+    case 'openai':
+      // OpenAI signature green/teal
+      return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+    case 'ollama':
+      // Monochrome llama mark — use a warm neutral
+      return 'bg-stone-500/15 text-stone-700 dark:text-stone-300 border-stone-500/30 hover:bg-stone-500/20'
+    case 'cohere':
+      // Cohere magenta/coral
+      return 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
+    case 'google-gemini':
+      // Google blue
+      return 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/20'
+    case 'jina':
+      // Jina purple
+      return 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/20'
+    case 'mistral':
+      // Mistral orange-red gradient — amber leans into the yellow side of it
+      return 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
+    case 'voyageai':
+      // Voyage violet
+      return 'bg-violet-500/15 text-violet-700 dark:text-violet-400 border-violet-500/30 hover:bg-violet-500/20'
+    case 'together-ai':
+      // Together AI vibrant green
+      return 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 hover:bg-green-500/20'
+    case 'huggingface-server':
+      // HF signature yellow (the hugging-face mark)
+      return 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20'
+    case 'cloudflare-worker-ai':
+      // Cloudflare orange (#F38020)
+      return 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30 hover:bg-orange-500/20'
+    case 'morph':
+      return 'bg-pink-500/15 text-pink-700 dark:text-pink-400 border-pink-500/30 hover:bg-pink-500/20'
+    case 'chroma-cloud-qwen':
+      // Chroma brand teal
+      return 'bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/30 hover:bg-teal-500/20'
+    case 'sentence-transformer':
+      return 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20'
+    default:
+      // legacy, unknown, or unset
+      return 'text-muted-foreground bg-black/[0.04] border-transparent hover:bg-black/[0.08] dark:bg-white/[0.08] dark:hover:bg-white/[0.12]'
+  }
+}
+
 function getSelectedEmbeddingId(currentOverride: EmbeddingFunctionOverride | null) {
   if (!currentOverride) return ''
   const match = EMBEDDING_FUNCTIONS.find(
@@ -78,12 +129,14 @@ export function EmbeddingFunctionSelector({
         <button
           type="button"
           data-embedding-selector
-          className={`text-xs px-2 py-0.5 rounded-md cursor-pointer transition-colors ${
+          className={`text-xs px-2 py-0.5 rounded-md cursor-pointer transition-colors border ${providerChipColors(currentOverride?.type ?? serverConfig?.name)}`}
+          title={
             currentOverride
-              ? 'bg-primary/20 text-primary border border-primary/30 hover:bg-primary/25'
-              : 'text-muted-foreground bg-black/[0.04] hover:bg-black/[0.08] dark:bg-white/[0.08] dark:hover:bg-white/[0.12]'
-          }`}
-          title={currentOverride ? 'Override active - Click to change' : 'Click to override embedding function'}
+              ? `Override: ${currentOverride.type} - Click to change`
+              : serverConfig?.name
+                ? `Using server embedding function (${serverConfig.name}) - Click to override`
+                : 'Click to override embedding function'
+          }
         >
           {currentOverride
             ? `${currentOverride.type}: ${currentOverride.modelName}`
