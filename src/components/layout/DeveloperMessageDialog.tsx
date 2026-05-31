@@ -131,7 +131,10 @@ export function DeveloperMessageDialog({
               A note from the developer
             </DialogTitle>
             <DialogDescription className="text-[12px] leading-5 text-muted-foreground">
-              Help shape what Chroma Explorer becomes next.
+              Hi, I&apos;m Stepan, the developer of Chroma Explorer. I&apos;m trying to
+              understand how people are using the app so I can make it better. If
+              you&apos;re using it regularly, I&apos;d love to hear what workflow it
+              helps with, what feels missing, and what would make it more useful.
             </DialogDescription>
           </div>
         </DialogHeader>
