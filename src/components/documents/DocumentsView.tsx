@@ -790,8 +790,8 @@ export default function DocumentsView({
     <div className="flex flex-col h-full">
       {/* Toolbar area - calm floating control surface */}
       <div className="flex-shrink-0 bg-white/60 dark:bg-white/[0.03]">
-        {/* Row 1: Collection name and count */}
-        <div className="px-4 py-2 flex items-center justify-between gap-3">
+        {/* Row 1: Collection name and embedding function */}
+        <div className="px-4 py-2 flex items-center gap-3">
           <div className="flex items-center gap-3 min-w-0 overflow-hidden">
             <h1 className="text-lg font-semibold text-foreground truncate">{collectionName}</h1>
             <div className="flex-shrink-0">
@@ -805,9 +805,6 @@ export default function DocumentsView({
               />
             </div>
           </div>
-          <span className="text-xs text-muted-foreground flex-shrink-0">
-            {!loading && !error && `${documents.length} record${documents.length !== 1 ? 's' : ''}`}
-          </span>
         </div>
 
         {/* Row 2: Query Toolbar */}
