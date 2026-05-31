@@ -1,3 +1,5 @@
+import type { Where } from 'chromadb'
+
 // Query scope: semantic search or filter-by-ID
 export type QueryScope = 'query' | 'id'
 
@@ -112,13 +114,13 @@ function coerce(value: string, fieldType?: 'string' | 'number' | 'boolean'): str
 export function buildChromaWhereClause(
   filters: QueryMetadataFilter[],
   fieldTypes?: Record<string, 'string' | 'number' | 'boolean'>
-): Record<string, unknown> | undefined {
+): Where | undefined {
   const valid = filters.filter(f => f.field.trim() && f.value.trim())
   if (valid.length === 0) return undefined
 
   const clauses = valid.map(f => ({
     [f.field]: { [f.operator]: parseFilterValue(f.value, f.operator, fieldTypes?.[f.field]) },
-  }))
+  } as Where))
 
   if (clauses.length === 1) return clauses[0]
   return { $and: clauses }
