@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { usePanel } from '../../context/PanelContext'
 import { MessageCircle, PanelLeft, PanelRight, PanelLeftDashed, PanelRightDashed, Power } from 'lucide-react'
-import { DeveloperMessageDialog } from './DeveloperMessageDialog'
 
 type UpdateAvailability = 'available' | 'downloading' | 'downloaded'
 
@@ -15,7 +14,6 @@ export function TopBar() {
     setRightPanelOpen,
   } = usePanel()
   const [updateState, setUpdateState] = useState<UpdateAvailability | null>(null)
-  const [showDeveloperMessage, setShowDeveloperMessage] = useState(false)
 
   useEffect(() => {
     return window.electronAPI.updater.onStatus((status) => {
@@ -82,7 +80,7 @@ export function TopBar() {
               type="button"
               onClick={handleUpdate}
               disabled={updateState === 'downloading'}
-              className="h-6 px-2 inline-flex items-center justify-center rounded-md text-[11px] font-medium bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:active:scale-100"
+              className="h-6 px-2 inline-flex items-center justify-center rounded-md text-[11px] font-medium border transition-colors bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/35 hover:bg-sky-500/25 disabled:opacity-60"
               title={
                 updateState === 'downloaded'
                   ? 'Restart and install update'
@@ -98,7 +96,7 @@ export function TopBar() {
         )}
         <button
           type="button"
-          onClick={() => setShowDeveloperMessage(true)}
+          onClick={() => window.electronAPI.window.openDeveloperMessage()}
           className={iconButtonClass}
           title="Message from the developer"
         >
@@ -139,10 +137,6 @@ export function TopBar() {
           <Power className="size-3.5 text-foreground/50" />
         </button>
       </div>
-      <DeveloperMessageDialog
-        open={showDeveloperMessage}
-        onOpenChange={setShowDeveloperMessage}
-      />
     </header>
   )
 }
