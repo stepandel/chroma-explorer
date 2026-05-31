@@ -252,13 +252,14 @@ export function DeveloperMessageDialog({
           </div>
 
           <DialogFooter className="border-t border-border/70 px-5 py-4 sm:justify-between sm:space-x-0">
-            <button
+            <Button
               type="button"
-              className="text-[12px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              variant="ghost"
+              size="sm"
               onClick={() => window.electronAPI.shell.openExternal(bugReportUrl)}
             >
               Need to report a bug?
-            </button>
+            </Button>
             <Button type="submit" size="sm" disabled={!canSubmit}>
               <Send className="h-3.5 w-3.5" />
               {submissionState === 'submitting' ? 'Sending...' : 'Send feedback'}
