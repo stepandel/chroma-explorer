@@ -235,7 +235,7 @@ export function DeveloperMessageDialog({
                 }}
                 className="h-4 w-4 rounded border-input accent-primary"
               />
-              I am open to a short follow-up call (optional)
+              I am open to a short follow-up call
             </label>
 
             {submissionState === 'sent' && (
