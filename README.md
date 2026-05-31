@@ -72,6 +72,18 @@ pnpm build
 
 API keys for embedding providers can be configured in **Settings** (Cmd+,). Keys are stored encrypted at rest.
 
+### Feedback Collection
+
+The in-app feedback form posts directly to Forminit. Set the public form ID at
+build time:
+
+```bash
+VITE_FORMINIT_FORM_ID=your-form-id pnpm build
+```
+
+Do not put a Forminit API key in the renderer. The desktop app uses Forminit's
+unauthenticated submission endpoint so no private token ships to users.
+
 ## License
 
 MIT

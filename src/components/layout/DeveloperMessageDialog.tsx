@@ -15,9 +15,13 @@ interface DeveloperMessageDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-const feedbackEndpoint = 'https://www.chroma-explorer.com/api/feedback'
+const forminitFormId = import.meta.env.VITE_FORMINIT_FORM_ID?.trim() ?? ''
+const feedbackEndpoint = forminitFormId ? `https://forminit.com/f/${forminitFormId}` : ''
 const fieldClassName = 'w-full rounded-md border border-input bg-background px-2.5 py-2 text-[12px] leading-5 shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary'
 type SubmissionState = 'idle' | 'submitting' | 'sent' | 'error'
+type ForminitBlock =
+  | { type: 'sender'; properties: { email: string } }
+  | { type: 'text'; name: string; value: string }
 
 export function DeveloperMessageDialog({
   open,
@@ -28,6 +32,7 @@ export function DeveloperMessageDialog({
   const [email, setEmail] = useState('')
   const [openToCall, setOpenToCall] = useState(false)
   const [submissionState, setSubmissionState] = useState<SubmissionState>('idle')
+  const [errorMessage, setErrorMessage] = useState('Could not send feedback. Please try again in a moment.')
 
   const canSubmit = useMemo(
     () =>
@@ -41,23 +46,64 @@ export function DeveloperMessageDialog({
     if (!canSubmit) return
 
     setSubmissionState('submitting')
+    setErrorMessage('Could not send feedback. Please try again in a moment.')
 
     try {
+      if (!feedbackEndpoint) {
+        throw new Error('Feedback form is not configured')
+      }
+
+      const blocks: ForminitBlock[] = [
+        {
+          type: 'text',
+          name: 'use_case',
+          value: useCase.trim(),
+        },
+        {
+          type: 'text',
+          name: 'missing',
+          value: missing.trim(),
+        },
+        {
+          type: 'text',
+          name: 'open_to_call',
+          value: openToCall ? 'yes' : 'no',
+        },
+        {
+          type: 'text',
+          name: 'source',
+          value: 'chroma-explorer-app',
+        },
+        {
+          type: 'text',
+          name: 'submitted_at',
+          value: new Date().toISOString(),
+        },
+      ]
+
+      if (email.trim().length > 0) {
+        blocks.unshift({
+          type: 'sender',
+          properties: {
+            email: email.trim(),
+          },
+        })
+      }
+
       const response = await fetch(feedbackEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          useCase: useCase.trim(),
-          missing: missing.trim(),
-          email: email.trim(),
-          openToCall,
-          source: 'chroma-explorer-app',
-          submittedAt: new Date().toISOString(),
-        }),
+        body: JSON.stringify({ blocks }),
       })
 
+      const result = await response.json().catch(() => null)
+
       if (!response.ok) {
-        throw new Error(`Feedback request failed with ${response.status}`)
+        const message =
+          result && typeof result === 'object' && 'message' in result && typeof result.message === 'string'
+            ? result.message
+            : `Feedback request failed with ${response.status}`
+        throw new Error(message)
       }
 
       setSubmissionState('sent')
@@ -67,6 +113,7 @@ export function DeveloperMessageDialog({
       setOpenToCall(false)
     } catch (error) {
       console.error('Failed to submit feedback', error)
+      setErrorMessage(error instanceof Error ? error.message : 'Could not send feedback. Please try again in a moment.')
       setSubmissionState('error')
     }
   }
@@ -167,7 +214,7 @@ export function DeveloperMessageDialog({
             {submissionState === 'error' && (
               <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
                 <AlertCircle className="h-3.5 w-3.5" />
-                Could not send feedback. Please try again in a moment.
+                {errorMessage}
               </div>
             )}
           </div>
