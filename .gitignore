@@ -6,6 +6,7 @@ dist-electron
 .DS_Store
 .env*
 .codex
+.claude
 
 # Distribution / Release builds
 release/
