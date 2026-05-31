@@ -16,7 +16,7 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Erro
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     captureRendererError(error, {
-      componentStack: info.componentStack ? 'present' : 'missing',
+      componentStack: info.componentStack || 'missing',
     })
   }
 

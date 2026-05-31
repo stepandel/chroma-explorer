@@ -16,11 +16,15 @@ const TABS: { id: TabId; label: string; icon: typeof KeyRound }[] = [
   { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
 ]
 
+function isTabId(value: string | null): value is TabId {
+  return TABS.some(tab => tab.id === value)
+}
+
 // Get initial tab from URL params
 function getInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab')
-  if (tab === 'shortcuts' || tab === 'api-keys' || tab === 'appearance' || tab === 'privacy') {
+  if (isTabId(tab)) {
     return tab
   }
   return 'api-keys'
@@ -49,7 +53,7 @@ export function SettingsWindow() {
   // Listen for tab switch messages from main process
   useEffect(() => {
     const unsubscribe = window.electronAPI.settings.onSwitchTab((tab) => {
-      if (tab === 'shortcuts' || tab === 'api-keys' || tab === 'appearance' || tab === 'privacy') {
+      if (isTabId(tab)) {
         setActiveTab(tab)
       }
     })

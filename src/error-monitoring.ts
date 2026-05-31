@@ -37,7 +37,7 @@ export function captureRendererError(error: unknown, context?: Record<string, st
 
   Sentry.withScope((scope) => {
     if (context) {
-      scope.setTags(context)
+      scope.setContext('renderer', context)
     }
     Sentry.captureException(error)
   })

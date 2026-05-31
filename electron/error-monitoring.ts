@@ -5,34 +5,56 @@ const SENSITIVE_KEY_PATTERN = /(api[-_]?key|token|secret|password|credential|aut
 const URL_PATTERN = /\bhttps?:\/\/[^\s"'<>]+/gi
 const LONG_TOKEN_PATTERN = /\b[A-Za-z0-9_-]{32,}\b/g
 const MAX_STRING_LENGTH = 500
+const MAX_DEBUG_STRING_LENGTH = 10_000
+const MAX_SANITIZE_DEPTH = 12
+const DEBUG_STRING_KEY_PATTERN = /^(message|stack|componentStack|exception|value|type)$/i
 
 let initialized = false
 
-function redactString(value: string): string {
-  return value
+function redactString(value: string, maxLength = MAX_STRING_LENGTH): string {
+  const redacted = value
     .replace(URL_PATTERN, '[redacted-url]')
     .replace(LONG_TOKEN_PATTERN, '[redacted-token]')
-    .slice(0, MAX_STRING_LENGTH)
+
+  return redacted.length > maxLength ? redacted.slice(0, maxLength) : redacted
 }
 
-function sanitizeValue(value: unknown, key = ''): unknown {
+function sanitizeValue(
+  value: unknown,
+  key = '',
+  depth = 0,
+  seen = new WeakSet<object>()
+): unknown {
+  if (depth >= MAX_SANITIZE_DEPTH) {
+    return '[max-depth-exceeded]'
+  }
+
   if (SENSITIVE_KEY_PATTERN.test(key)) {
     return '[redacted]'
   }
 
   if (typeof value === 'string') {
-    return redactString(value)
+    const maxLength = DEBUG_STRING_KEY_PATTERN.test(key) ? MAX_DEBUG_STRING_LENGTH : MAX_STRING_LENGTH
+    return redactString(value, maxLength)
   }
 
   if (Array.isArray(value)) {
-    return value.slice(0, 10).map((item) => sanitizeValue(item))
+    if (seen.has(value)) {
+      return '[circular]'
+    }
+    seen.add(value)
+    return value.slice(0, 10).map((item) => sanitizeValue(item, '', depth + 1, seen))
   }
 
   if (value && typeof value === 'object') {
+    if (seen.has(value)) {
+      return '[circular]'
+    }
+    seen.add(value)
     const entries = Object.entries(value as Record<string, unknown>).slice(0, 30)
     return Object.fromEntries(entries.map(([entryKey, entryValue]) => [
       entryKey,
-      sanitizeValue(entryValue, entryKey),
+      sanitizeValue(entryValue, entryKey, depth + 1, seen),
     ]))
   }
 

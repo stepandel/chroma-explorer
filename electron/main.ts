@@ -36,7 +36,7 @@ import { openValidatedExternalUrl } from './external-url'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
 import { initAnalytics, track } from './analytics'
 import { configureTransformersCache } from './transformers-cache'
-import { initErrorMonitoring, setErrorMonitoringEnabled } from './error-monitoring'
+import { captureMainError, initErrorMonitoring, setErrorMonitoringEnabled } from './error-monitoring'
 
 // Inject stored API keys into process.env at startup
 configureTransformersCache()
@@ -53,6 +53,12 @@ process.env.VITE_PUBLIC = app.isPackaged
   ? process.env.DIST
   : path.join(process.env.DIST, '../public')
 
+function reportIpcError(error: unknown, operation: string, fallbackMessage: string) {
+  captureMainError(error, { operation })
+  const message = error instanceof Error ? error.message : fallbackMessage
+  return { success: false, error: message }
+}
+
 // Set up IPC handlers
 ipcMain.handle('chromadb:connect', async (_event, rawProfileId: unknown, rawProfile: unknown) => {
   try {
@@ -62,8 +68,7 @@ ipcMain.handle('chromadb:connect', async (_event, rawProfileId: unknown, rawProf
     track('chroma_connected')
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to connect to ChromaDB'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.connect', 'Failed to connect to ChromaDB')
   }
 })
 
@@ -77,8 +82,7 @@ ipcMain.handle('chromadb:listCollections', async (_event, rawProfileId: unknown)
     const collections = await service.listCollections()
     return { success: true, data: collections }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch collections'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.listCollections', 'Failed to fetch collections')
   }
 })
 
@@ -93,8 +97,7 @@ ipcMain.handle('chromadb:getDocuments', async (_event, rawProfileId: unknown, ra
     const documents = await service.getCollectionDocuments(collectionName)
     return { success: true, data: documents }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch documents'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.getDocuments', 'Failed to fetch documents')
   }
 })
 
@@ -111,8 +114,7 @@ ipcMain.handle('chromadb:searchDocuments', async (_event, rawProfileId: unknown,
     const documents = await service.searchDocuments(params, embeddingOverride)
     return { success: true, data: documents }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to search documents'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.searchDocuments', 'Failed to search documents')
   }
 })
 
@@ -130,8 +132,7 @@ ipcMain.handle('chromadb:updateDocument', async (_event, rawProfileId: unknown, 
     track('document_updated')
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to update document'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.updateDocument', 'Failed to update document')
   }
 })
 
@@ -149,8 +150,7 @@ ipcMain.handle('chromadb:createDocument', async (_event, rawProfileId: unknown, 
     track('document_created')
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create document'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.createDocument', 'Failed to create document')
   }
 })
 
@@ -168,8 +168,7 @@ ipcMain.handle('chromadb:deleteDocuments', async (_event, rawProfileId: unknown,
     })
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete documents'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.deleteDocuments', 'Failed to delete documents')
   }
 })
 
@@ -189,8 +188,7 @@ ipcMain.handle('chromadb:createDocumentsBatch', async (_event, rawProfileId: unk
     })
     return { success: true, data: result }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create documents'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.createDocumentsBatch', 'Failed to create documents')
   }
 })
 
@@ -209,8 +207,7 @@ ipcMain.handle('chromadb:createCollection', async (_event, rawProfileId: unknown
     })
     return { success: true, data: collection }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create collection'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.createCollection', 'Failed to create collection')
   }
 })
 
@@ -226,8 +223,7 @@ ipcMain.handle('chromadb:deleteCollection', async (_event, rawProfileId: unknown
     track('collection_deleted')
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete collection'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.deleteCollection', 'Failed to delete collection')
   }
 })
 
@@ -267,8 +263,7 @@ ipcMain.handle('chromadb:copyCollection', async (event, rawProfileId: unknown, r
     return { success: result.success, data: result, error: result.error }
   } catch (error) {
     activeCopyOperations.delete(profileId)
-    const message = error instanceof Error ? error.message : 'Failed to copy collection'
-    return { success: false, error: message }
+    return reportIpcError(error, 'chromadb.copyCollection', 'Failed to copy collection')
   }
 })
 
@@ -393,8 +388,7 @@ ipcMain.handle('profiles:getAll', async () => {
     const profiles = connectionStore.getProfiles()
     return { success: true, data: profiles }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch profiles'
-    return { success: false, error: message }
+    return reportIpcError(error, 'profiles.getAll', 'Failed to fetch profiles')
   }
 })
 
@@ -404,8 +398,7 @@ ipcMain.handle('profiles:save', async (_event, rawProfile: unknown) => {
     connectionStore.saveProfile(profile)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to save profile'
-    return { success: false, error: message }
+    return reportIpcError(error, 'profiles.save', 'Failed to save profile')
   }
 })
 
@@ -415,8 +408,7 @@ ipcMain.handle('profiles:delete', async (_event, rawId: unknown) => {
     connectionStore.deleteProfile(id)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete profile'
-    return { success: false, error: message }
+    return reportIpcError(error, 'profiles.delete', 'Failed to delete profile')
   }
 })
 
@@ -425,8 +417,7 @@ ipcMain.handle('profiles:getLastActive', async () => {
     const id = connectionStore.getLastActiveProfileId()
     return { success: true, data: id }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch last active profile'
-    return { success: false, error: message }
+    return reportIpcError(error, 'profiles.getLastActive', 'Failed to fetch last active profile')
   }
 })
 
@@ -436,8 +427,7 @@ ipcMain.handle('profiles:setLastActive', async (_event, rawId: unknown) => {
     connectionStore.setLastActiveProfileId(id)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to set last active profile'
-    return { success: false, error: message }
+    return reportIpcError(error, 'profiles.setLastActive', 'Failed to set last active profile')
   }
 })
 
@@ -448,8 +438,7 @@ ipcMain.handle('profiles:getEmbeddingOverride', async (_event, rawProfileId: unk
     const override = connectionStore.getEmbeddingOverride(profileId, collectionName)
     return { success: true, data: override }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to get embedding override'
-    return { success: false, error: message }
+    return reportIpcError(error, 'profiles.getEmbeddingOverride', 'Failed to get embedding override')
   }
 })
 
@@ -461,8 +450,7 @@ ipcMain.handle('profiles:setEmbeddingOverride', async (_event, rawProfileId: unk
     connectionStore.setEmbeddingOverride(profileId, collectionName, override)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to set embedding override'
-    return { success: false, error: message }
+    return reportIpcError(error, 'profiles.setEmbeddingOverride', 'Failed to set embedding override')
   }
 })
 
@@ -473,8 +461,7 @@ ipcMain.handle('profiles:clearEmbeddingOverride', async (_event, rawProfileId: u
     connectionStore.clearEmbeddingOverride(profileId, collectionName)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to clear embedding override'
-    return { success: false, error: message }
+    return reportIpcError(error, 'profiles.clearEmbeddingOverride', 'Failed to clear embedding override')
   }
 })
 
@@ -485,8 +472,7 @@ ipcMain.handle('window:create-connection', async (_event, rawProfile: unknown) =
     const { window: win, windowId } = windowManager.createConnectionWindow(profile)
     return { success: true, data: { windowId } }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create connection window'
-    return { success: false, error: message }
+    return reportIpcError(error, 'window.createConnection', 'Failed to create connection window')
   }
 })
 
@@ -526,8 +512,7 @@ ipcMain.handle('window:get-info', async (event) => {
 
     return { success: false, error: 'Window type unknown' }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to get window info'
-    return { success: false, error: message }
+    return reportIpcError(error, 'window.getInfo', 'Failed to get window info')
   }
 })
 
@@ -543,8 +528,7 @@ ipcMain.handle('window:close-current', async (event) => {
     win.close()
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to close window'
-    return { success: false, error: message }
+    return reportIpcError(error, 'window.closeCurrent', 'Failed to close window')
   }
 })
 
@@ -567,8 +551,7 @@ ipcMain.handle('window:get-profile', async (_event, rawProfileId: unknown) => {
 
     return { success: true, data: profile }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to get profile'
-    return { success: false, error: message }
+    return reportIpcError(error, 'window.getProfile', 'Failed to get profile')
   }
 })
 
@@ -578,8 +561,7 @@ ipcMain.handle('settings:getApiKeys', async () => {
     const apiKeys = settingsStore.getApiKeys()
     return { success: true, data: apiKeys }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to get API keys'
-    return { success: false, error: message }
+    return reportIpcError(error, 'settings.getApiKeys', 'Failed to get API keys')
   }
 })
 
@@ -589,8 +571,7 @@ ipcMain.handle('settings:setApiKeys', async (_event, rawApiKeys: unknown) => {
     settingsStore.setApiKeys(apiKeys)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to save API keys'
-    return { success: false, error: message }
+    return reportIpcError(error, 'settings.setApiKeys', 'Failed to save API keys')
   }
 })
 
@@ -599,8 +580,7 @@ ipcMain.handle('settings:getTheme', async () => {
     const theme = settingsStore.getTheme()
     return { success: true, data: theme }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to get theme'
-    return { success: false, error: message }
+    return reportIpcError(error, 'settings.getTheme', 'Failed to get theme')
   }
 })
 
@@ -619,8 +599,7 @@ ipcMain.handle('settings:setTheme', async (event, rawTheme: unknown) => {
     updateThemeMenu()
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to set theme'
-    return { success: false, error: message }
+    return reportIpcError(error, 'settings.setTheme', 'Failed to set theme')
   }
 })
 
@@ -628,8 +607,7 @@ ipcMain.handle('settings:getErrorReportingEnabled', async () => {
   try {
     return { success: true, data: settingsStore.isErrorReportingEnabled() }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to get error reporting setting'
-    return { success: false, error: message }
+    return reportIpcError(error, 'settings.getErrorReportingEnabled', 'Failed to get error reporting setting')
   }
 })
 
@@ -648,8 +626,7 @@ ipcMain.handle('settings:setErrorReportingEnabled', async (event, rawEnabled: un
 
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to set error reporting setting'
-    return { success: false, error: message }
+    return reportIpcError(error, 'settings.setErrorReportingEnabled', 'Failed to set error reporting setting')
   }
 })
 
@@ -658,8 +635,7 @@ ipcMain.handle('settings:openWindow', async () => {
     windowManager.createSettingsWindow()
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to open settings'
-    return { success: false, error: message }
+    return reportIpcError(error, 'settings.openWindow', 'Failed to open settings')
   }
 })
 
@@ -669,8 +645,7 @@ ipcMain.handle('shell:openExternal', async (_event, rawUrl: unknown) => {
     await openValidatedExternalUrl(rawUrl)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to open URL'
-    return { success: false, error: message }
+    return reportIpcError(error, 'shell.openExternal', 'Failed to open URL')
   }
 })
 
