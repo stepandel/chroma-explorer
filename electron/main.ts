@@ -34,8 +34,10 @@ import {
 import { openValidatedExternalUrl } from './external-url'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
 import { initAnalytics, track } from './analytics'
+import { configureTransformersCache } from './transformers-cache'
 
 // Inject stored API keys into process.env at startup
+configureTransformersCache()
 settingsStore.injectIntoProcessEnv()
 
 // Track active copy operations per profile for cancellation
