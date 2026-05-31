@@ -30,6 +30,7 @@ export function DeveloperMessageDialog({
   onOpenChange,
 }: DeveloperMessageDialogProps) {
   const [useCase, setUseCase] = useState('')
+  const [building, setBuilding] = useState('')
   const [missing, setMissing] = useState('')
   const [email, setEmail] = useState('')
   const [openToCall, setOpenToCall] = useState(false)
@@ -39,8 +40,8 @@ export function DeveloperMessageDialog({
   const canSubmit = useMemo(
     () =>
       submissionState !== 'submitting' &&
-      ([useCase, missing, email].some((value) => value.trim().length > 0) || openToCall),
-    [email, missing, openToCall, submissionState, useCase]
+      ([useCase, building, missing, email].some((value) => value.trim().length > 0) || openToCall),
+    [building, email, missing, openToCall, submissionState, useCase]
   )
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -60,6 +61,11 @@ export function DeveloperMessageDialog({
           type: 'text',
           name: 'use_case',
           value: useCase.trim(),
+        },
+        {
+          type: 'text',
+          name: 'building',
+          value: building.trim(),
         },
         {
           type: 'text',
@@ -110,6 +116,7 @@ export function DeveloperMessageDialog({
 
       setSubmissionState('sent')
       setUseCase('')
+      setBuilding('')
       setMissing('')
       setEmail('')
       setOpenToCall(false)
@@ -164,6 +171,23 @@ export function DeveloperMessageDialog({
                 rows={3}
                 className={`${fieldClassName} resize-none`}
                 placeholder="Browsing local collections, debugging embeddings, managing documents..."
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="developer-message-building" className="text-[11px] font-medium text-muted-foreground">
+                What are you building?
+              </label>
+              <textarea
+                id="developer-message-building"
+                value={building}
+                onChange={(event) => {
+                  setBuilding(event.target.value)
+                  setSubmissionState('idle')
+                }}
+                rows={2}
+                className={`${fieldClassName} resize-none`}
+                placeholder="An AI app, internal search, evaluation tooling, a data pipeline..."
               />
             </div>
 
