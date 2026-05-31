@@ -214,6 +214,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }
       return result.data
     },
+    openDeveloperMessage: async (): Promise<void> => {
+      const result = await ipcRenderer.invoke('window:open-developer-message')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
   },
   settings: {
     getApiKeys: async (): Promise<Record<string, string>> => {

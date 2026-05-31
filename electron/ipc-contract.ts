@@ -230,6 +230,7 @@ export interface ElectronAPI {
     getInfo: () => Promise<{ type: string; windowId?: string; profileId?: string }>
     closeCurrent: () => Promise<void>
     getProfile: (profileId: string) => Promise<ConnectionProfile>
+    openDeveloperMessage: () => Promise<void>
   }
   settings: {
     getApiKeys: () => Promise<Record<string, string>>

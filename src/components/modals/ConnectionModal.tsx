@@ -482,7 +482,14 @@ export default function ConnectionModal({ isOpen, onConnect }: ConnectionModalPr
                   {error}
                 </div>
               )}
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => window.electronAPI.window.openDeveloperMessage()}
+                  className="h-7 px-2 text-[12px] font-medium rounded text-foreground/50 hover:bg-black/[0.04] hover:text-foreground/70 dark:hover:bg-white/[0.06] transition-colors"
+                >
+                  Message from developer
+                </button>
                 <button
                   type="submit"
                   disabled={isConnecting}

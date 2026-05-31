@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-export type WindowType = 'setup' | 'connection' | 'settings' | 'unknown'
+export type WindowType = 'setup' | 'connection' | 'settings' | 'developer-message' | 'unknown'
 
 export interface WindowInfo {
   windowType: WindowType
@@ -29,6 +29,14 @@ export function useWindowInfo(): WindowInfo {
     if (type === 'settings') {
       return {
         windowType: 'settings',
+        windowId: null,
+        profileId: null,
+      }
+    }
+
+    if (type === 'developer-message') {
+      return {
+        windowType: 'developer-message',
         windowId: null,
         profileId: null,
       }

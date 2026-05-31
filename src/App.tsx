@@ -2,6 +2,7 @@ import { useWindowInfo } from './hooks/useWindowInfo'
 import { SetupWindow } from './windows/SetupWindow'
 import { ConnectionWindow } from './windows/ConnectionWindow'
 import { SettingsWindow } from './windows/SettingsWindow'
+import { DeveloperMessageWindow } from './windows/DeveloperMessageWindow'
 
 export default function App() {
   const { windowType, windowId, profileId } = useWindowInfo()
@@ -13,6 +14,10 @@ export default function App() {
 
   if (windowType === 'settings') {
     return <SettingsWindow />
+  }
+
+  if (windowType === 'developer-message') {
+    return <DeveloperMessageWindow />
   }
 
   if (windowType === 'connection' && windowId && profileId) {
