@@ -36,7 +36,7 @@ export function SettingsWindow() {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [errorReportingEnabled, setErrorReportingEnabled] = useState(false)
+  const [errorReportingEnabled, setErrorReportingEnabled] = useState(true)
   const [savingErrorReporting, setSavingErrorReporting] = useState(false)
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
 
@@ -362,7 +362,7 @@ export function SettingsWindow() {
                       Error reporting
                     </div>
                     <div className="mt-0.5 text-[10px] leading-4 text-foreground/40">
-                      Send crash reports and sanitized error details.
+                      Send sanitized crash reports and error details.
                     </div>
                   </div>
                 </label>
@@ -370,7 +370,7 @@ export function SettingsWindow() {
             </div>
 
             <p className="text-[11px] text-foreground/30 mt-3 px-1">
-              Database contents, API keys, connection URLs, tokens, metadata, documents, and embeddings are redacted.
+              Enabled by default. Database contents, API keys, connection URLs, tokens, metadata, documents, and embeddings are redacted.
             </p>
           </>
         )}

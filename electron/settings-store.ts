@@ -76,7 +76,7 @@ function getStore(): Store<SettingsSchema> {
         defaults: {
           apiKeys: {},
           theme: 'system',
-          errorReportingEnabled: false,
+          errorReportingEnabled: true,
         },
         encryptionKey: getEncryptionKey(),
         clearInvalidConfig: true,
@@ -102,7 +102,7 @@ function getStore(): Store<SettingsSchema> {
         defaults: {
           apiKeys: {},
           theme: 'system',
-          errorReportingEnabled: false,
+          errorReportingEnabled: true,
         },
         encryptionKey: getEncryptionKey(),
         clearInvalidConfig: true,
@@ -152,7 +152,7 @@ export class SettingsStore {
   }
 
   isErrorReportingEnabled(): boolean {
-    return getStore().get('errorReportingEnabled', false)
+    return getStore().get('errorReportingEnabled', true)
   }
 
   setErrorReportingEnabled(enabled: boolean): void {

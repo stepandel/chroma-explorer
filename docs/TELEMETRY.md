@@ -16,9 +16,10 @@ keys, auth tokens, or provider credentials in event names or properties.
 `electron/error-monitoring.ts` owns Sentry initialization for the Electron main
 process. `src/error-monitoring.ts` owns renderer initialization.
 
-Error reporting is opt-in and defaults to off. The setting is stored as
-`errorReportingEnabled` in `electron/settings-store.ts` and exposed through the
-canonical IPC contract in `electron/ipc-contract.ts`.
+Error reporting is enabled by default and can be disabled from
+**Settings > Privacy**. The setting is stored as `errorReportingEnabled` in
+`electron/settings-store.ts` and exposed through the canonical IPC contract in
+`electron/ipc-contract.ts`.
 
 Release builds must provide a public DSN at build time:
 
@@ -55,7 +56,7 @@ Before shipping a release:
 
 1. Run the manual `Release` workflow from GitHub Actions.
 2. Install the produced app artifact.
-3. Enable **Settings > Privacy > Error reporting**.
+3. Confirm **Settings > Privacy > Error reporting** is enabled.
 4. Trigger a known renderer and main-process failure in a test build.
 5. Confirm Sentry receives events under the expected
    `chroma-explorer@<package version>` release with readable stack traces.
