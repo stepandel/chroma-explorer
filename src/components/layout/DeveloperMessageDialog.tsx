@@ -204,7 +204,7 @@ export function DeveloperMessageDialog({
                 }}
                 rows={3}
                 className={`${fieldClassName} resize-none`}
-                placeholder="Anything confusing, slow, repetitive, or not quite there yet."
+                placeholder="Anything missing , could be better, confusing, slow, repetitive.."
               />
             </div>
 
