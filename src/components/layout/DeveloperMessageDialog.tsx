@@ -1,5 +1,5 @@
 import { type FormEvent, useMemo, useState } from 'react'
-import { AlertCircle, CheckCircle2, MessageCircle, Send } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Send } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -131,9 +131,6 @@ export function DeveloperMessageDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[500px] gap-0 border-border/80 bg-popover p-0 text-popover-foreground shadow-2xl sm:rounded-xl">
         <DialogHeader className="gap-3 border-b border-border/70 px-5 pb-4 pt-5 text-left">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <MessageCircle className="h-4 w-4" />
-          </div>
           <div className="space-y-1.5">
             <DialogTitle className="text-[15px] font-semibold tracking-normal">
               Hi 👋
