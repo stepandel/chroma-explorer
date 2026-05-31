@@ -38,7 +38,7 @@
     "test:smoke": "vite build && playwright test --config=playwright.smoke.config.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "build": "pnpm typecheck && vite build && electron-builder --dir",
-    "build:release": "pnpm typecheck && vite build && electron-builder",
+    "build:release": "pnpm typecheck && CHROMA_EXPLORER_RELEASE=1 vite build && electron-builder",
     "preview": "vite preview",
     "postinstall": "electron-builder install-app-deps",
     "test:db": "node scripts/run-test-db.mjs --auth=none",

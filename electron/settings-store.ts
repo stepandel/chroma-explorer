@@ -1,8 +1,9 @@
 import Store from 'electron-store'
 import { app } from 'electron'
 import path from 'path'
-import { existsSync, rmSync } from 'fs'
+import { existsSync } from 'fs'
 import { getEncryptionKey } from './secure-key-manager'
+import { removeCorruptedStore } from './store-recovery'
 
 export interface ApiKeys {
   OPENAI_API_KEY?: string
@@ -56,6 +57,10 @@ function migrateFromLegacyStore(newStore: Store<SettingsSchema>): void {
     }
   } catch (error) {
     console.warn('[SettingsStore] Could not migrate from legacy store:', error)
+    removeCorruptedStore(
+      path.join(app.getPath('userData'), 'chroma-settings.json'),
+      '[SettingsStore]'
+    )
   }
 }
 
@@ -85,14 +90,7 @@ function getStore(): Store<SettingsSchema> {
       // If decryption failed, the encryption key changed (e.g., keychain denied after previous allow)
       // Clear the corrupted store and start fresh
       const storePath = path.join(app.getPath('userData'), 'chroma-settings-v2.json')
-      if (existsSync(storePath)) {
-        console.warn('[SettingsStore] Removing corrupted store file to start fresh')
-        try {
-          rmSync(storePath, { force: true })
-        } catch {
-          // Ignore deletion errors
-        }
-      }
+      removeCorruptedStore(storePath, '[SettingsStore]')
 
       store = null
 

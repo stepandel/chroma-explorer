@@ -1,9 +1,10 @@
 import Store from 'electron-store'
 import { app } from 'electron'
 import path from 'path'
-import { existsSync, rmSync } from 'fs'
+import { existsSync } from 'fs'
 import { ConnectionProfile, EmbeddingFunctionOverride } from './types'
 import { getEncryptionKey } from './secure-key-manager'
+import { removeCorruptedStore } from './store-recovery'
 
 // Migrate data from legacy v1 store (hardcoded key) to v2 store (keychain)
 function migrateFromLegacyStore(newStore: Store<StoreSchema>): void {
@@ -40,6 +41,10 @@ function migrateFromLegacyStore(newStore: Store<StoreSchema>): void {
     }
   } catch (error) {
     console.warn('[ConnectionStore] Could not migrate from legacy store:', error)
+    removeCorruptedStore(
+      path.join(app.getPath('userData'), 'chroma-connections.json'),
+      '[ConnectionStore]'
+    )
   }
 }
 
@@ -78,14 +83,7 @@ function getStore(): Store<StoreSchema> {
       // If decryption failed, the encryption key changed (e.g., keychain denied after previous allow)
       // Clear the corrupted store and start fresh
       const storePath = path.join(app.getPath('userData'), 'chroma-connections-v2.json')
-      if (existsSync(storePath)) {
-        console.warn('[ConnectionStore] Removing corrupted store file to start fresh')
-        try {
-          rmSync(storePath, { force: true })
-        } catch {
-          // Ignore deletion errors
-        }
-      }
+      removeCorruptedStore(storePath, '[ConnectionStore]')
 
       store = null
 

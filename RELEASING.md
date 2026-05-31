@@ -28,6 +28,10 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     pnpm run build:release
     ```
 
+    `build:release` sets `CHROMA_EXPLORER_RELEASE=1`; without that flag, local
+    dev and packaged builds use the separate `Chroma Explorer Dev` user-data
+    store.
+
     Watch the log for `notarization successful` (one line per arch).
     Artifacts: `dist/chroma-explorer-<X.Y.Z>-arm64.dmg`,
     `dist/chroma-explorer-<X.Y.Z>-arm64.zip`, `dist/latest-mac.yml`.

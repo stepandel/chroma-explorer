@@ -1,11 +1,14 @@
 import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'electron'
+import path from 'node:path'
 
 // Set app name before anything else (affects menu bar, about dialog, etc.)
-app.name = 'Chroma Explorer'
+const isReleaseBuild = process.env.CHROMA_EXPLORER_RELEASE === '1'
+app.name = isReleaseBuild ? 'Chroma Explorer' : 'Chroma Explorer Dev'
 if (process.env.CHROMA_EXPLORER_USER_DATA_DIR) {
   app.setPath('userData', process.env.CHROMA_EXPLORER_USER_DATA_DIR)
+} else if (!isReleaseBuild) {
+  app.setPath('userData', path.join(app.getPath('appData'), 'Chroma Explorer Dev'))
 }
-import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromaDBConnectionPool } from './chromadb-service'
 import { connectionStore } from './connection-store'
