@@ -72,6 +72,8 @@ pnpm build
 
 API keys for embedding providers can be configured in **Settings** (Cmd+,). Keys are stored encrypted at rest.
 
+Error reporting is enabled by default and can be disabled from **Settings > Privacy**. See `docs/TELEMETRY.md` for release configuration and privacy rules.
+
 ### Feedback Collection
 
 The in-app feedback form posts directly to Forminit form `742yqqcnm5o`. To

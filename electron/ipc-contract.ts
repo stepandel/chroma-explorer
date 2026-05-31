@@ -237,6 +237,9 @@ export interface ElectronAPI {
     setApiKeys: (apiKeys: Record<string, string>) => Promise<void>
     getTheme: () => Promise<'light' | 'dark' | 'system'>
     setTheme: (theme: 'light' | 'dark' | 'system') => Promise<void>
+    getErrorReportingEnabled: () => Promise<boolean>
+    setErrorReportingEnabled: (enabled: boolean) => Promise<void>
+    onErrorReportingChange: (callback: (enabled: boolean) => void) => () => void
     onThemeChange: (callback: (theme: string) => void) => () => void
     openWindow: () => Promise<void>
     onSwitchTab: (callback: (tab: string) => void) => () => void
@@ -481,6 +484,11 @@ export function parseApiKeys(value: unknown): Record<string, string> {
 
 export function parseTheme(value: unknown): 'light' | 'dark' | 'system' {
   return parseEnum(value, 'theme', ['light', 'dark', 'system'])
+}
+
+export function parseErrorReportingEnabled(value: unknown): boolean {
+  if (typeof value !== 'boolean') throw new Error('errorReportingEnabled must be a boolean')
+  return value
 }
 
 export function validateExternalUrl(value: unknown): string {

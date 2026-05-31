@@ -1,3 +1,4 @@
+import '@sentry/electron/preload'
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   ConnectionProfile,
@@ -247,6 +248,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!result.success) {
         throw new Error(result.error)
       }
+    },
+    getErrorReportingEnabled: async (): Promise<boolean> => {
+      const result = await ipcRenderer.invoke('settings:getErrorReportingEnabled')
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    setErrorReportingEnabled: async (enabled: boolean): Promise<void> => {
+      const result = await ipcRenderer.invoke('settings:setErrorReportingEnabled', enabled)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+    },
+    onErrorReportingChange: (callback: (enabled: boolean) => void): (() => void) => {
+      const handler = (_event: any, enabled: boolean) => callback(enabled)
+      ipcRenderer.on('settings:error-reporting-changed', handler)
+      return () => ipcRenderer.removeListener('settings:error-reporting-changed', handler)
     },
     onThemeChange: (callback: (theme: string) => void): (() => void) => {
       const handler = (_event: any, theme: string) => callback(theme)

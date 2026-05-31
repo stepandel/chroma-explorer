@@ -2,23 +2,29 @@ import { useState, useEffect, useMemo } from 'react'
 import { API_KEY_PROVIDERS } from '../constants/api-key-providers'
 import { getShortcutsByCategory } from '../constants/keyboard-shortcuts'
 import { useTheme, Theme } from '../context/ThemeContext'
-import { ExternalLink, Check, Eye, EyeOff, KeyRound, Keyboard, Palette, Sun, Moon, Monitor } from 'lucide-react'
+import { Checkbox } from '../components/ui/checkbox'
+import { ExternalLink, Check, Eye, EyeOff, KeyRound, Keyboard, Palette, Sun, Moon, Monitor, ShieldCheck } from 'lucide-react'
 
 const inputClassName = "flex-1 h-7 text-[12px] px-2.5 rounded bg-black/[0.06] dark:bg-white/[0.08] text-foreground placeholder:text-foreground/30 focus:outline-none focus:bg-black/[0.08] dark:focus:bg-white/[0.12] transition-colors border-0 font-mono"
 
-type TabId = 'api-keys' | 'shortcuts' | 'appearance'
+type TabId = 'api-keys' | 'shortcuts' | 'appearance' | 'privacy'
 
 const TABS: { id: TabId; label: string; icon: typeof KeyRound }[] = [
   { id: 'api-keys', label: 'API Keys', icon: KeyRound },
   { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
   { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
 ]
+
+function isTabId(value: string | null): value is TabId {
+  return TABS.some(tab => tab.id === value)
+}
 
 // Get initial tab from URL params
 function getInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab')
-  if (tab === 'shortcuts' || tab === 'api-keys' || tab === 'appearance') {
+  if (isTabId(tab)) {
     return tab
   }
   return 'api-keys'
@@ -30,6 +36,8 @@ export function SettingsWindow() {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [errorReportingEnabled, setErrorReportingEnabled] = useState(true)
+  const [savingErrorReporting, setSavingErrorReporting] = useState(false)
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
 
   // Make body transparent for vibrancy effect
@@ -45,7 +53,7 @@ export function SettingsWindow() {
   // Listen for tab switch messages from main process
   useEffect(() => {
     const unsubscribe = window.electronAPI.settings.onSwitchTab((tab) => {
-      if (tab === 'shortcuts' || tab === 'api-keys' || tab === 'appearance') {
+      if (isTabId(tab)) {
         setActiveTab(tab)
       }
     })
@@ -59,9 +67,11 @@ export function SettingsWindow() {
   const loadSettings = async () => {
     try {
       const keys = await window.electronAPI.settings.getApiKeys()
+      const reportingEnabled = await window.electronAPI.settings.getErrorReportingEnabled()
       setApiKeys(keys)
+      setErrorReportingEnabled(reportingEnabled)
     } catch (error) {
-      console.error('Failed to load API keys:', error)
+      console.error('Failed to load settings:', error)
     }
   }
 
@@ -100,6 +110,19 @@ export function SettingsWindow() {
       }
       return next
     })
+  }
+
+  const handleErrorReportingChange = async (checked: boolean) => {
+    setErrorReportingEnabled(checked)
+    setSavingErrorReporting(true)
+    try {
+      await window.electronAPI.settings.setErrorReportingEnabled(checked)
+    } catch (error) {
+      setErrorReportingEnabled(!checked)
+      console.error('Failed to save error reporting setting:', error)
+    } finally {
+      setSavingErrorReporting(false)
+    }
   }
 
 
@@ -319,6 +342,35 @@ export function SettingsWindow() {
 
             <p className="text-[11px] text-foreground/30 mt-3 px-1">
               Theme changes apply to all windows.
+            </p>
+          </>
+        )}
+
+        {activeTab === 'privacy' && (
+          <>
+            <div className="rounded-lg overflow-hidden" style={{ background: sectionBackground }}>
+              <div className="px-3 py-2.5">
+                <label className="flex items-start gap-3 rounded-md px-2.5 py-2">
+                  <Checkbox
+                    checked={errorReportingEnabled}
+                    disabled={savingErrorReporting}
+                    onCheckedChange={(checked) => handleErrorReportingChange(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <div className="text-[12px] font-medium text-foreground">
+                      Error reporting
+                    </div>
+                    <div className="mt-0.5 text-[10px] leading-4 text-foreground/40">
+                      Send sanitized crash reports and error details.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-foreground/30 mt-3 px-1">
+              Enabled by default. Database contents, API keys, connection URLs, tokens, metadata, documents, and embeddings are redacted.
             </p>
           </>
         )}
