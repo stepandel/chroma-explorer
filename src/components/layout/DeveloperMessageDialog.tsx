@@ -223,9 +223,6 @@ export function DeveloperMessageDialog({
                 className={fieldClassName}
                 placeholder="you@example.com"
               />
-              <p className="text-[11px] leading-4 text-muted-foreground">
-                I will only use this to ask about your Chroma Explorer workflow.
-              </p>
             </div>
 
             <label className="flex items-center gap-2 text-[12px] text-foreground/85">
