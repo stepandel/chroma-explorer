@@ -72,6 +72,8 @@ pnpm build
 
 API keys for embedding providers can be configured in **Settings** (Cmd+,). Keys are stored encrypted at rest.
 
+Error reporting is opt-in from **Settings > Privacy**. See `docs/TELEMETRY.md` for release configuration and privacy rules.
+
 ## License
 
 MIT
