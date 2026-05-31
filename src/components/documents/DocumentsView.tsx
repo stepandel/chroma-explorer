@@ -157,7 +157,9 @@ export default function DocumentsView({
     setEmbeddingOverride(null)
   }, [currentProfile?.id, collectionName])
 
-  // Reset filters and deletion marks when collection changes
+  // Reset filters and deletion marks when collection changes. nResults is
+  // deliberately preserved so the user's chosen page size carries across
+  // collections.
   useEffect(() => {
     setScope('query')
     setSearchText('')
@@ -165,7 +167,6 @@ export default function DocumentsView({
     setCommittedSearchText('')
     setCommittedIdSearch('')
     setMetadataFilters([])
-    setNResults(10)
     setMarkedForDeletion(new Set())
     setDraftDocuments([])
     setDraftError(null)
@@ -601,7 +602,8 @@ export default function DocumentsView({
     }
   }, [documents, onRangeSelect])
 
-  // Clear all filters handler
+  // Clear all filters handler. nResults is treated as a view preference, not
+  // a filter — leave it alone.
   const handleClearAllFilters = useCallback(() => {
     setScope('query')
     setSearchText('')
@@ -609,7 +611,6 @@ export default function DocumentsView({
     setCommittedSearchText('')
     setCommittedIdSearch('')
     setMetadataFilters([])
-    setNResults(10)
   }, [])
 
   // Menu event listeners (from native app menu)
