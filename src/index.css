@@ -60,6 +60,10 @@ body {
   --color-inspector-section: var(--inspector-section-bg);
   --color-inspector-section-border: var(--inspector-section-border);
 
+  /* Table row tones */
+  --color-table-row-alt: var(--table-row-alt);
+  --color-table-row-hover: var(--table-row-hover);
+
   /* Animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -135,6 +139,10 @@ body {
   /* Content canvas - primary working surface */
   --canvas-background: oklch(1 0 0);
   --canvas-shadow: inset 0 1px 3px oklch(0 0 0 / 0.04);
+
+  /* Table row tones — used for zebra striping and hover */
+  --table-row-alt: oklch(0 0 0 / 2.5%);
+  --table-row-hover: oklch(0 0 0 / 5%);
 
   /* Inspector inset sections */
   --inspector-section-bg: oklch(0 0 0 / 4%);
@@ -231,6 +239,11 @@ body {
   /* Canvas: Table/document area - slightly recessed */
   --canvas-background: oklch(0.26 0 0);
   --canvas-shadow: none;
+
+  /* Table row tones — slightly stronger than light mode to be visible on the
+   * darker canvas */
+  --table-row-alt: oklch(1 0 0 / 3%);
+  --table-row-hover: oklch(1 0 0 / 8%);
 
   /* Inspector sections: Grouped content areas */
   --inspector-section-bg: oklch(0 0 0 / 10%);
