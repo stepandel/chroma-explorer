@@ -36,17 +36,8 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     Artifacts: `dist/chroma-explorer-<X.Y.Z>-arm64.dmg`,
     `dist/chroma-explorer-<X.Y.Z>-arm64.zip`, `dist/latest-mac.yml`.
 
-3. **Bridge existing users.** Version `0.5.2` is the last GitHub-updated free
-   bridge build. It shows a one-time notice explaining that users can keep using
-   this version for free, or download the new website binary to receive future
-   updates.
-
-    Keep the updater config pointed at GitHub for `v0.5.2`, because installed
-    `v0.5.1` apps poll GitHub. Do not point this bridge build at the marketing
-    update feed.
-
-4. **Verify paid-track builds after the bridge release.** Builds distributed
-   from the website should use the marketing update feed:
+3. **Verify the paid-track updater feed.** Builds distributed from the website
+   should use the marketing update feed:
 
     ```bash
     rg "https://www.chroma-explorer.com/api/updates" dist-electron
@@ -55,7 +46,7 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     If `dist/mac-arm64/Chroma Explorer.app/Contents/Resources/app-update.yml`
     is present, confirm it also uses the generic provider URL.
 
-5. **Upload paid-track release artifacts to Vercel Blob.** The paid website serves the
+4. **Upload paid-track release artifacts to Vercel Blob.** The paid website serves the
    initial DMG from a private Blob path, and the in-app updater reads the public
    generic feed at `https://www.chroma-explorer.com/api/updates`.
 
@@ -70,13 +61,20 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     DMG and `CHROMA_EXPLORER_UPDATE_CHANNEL_PATHNAME` at
     `releases/latest-mac.yml`.
 
-6. **Tag and publish to GitHub.** Draft notes from the commits since the
-   prior tag (`git log v<prev>..HEAD --oneline`). GitHub remains the public
-   changelog/source release. It is also the one-release bridge for existing
-   installed versions: v0.5.1 and earlier still poll GitHub, so this release
-   must include the DMG, ZIP, and `latest-mac.yml`. Once users install this
-   version, future checks use the marketing update feed embedded in
-   `app-update.yml`.
+5. **Merge and deploy the marketing site.** Production must have the account,
+   payment, download, and update routes configured before the bridge release is
+   published to GitHub.
+
+6. **Build the GitHub bridge release after production is ready.** Existing
+   installed versions still poll GitHub, so the bridge release should be built
+   from a separate bridge commit that points the updater at GitHub and shows a
+   one-time notice explaining that users can keep using that version for free,
+   or download the new website binary to receive future updates.
+
+7. **Tag and publish the bridge release to GitHub.** Draft notes from the
+   commits since the prior tag (`git log v<prev>..HEAD --oneline`). The release
+   must include the DMG, ZIP, and `latest-mac.yml`, because that manifest is
+   what existing installed apps poll.
 
     ```bash
     git tag -a v<X.Y.Z> -m "v<X.Y.Z>" && git push origin v<X.Y.Z>
@@ -89,7 +87,7 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     `latest-mac.yml` is required — it's the manifest the in-app autoupdater
     polls.
 
-7. **Sanity check** the release page and try the autoupdater from the
+8. **Sanity check** the release page and try the autoupdater from the
    prior version if possible.
 
 ## Autoupdater behavior

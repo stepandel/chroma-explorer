@@ -37,7 +37,6 @@ import { initAutoUpdater, checkForUpdates } from './auto-updater'
 import { initAnalytics, track } from './analytics'
 import { configureTransformersCache } from './transformers-cache'
 import { captureMainError, initErrorMonitoring, setErrorMonitoringEnabled } from './error-monitoring'
-import { showPaidUpdateNoticeOnce } from './paid-update-notice'
 
 // Inject stored API keys into process.env at startup
 configureTransformersCache()
@@ -675,12 +674,6 @@ app.whenReady().then(() => {
 
   // Create setup window
   windowManager.createSetupWindow()
-
-  setTimeout(() => {
-    showPaidUpdateNoticeOnce().catch(error => {
-      captureMainError(error, { operation: 'paidUpdateNotice.showOnce' })
-    })
-  }, 1200)
 
   // Check for updates after a short delay (only in production)
   if (app.isPackaged) {

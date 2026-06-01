@@ -1,6 +1,6 @@
 {
   "name": "chroma-explorer",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "A desktop application for exploring and managing ChromaDB vector databases",
   "main": "dist-electron/main.js",
   "type": "module",
@@ -25,9 +25,8 @@
     ],
     "afterPack": "scripts/after-pack.cjs",
     "publish": {
-      "provider": "github",
-      "owner": "stepandel",
-      "repo": "chroma-explorer"
+      "provider": "generic",
+      "url": "https://www.chroma-explorer.com/api/updates"
     }
   },
   "scripts": {

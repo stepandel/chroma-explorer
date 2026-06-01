@@ -24,7 +24,6 @@ interface SettingsSchema {
   apiKeys: ApiKeys
   theme: Theme
   errorReportingEnabled: boolean
-  paidUpdateNoticeShownForVersion: string | null
 }
 
 // Legacy store schema (v1 - before theme was added)
@@ -78,7 +77,6 @@ function getStore(): Store<SettingsSchema> {
           apiKeys: {},
           theme: 'system',
           errorReportingEnabled: true,
-          paidUpdateNoticeShownForVersion: null,
         },
         encryptionKey: getEncryptionKey(),
         clearInvalidConfig: true,
@@ -105,7 +103,6 @@ function getStore(): Store<SettingsSchema> {
           apiKeys: {},
           theme: 'system',
           errorReportingEnabled: true,
-          paidUpdateNoticeShownForVersion: null,
         },
         encryptionKey: getEncryptionKey(),
         clearInvalidConfig: true,
@@ -162,13 +159,6 @@ export class SettingsStore {
     getStore().set('errorReportingEnabled', enabled)
   }
 
-  getPaidUpdateNoticeShownForVersion(): string | null {
-    return getStore().get('paidUpdateNoticeShownForVersion', null)
-  }
-
-  setPaidUpdateNoticeShownForVersion(version: string): void {
-    getStore().set('paidUpdateNoticeShownForVersion', version)
-  }
 }
 
 export const settingsStore = new SettingsStore()
