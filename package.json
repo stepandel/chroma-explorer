@@ -25,9 +25,8 @@
     ],
     "afterPack": "scripts/after-pack.cjs",
     "publish": {
-      "provider": "github",
-      "owner": "stepandel",
-      "repo": "chroma-explorer"
+      "provider": "generic",
+      "url": "https://www.chroma-explorer.com/api/updates"
     }
   },
   "scripts": {
