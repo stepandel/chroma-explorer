@@ -51,5 +51,6 @@ dmg:
 # Uses "Developer ID Application" certificate for distribution outside App Store
 
 publish:
-  provider: generic
-  url: https://www.chroma-explorer.com/api/updates
+  provider: github
+  owner: stepandel
+  repo: chroma-explorer

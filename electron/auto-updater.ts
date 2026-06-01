@@ -6,13 +6,6 @@ import log from 'electron-log'
 autoUpdater.logger = log
 log.transports.file.level = 'info'
 
-const updateFeedUrl = 'https://www.chroma-explorer.com/api/updates'
-
-autoUpdater.setFeedURL({
-  provider: 'generic',
-  url: updateFeedUrl
-})
-
 // Background checks may download quietly and install on quit.
 // Manual menu checks temporarily disable auto-download so the user can choose.
 autoUpdater.autoDownload = true

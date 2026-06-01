@@ -4,6 +4,7 @@ import { connectionStore } from './connection-store'
 import { checkForUpdatesFromMenu } from './auto-updater'
 import { settingsStore, Theme } from './settings-store'
 import { openValidatedExternalUrl } from './external-url'
+import { showPaidUpdateNotice } from './paid-update-notice'
 
 // Helper to send menu events to the focused window
 function sendToFocusedWindow(channel: string, ...args: unknown[]) {
@@ -104,6 +105,12 @@ function buildMenuTemplate(): Electron.MenuItemConstructorOptions[] {
           label: 'Check for Updates...',
           click: (_menuItem, browserWindow) => {
             checkForUpdatesFromMenu(browserWindow instanceof BrowserWindow ? browserWindow : null)
+          },
+        },
+        {
+          label: 'Future Updates...',
+          click: () => {
+            showPaidUpdateNotice()
           },
         },
         { type: 'separator' },

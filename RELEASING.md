@@ -36,9 +36,17 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     Artifacts: `dist/chroma-explorer-<X.Y.Z>-arm64.dmg`,
     `dist/chroma-explorer-<X.Y.Z>-arm64.zip`, `dist/latest-mac.yml`.
 
-3. **Verify the packaged updater feed.** The app sets its updater feed in
-   `electron/auto-updater.ts`, and release metadata should point at the same
-   marketing update feed:
+3. **Bridge existing users.** Version `0.5.2` is the last GitHub-updated free
+   bridge build. It shows a one-time notice explaining that users can keep using
+   this version for free, or download the new website binary to receive future
+   updates.
+
+    Keep the updater config pointed at GitHub for `v0.5.2`, because installed
+    `v0.5.1` apps poll GitHub. Do not point this bridge build at the marketing
+    update feed.
+
+4. **Verify paid-track builds after the bridge release.** Builds distributed
+   from the website should use the marketing update feed:
 
     ```bash
     rg "https://www.chroma-explorer.com/api/updates" dist-electron
@@ -47,7 +55,7 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     If `dist/mac-arm64/Chroma Explorer.app/Contents/Resources/app-update.yml`
     is present, confirm it also uses the generic provider URL.
 
-4. **Upload release artifacts to Vercel Blob.** The paid website serves the
+5. **Upload paid-track release artifacts to Vercel Blob.** The paid website serves the
    initial DMG from a private Blob path, and the in-app updater reads the public
    generic feed at `https://www.chroma-explorer.com/api/updates`.
 
@@ -62,7 +70,7 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     DMG and `CHROMA_EXPLORER_UPDATE_CHANNEL_PATHNAME` at
     `releases/latest-mac.yml`.
 
-5. **Tag and publish to GitHub.** Draft notes from the commits since the
+6. **Tag and publish to GitHub.** Draft notes from the commits since the
    prior tag (`git log v<prev>..HEAD --oneline`). GitHub remains the public
    changelog/source release. It is also the one-release bridge for existing
    installed versions: v0.5.1 and earlier still poll GitHub, so this release
@@ -81,7 +89,7 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     `latest-mac.yml` is required — it's the manifest the in-app autoupdater
     polls.
 
-6. **Sanity check** the release page and try the autoupdater from the
+7. **Sanity check** the release page and try the autoupdater from the
    prior version if possible.
 
 ## Autoupdater behavior
