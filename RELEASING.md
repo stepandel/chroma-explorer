@@ -36,27 +36,39 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     Artifacts: `dist/chroma-explorer-<X.Y.Z>-arm64.dmg`,
     `dist/chroma-explorer-<X.Y.Z>-arm64.zip`, `dist/latest-mac.yml`.
 
-3. **Upload release artifacts to Vercel Blob.** The paid website serves the
+3. **Verify the packaged updater feed.** The app sets its updater feed in
+   `electron/auto-updater.ts`, and release metadata should point at the same
+   marketing update feed:
+
+    ```bash
+    rg "https://www.chroma-explorer.com/api/updates" dist-electron
+    ```
+
+    If `dist/mac-arm64/Chroma Explorer.app/Contents/Resources/app-update.yml`
+    is present, confirm it also uses the generic provider URL.
+
+4. **Upload release artifacts to Vercel Blob.** The paid website serves the
    initial DMG from a private Blob path, and the in-app updater reads the public
    generic feed at `https://www.chroma-explorer.com/api/updates`.
 
-    Upload these files to the `releases/` prefix in the production Blob store:
+    From the marketing repo:
 
-    ```text
-    dist/chroma-explorer-<X.Y.Z>-arm64.dmg
-    dist/chroma-explorer-<X.Y.Z>-arm64.zip
-    dist/chroma-explorer-<X.Y.Z>-arm64.zip.blockmap
-    dist/latest-mac.yml
+    ```bash
+    cd ../chroma-explorer-marketing
+    bun run upload:release -- --version <X.Y.Z> --dist ../chroma-explorer/dist
     ```
 
     The production website should point `CHROMA_EXPLORER_BLOB_PATHNAME` at the
     DMG and `CHROMA_EXPLORER_UPDATE_CHANNEL_PATHNAME` at
     `releases/latest-mac.yml`.
 
-4. **Tag and publish to GitHub.** Draft notes from the commits since the
+5. **Tag and publish to GitHub.** Draft notes from the commits since the
    prior tag (`git log v<prev>..HEAD --oneline`). GitHub remains the public
-   changelog/source release, while downloads and app updates are served by the
-   marketing site.
+   changelog/source release. It is also the one-release bridge for existing
+   installed versions: v0.5.1 and earlier still poll GitHub, so this release
+   must include the DMG, ZIP, and `latest-mac.yml`. Once users install this
+   version, future checks use the marketing update feed embedded in
+   `app-update.yml`.
 
     ```bash
     git tag -a v<X.Y.Z> -m "v<X.Y.Z>" && git push origin v<X.Y.Z>
@@ -69,7 +81,7 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     `latest-mac.yml` is required — it's the manifest the in-app autoupdater
     polls.
 
-5. **Sanity check** the release page and try the autoupdater from the
+6. **Sanity check** the release page and try the autoupdater from the
    prior version if possible.
 
 ## Autoupdater behavior
