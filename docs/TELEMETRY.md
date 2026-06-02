@@ -16,11 +16,6 @@ Tracked connection events may include coarse categories only:
 - `chroma_connected.connection_type`: `cloud` or `self-hosted`;
 - `chroma_connected.connection_mode`: `local` or `hosted`.
 
-Tracked API key events may include the provider category only:
-
-- `api_key_added.provider`: for example `openai`, `cohere`, or
-  `chroma-cloud`.
-
 ## Error Reporting
 
 `electron/error-monitoring.ts` owns Sentry initialization for the Electron main
