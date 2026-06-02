@@ -1,5 +1,4 @@
 import { app, BrowserWindow, dialog } from 'electron'
-import { settingsStore } from './settings-store'
 import { openValidatedExternalUrl } from './external-url'
 
 const websiteDownloadUrl = 'https://www.chroma-explorer.com/account'
@@ -11,7 +10,7 @@ function getDialogParent(): BrowserWindow | undefined {
   return BrowserWindow.getAllWindows().find(win => !win.isDestroyed())
 }
 
-async function showNotice(markAsSeen: boolean) {
+async function showNotice() {
   const parentWindow = getDialogParent()
   const options: Electron.MessageBoxOptions = {
     type: 'info',
@@ -27,23 +26,18 @@ async function showNotice(markAsSeen: boolean) {
     ? await dialog.showMessageBox(parentWindow, options)
     : await dialog.showMessageBox(options)
 
-  if (markAsSeen) {
-    settingsStore.setPaidUpdateNoticeShownForVersion(app.getVersion())
-  }
-
   if (result.response === 0) {
     await openValidatedExternalUrl(websiteDownloadUrl)
   }
 }
 
 export async function showPaidUpdateNotice() {
-  await showNotice(false)
+  await showNotice()
 }
 
-export async function showPaidUpdateNoticeOnce() {
+export async function showPaidUpdateNoticeOnStartup() {
   if (!app.isPackaged) return
   if (app.getVersion() !== '0.5.2') return
-  if (settingsStore.getPaidUpdateNoticeShownForVersion() === app.getVersion()) return
 
-  await showNotice(true)
+  await showNotice()
 }

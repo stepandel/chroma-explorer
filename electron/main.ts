@@ -42,7 +42,7 @@ import {
 } from './analytics-events'
 import { configureTransformersCache } from './transformers-cache'
 import { captureMainError, initErrorMonitoring, setErrorMonitoringEnabled } from './error-monitoring'
-import { showPaidUpdateNoticeOnce } from './paid-update-notice'
+import { showPaidUpdateNoticeOnStartup } from './paid-update-notice'
 
 // Inject stored API keys into process.env at startup
 configureTransformersCache()
@@ -690,8 +690,8 @@ app.whenReady().then(() => {
   windowManager.createSetupWindow()
 
   setTimeout(() => {
-    showPaidUpdateNoticeOnce().catch(error => {
-      captureMainError(error, { operation: 'paidUpdateNotice.showOnce' })
+    showPaidUpdateNoticeOnStartup().catch(error => {
+      captureMainError(error, { operation: 'paidUpdateNotice.showOnStartup' })
     })
   }, 1200)
 
