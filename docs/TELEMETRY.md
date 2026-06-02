@@ -11,6 +11,16 @@ Only coarse product events should be tracked. Do not include user document
 contents, collection data, embeddings, metadata values, connection URLs, API
 keys, auth tokens, or provider credentials in event names or properties.
 
+Tracked connection events may include coarse categories only:
+
+- `chroma_connected.connection_type`: `cloud` or `self-hosted`;
+- `chroma_connected.connection_mode`: `local` or `hosted`.
+
+Tracked API key events may include the provider category only:
+
+- `api_key_added.provider`: for example `openai`, `cohere`, or
+  `chroma-cloud`.
+
 ## Error Reporting
 
 `electron/error-monitoring.ts` owns Sentry initialization for the Electron main
