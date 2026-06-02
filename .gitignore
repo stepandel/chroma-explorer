@@ -27,3 +27,6 @@ release/
 
 # Local test ChromaDB persistence
 test-db/
+
+# Local release docs / notes
+RELEASING.md
