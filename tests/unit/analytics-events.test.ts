@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  getAddedApiKeyProviders,
-  getConnectionAnalyticsProperties,
-  isChromaCloudApiKeyAdded,
-} from '../../electron/analytics-events'
+import { getConnectionAnalyticsProperties } from '../../electron/analytics-events'
 import type { ConnectionProfile } from '../../electron/types'
 
 function profile(overrides: Partial<ConnectionProfile>): ConnectionProfile {
@@ -47,25 +43,4 @@ describe('analytics event helpers', () => {
     })
   })
 
-  it('reports newly added settings API key providers once per provider', () => {
-    expect(getAddedApiKeyProviders(
-      { OPENAI_API_KEY: '', COHERE_API_KEY: 'existing' },
-      { OPENAI_API_KEY: 'new-key', COHERE_API_KEY: 'changed', CLOUDFLARE_ACCOUNT_ID: 'account' }
-    )).toEqual(['openai'])
-  })
-
-  it('reports Chroma Cloud API keys only when they are newly added', () => {
-    expect(isChromaCloudApiKeyAdded(undefined, profile({
-      connectionType: 'cloud',
-      apiKey: 'new-key',
-    }))).toBe(true)
-
-    expect(isChromaCloudApiKeyAdded(profile({
-      connectionType: 'cloud',
-      apiKey: 'old-key',
-    }), profile({
-      connectionType: 'cloud',
-      apiKey: 'new-key',
-    }))).toBe(false)
-  })
 })
