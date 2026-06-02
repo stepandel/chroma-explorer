@@ -37,7 +37,7 @@ End-to-end flow for cutting a new GitHub release. Run from the project root.
     `dist/chroma-explorer-<X.Y.Z>-arm64.zip`, `dist/latest-mac.yml`.
 
 3. **Bridge existing users.** Version `0.5.2` is the last GitHub-updated free
-   bridge build. It shows a one-time notice explaining that users can keep using
+   bridge build. It shows a startup notice explaining that users can keep using
    this version for free, or download the new website binary to receive future
    updates.
 
