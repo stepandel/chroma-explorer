@@ -35,6 +35,11 @@ import {
 import { openValidatedExternalUrl } from './external-url'
 import { initAutoUpdater, checkForUpdates } from './auto-updater'
 import { initAnalytics, track } from './analytics'
+import {
+  getAddedApiKeyProviders,
+  getConnectionAnalyticsProperties,
+  isChromaCloudApiKeyAdded,
+} from './analytics-events'
 import { configureTransformersCache } from './transformers-cache'
 import { captureMainError, initErrorMonitoring, setErrorMonitoringEnabled } from './error-monitoring'
 import { showPaidUpdateNoticeOnce } from './paid-update-notice'
@@ -66,7 +71,7 @@ ipcMain.handle('chromadb:connect', async (_event, rawProfileId: unknown, rawProf
     const profileId = parseProfileId(rawProfileId)
     const profile = parseConnectionProfile(rawProfile)
     await chromaDBConnectionPool.connect(profileId, profile)
-    track('chroma_connected')
+    track('chroma_connected', getConnectionAnalyticsProperties(profile))
     return { success: true }
   } catch (error) {
     return reportIpcError(error, 'chromadb.connect', 'Failed to connect to ChromaDB')
@@ -396,7 +401,11 @@ ipcMain.handle('profiles:getAll', async () => {
 ipcMain.handle('profiles:save', async (_event, rawProfile: unknown) => {
   try {
     const profile = parseConnectionProfile(rawProfile)
+    const previousProfile = connectionStore.getProfiles().find((p) => p.id === profile.id)
     connectionStore.saveProfile(profile)
+    if (isChromaCloudApiKeyAdded(previousProfile, profile)) {
+      track('api_key_added', { provider: 'chroma-cloud' })
+    }
     return { success: true }
   } catch (error) {
     return reportIpcError(error, 'profiles.save', 'Failed to save profile')
@@ -578,8 +587,12 @@ ipcMain.handle('settings:getApiKeys', async () => {
 
 ipcMain.handle('settings:setApiKeys', async (_event, rawApiKeys: unknown) => {
   try {
+    const previousApiKeys = settingsStore.getApiKeys()
     const apiKeys: ApiKeys = parseApiKeys(rawApiKeys)
     settingsStore.setApiKeys(apiKeys)
+    for (const provider of getAddedApiKeyProviders(previousApiKeys, apiKeys)) {
+      track('api_key_added', { provider })
+    }
     return { success: true }
   } catch (error) {
     return reportIpcError(error, 'settings.setApiKeys', 'Failed to save API keys')
