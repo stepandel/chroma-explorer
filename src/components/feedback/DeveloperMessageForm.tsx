@@ -26,7 +26,8 @@ export function DeveloperMessageForm() {
   const canSubmit = useMemo(
     () =>
       submissionState !== 'submitting' &&
-      ([useCase, building, missing, email].some((value) => value.trim().length > 0) || openToCall),
+      email.trim().length > 0 &&
+      ([useCase, building, missing].some((value) => value.trim().length > 0) || openToCall),
     [building, email, missing, openToCall, submissionState, useCase]
   )
 
@@ -75,14 +76,12 @@ export function DeveloperMessageForm() {
         },
       ]
 
-      if (email.trim().length > 0) {
-        blocks.unshift({
-          type: 'sender',
-          properties: {
-            email: email.trim(),
-          },
-        })
-      }
+      blocks.unshift({
+        type: 'sender',
+        properties: {
+          email: email.trim(),
+        },
+      })
 
       const response = await fetch(feedbackEndpoint, {
         method: 'POST',
@@ -169,7 +168,7 @@ export function DeveloperMessageForm() {
 
         <div className="space-y-1.5">
           <label htmlFor="developer-message-email" className="text-[11px] font-medium text-muted-foreground">
-            Email for follow-up (optional)
+            Email for follow-up
           </label>
           <input
             id="developer-message-email"
@@ -181,6 +180,7 @@ export function DeveloperMessageForm() {
             }}
             className={fieldClassName}
             placeholder="you@example.com"
+            required
           />
         </div>
 
