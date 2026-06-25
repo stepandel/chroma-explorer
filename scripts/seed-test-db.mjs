@@ -27,13 +27,11 @@ if (authMode === 'token') {
 
 const client = new ChromaClient({ host: 'localhost', port, ssl: false, headers })
 
-const EMBED_DIM = 8
-
-function seededVector(seed) {
+function seededVector(seed, dimension) {
   // Deterministic pseudo-random vector so re-seeds produce stable embeddings.
-  const out = new Array(EMBED_DIM)
+  const out = new Array(dimension)
   let s = seed
-  for (let i = 0; i < EMBED_DIM; i++) {
+  for (let i = 0; i < dimension; i++) {
     s = (s * 9301 + 49297) % 233280
     out[i] = s / 233280 - 0.5
   }
@@ -43,6 +41,7 @@ function seededVector(seed) {
 const collections = [
   {
     name: 'articles',
+    dimension: 8,
     metadata: { description: 'Sample blog articles for explorer testing' },
     docs: [
       { id: 'a1', document: 'Getting started with vector databases.', metadata: { topic: 'intro', words: 5 } },
@@ -54,6 +53,7 @@ const collections = [
   },
   {
     name: 'code_snippets',
+    dimension: 8,
     metadata: { description: 'Code snippets across languages' },
     docs: [
       { id: 'c1', document: 'def hello():\n    print("hi")', metadata: { language: 'python', lines: 2 } },
@@ -61,6 +61,32 @@ const collections = [
       { id: 'c3', document: 'fn main() { println!("hi"); }', metadata: { language: 'rust', lines: 1 } },
       { id: 'c4', document: 'package main\nfunc main() {}', metadata: { language: 'go', lines: 2 } },
       { id: 'c5', document: 'puts "hello"', metadata: { language: 'ruby', lines: 1 } },
+    ],
+  },
+  {
+    name: 'huggingface_384d',
+    dimension: 384,
+    metadata: {
+      description: 'HuggingFace-style 384-dimensional embeddings for URL and dimension testing',
+      embedding_provider: 'huggingface-server',
+      embedding_model: 'sentence-transformers/all-MiniLM-L6-v2',
+    },
+    docs: [
+      {
+        id: 'hf1',
+        document: 'A local HuggingFace embedding server can expose sentence-transformer vectors.',
+        metadata: { provider: 'huggingface-server', model: 'all-MiniLM-L6-v2', dimension: 384 },
+      },
+      {
+        id: 'hf2',
+        document: 'MiniLM embeddings are compact enough for fast document exploration.',
+        metadata: { provider: 'huggingface-server', model: 'all-MiniLM-L6-v2', dimension: 384 },
+      },
+      {
+        id: 'hf3',
+        document: 'This fixture helps verify inferred dimensions in the collection UI.',
+        metadata: { provider: 'huggingface-server', model: 'all-MiniLM-L6-v2', dimension: 384 },
+      },
     ],
   },
 ]
@@ -76,9 +102,9 @@ async function main() {
     const ids = spec.docs.map((d) => d.id)
     const documents = spec.docs.map((d) => d.document)
     const metadatas = spec.docs.map((d) => d.metadata)
-    const embeddings = spec.docs.map((_, idx) => seededVector(seedBase + idx + 1))
+    const embeddings = spec.docs.map((_, idx) => seededVector(seedBase + idx + 1, spec.dimension))
     await col.upsert({ ids, documents, metadatas, embeddings })
-    console.log(`[seed] upserted ${ids.length} docs into "${spec.name}"`)
+    console.log(`[seed] upserted ${ids.length} docs into "${spec.name}" (${spec.dimension}d)`)
   }
 
   console.log('[seed] done')
