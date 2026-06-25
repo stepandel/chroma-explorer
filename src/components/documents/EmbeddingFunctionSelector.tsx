@@ -3,7 +3,16 @@ import { ChevronDown } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Button } from '../ui/button'
 import { Label } from '../ui/label'
-import { EMBEDDING_FUNCTIONS, EMBEDDING_FUNCTION_GROUPS } from '../../constants/embedding-functions'
+import {
+  buildEmbeddingFunctionOverride,
+  EMBEDDING_FUNCTIONS,
+  EMBEDDING_FUNCTION_GROUPS,
+  embeddingFunctionUsesUrl,
+  getEmbeddingFunctionById,
+  getEmbeddingFunctionUrlLabel,
+  getEmbeddingFunctionUrlPlaceholder,
+  validateEmbeddingFunctionUrl,
+} from '../../constants/embedding-functions'
 
 interface EmbeddingFunctionSelectorProps {
   collectionName: string
@@ -83,30 +92,36 @@ export function EmbeddingFunctionSelector({
 }: EmbeddingFunctionSelectorProps) {
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState(() => getSelectedEmbeddingId(currentOverride))
+  const [customUrl, setCustomUrl] = useState(currentOverride?.url || '')
   const [saving, setSaving] = useState(false)
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
-      setSelectedId(getSelectedEmbeddingId(currentOverride))
+      const nextSelectedId = getSelectedEmbeddingId(currentOverride)
+      const nextSelectedEF = getEmbeddingFunctionById(nextSelectedId)
+      setSelectedId(nextSelectedId)
+      setCustomUrl(currentOverride?.url || nextSelectedEF?.url || '')
     }
     setOpen(nextOpen)
   }
 
   const selectedEF = EMBEDDING_FUNCTIONS.find(ef => ef.id === selectedId)
+  const urlError = validateEmbeddingFunctionUrl(selectedEF, customUrl)
 
   const serverFunction = EMBEDDING_FUNCTIONS.find(ef => ef.modelName === serverConfig?.config?.model_name)
 
+  const handleSelectedIdChange = (nextSelectedId: string) => {
+    const nextSelectedEF = getEmbeddingFunctionById(nextSelectedId)
+    setSelectedId(nextSelectedId)
+    setCustomUrl(nextSelectedEF?.url || '')
+  }
+
   const handleSave = async () => {
-    if (!selectedEF) return
+    if (!selectedEF || urlError) return
 
     setSaving(true)
     try {
-      await onSave({
-        type: selectedEF.type,
-        modelName: selectedEF.modelName,
-        url: selectedEF.url,
-        accountId: selectedEF.accountId,
-      })
+      await onSave(buildEmbeddingFunctionOverride(selectedEF, { url: customUrl }))
       setOpen(false)
     } finally {
       setSaving(false)
@@ -166,7 +181,7 @@ export function EmbeddingFunctionSelector({
               <select
                 id="ef-select"
                 value={selectedId}
-                onChange={(e) => setSelectedId(e.target.value)}
+                onChange={(e) => handleSelectedIdChange(e.target.value)}
                 className="w-full h-[22px] appearance-none rounded-[5px] border-none bg-white/10 dark:bg-white/5 pl-2 pr-6 text-[13px] text-foreground shadow-[0_0.5px_1px_rgba(0,0,0,0.1),inset_0_0.5px_0.5px_rgba(255,255,255,0.1)] ring-1 ring-black/10 dark:ring-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-default"
               >
                 <option value="">Select…</option>
@@ -183,6 +198,27 @@ export function EmbeddingFunctionSelector({
               <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground/70" />
             </div>
           </div>
+
+          {embeddingFunctionUsesUrl(selectedEF) && (
+            <div className="px-1 space-y-1.5">
+              <Label htmlFor="ef-url" className="text-[11px] font-normal">
+                {getEmbeddingFunctionUrlLabel(selectedEF)}
+              </Label>
+              <input
+                id="ef-url"
+                type="url"
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+                placeholder={getEmbeddingFunctionUrlPlaceholder(selectedEF)}
+                className={`w-full h-[22px] rounded-[5px] border-none bg-white/10 dark:bg-white/5 px-2 text-[12px] text-foreground placeholder:text-muted-foreground/60 shadow-[0_0.5px_1px_rgba(0,0,0,0.1),inset_0_0.5px_0.5px_rgba(255,255,255,0.1)] ring-1 focus:outline-none focus:ring-2 ${
+                  urlError
+                    ? 'ring-destructive/50 focus:ring-destructive/50'
+                    : 'ring-black/10 dark:ring-white/10 focus:ring-primary/50'
+                }`}
+              />
+              {urlError && <p className="text-[10px] text-destructive">{urlError}</p>}
+            </div>
+          )}
 
           {/* Selected info */}
           {(() => {
@@ -218,6 +254,9 @@ export function EmbeddingFunctionSelector({
                 <p className="text-muted-foreground"><span className="text-foreground/60">Type:</span> {displayEF.type}</p>
                 <p className="text-muted-foreground"><span className="text-foreground/60">Model:</span> {displayEF.modelName}</p>
                 <p className="text-muted-foreground"><span className="text-foreground/60">Dimensions:</span> {displayEF.dimensions ?? 'variable'}</p>
+                {embeddingFunctionUsesUrl(selectedEF) && customUrl.trim() && !urlError && (
+                  <p className="text-muted-foreground break-all"><span className="text-foreground/60">URL:</span> {customUrl.trim()}</p>
+                )}
                 {embeddingDimension && (
                   <p className="text-muted-foreground pt-1 border-t border-black/5 dark:border-white/5 mt-1">
                     <span className="text-foreground/60">Collection:</span> {embeddingDimension}d
@@ -245,7 +284,7 @@ export function EmbeddingFunctionSelector({
             size="sm"
             className="h-7 text-[12px] px-3"
             onClick={handleSave}
-            disabled={!selectedEF || saving}
+            disabled={!selectedEF || saving || Boolean(urlError)}
           >
             {saving ? 'Saving…' : 'Apply'}
           </Button>

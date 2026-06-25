@@ -2,7 +2,11 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 import { useChromaDB } from '../providers/ChromaDBProvider'
 import { useCreateCollectionMutation } from '../hooks/useChromaQueries'
 import { useCollection } from './CollectionContext'
-import { EMBEDDING_FUNCTIONS } from '../constants/embedding-functions'
+import {
+  buildEmbeddingFunctionOverride,
+  EMBEDDING_FUNCTIONS,
+  validateEmbeddingFunctionUrl,
+} from '../constants/embedding-functions'
 import { TypedMetadataRecord, typedMetadataToChromaFormat, validateMetadataValue } from '../types/metadata'
 
 export interface DraftHNSWConfig {
@@ -14,7 +18,7 @@ export interface DraftHNSWConfig {
 export interface DraftCollection {
   name: string
   embeddingFunctionId: string
-  dimensionOverride: string // String to allow empty input for auto
+  embeddingFunctionUrl: string
   hnsw: DraftHNSWConfig
   // Optional first document (metadata here defines the collection's schema)
   firstDocument: {
@@ -52,7 +56,7 @@ function createInitialDraft(): DraftCollection {
   return {
     name: '',
     embeddingFunctionId: DEFAULT_EF.id,
-    dimensionOverride: '',
+    embeddingFunctionUrl: DEFAULT_EF.url || '',
     hnsw: {
       space: 'l2',
       efConstruction: '',
@@ -81,9 +85,11 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
   const startCopyFromCollection = useCallback((collection: CollectionInfo) => {
     // Find matching embedding function from collection's config
     let embeddingFunctionId: string = DEFAULT_EF.id
+    let embeddingFunctionUrl = DEFAULT_EF.url || ''
     if (collection.embeddingFunction) {
-      const efType = collection.embeddingFunction.name === 'openai' ? 'openai' : 'default'
+      const efType = collection.embeddingFunction.name
       const efModelName = collection.embeddingFunction.config?.model_name as string | undefined
+      const efUrl = collection.embeddingFunction.config?.url as string | undefined
 
       // Try to find exact match
       const matchingEf = EMBEDDING_FUNCTIONS.find(
@@ -98,6 +104,9 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
           embeddingFunctionId = typeMatch.id
         }
       }
+
+      const selectedEf = EMBEDDING_FUNCTIONS.find((ef) => ef.id === embeddingFunctionId) || DEFAULT_EF
+      embeddingFunctionUrl = efUrl || selectedEf.url || ''
     }
 
     // Extract HNSW config from collection metadata
@@ -121,7 +130,7 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
     setDraftCollection({
       name: `${collection.name}-copy`,
       embeddingFunctionId,
-      dimensionOverride: '',
+      embeddingFunctionUrl,
       hnsw,
       firstDocument: null,
       sourceCollection: collection,
@@ -139,6 +148,12 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
     if (updates.name !== undefined) {
       setValidationErrors((prev) => {
         const { name, ...rest } = prev
+        return rest
+      })
+    }
+    if (updates.embeddingFunctionUrl !== undefined || updates.embeddingFunctionId !== undefined) {
+      setValidationErrors((prev) => {
+        const { embeddingFunctionUrl, ...rest } = prev
         return rest
       })
     }
@@ -176,23 +191,18 @@ export function DraftCollectionProvider({ children }: DraftCollectionProviderPro
     setIsCreating(true)
     try {
       const selectedEf = EMBEDDING_FUNCTIONS.find((ef) => ef.id === draftCollection.embeddingFunctionId) || DEFAULT_EF
-
-      // Parse dimension override
-      let dimension: number | undefined
-      if (draftCollection.dimensionOverride.trim()) {
-        const parsed = parseInt(draftCollection.dimensionOverride, 10)
-        if (!isNaN(parsed) && parsed > 0) {
-          dimension = parsed
-        }
+      const urlError = validateEmbeddingFunctionUrl(selectedEf, draftCollection.embeddingFunctionUrl)
+      if (urlError) {
+        setValidationErrors({ embeddingFunctionUrl: urlError })
+        return
       }
 
       // Build params
       const params: Parameters<typeof createMutation.mutateAsync>[0] = {
         name: draftCollection.name.trim(),
-        embeddingFunction: {
-          type: selectedEf.type,
-          modelName: selectedEf.modelName,
-        },
+        embeddingFunction: buildEmbeddingFunctionOverride(selectedEf, {
+          url: draftCollection.embeddingFunctionUrl,
+        }),
       }
 
       // Add HNSW config if any non-default values are set
