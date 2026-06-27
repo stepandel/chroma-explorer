@@ -26,6 +26,12 @@ pnpm test:db:seed:token   # against the token server
 pnpm test:db:seed:basic   # against the basic-auth server
 ```
 
+The seed data includes:
+
+- `articles` and `code_snippets` with small 8-dimensional fixture embeddings.
+- `huggingface_384d` with HuggingFace-style 384-dimensional fixture embeddings
+  for testing inferred collection dimensions and custom embedding server URLs.
+
 Stop with `Ctrl+C`.
 
 ## Auth credentials

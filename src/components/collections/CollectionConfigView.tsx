@@ -3,7 +3,16 @@ import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
 import { useDraftCollection, DraftHNSWConfig } from '../../context/DraftCollectionContext'
 import { useChromaDB } from '../../providers/ChromaDBProvider'
 import { useCollection } from '../../context/CollectionContext'
-import { EMBEDDING_FUNCTIONS, EMBEDDING_FUNCTION_GROUPS, getEmbeddingFunctionById } from '../../constants/embedding-functions'
+import {
+  buildEmbeddingFunctionOverride,
+  EMBEDDING_FUNCTIONS,
+  EMBEDDING_FUNCTION_GROUPS,
+  embeddingFunctionUsesUrl,
+  getEmbeddingFunctionById,
+  getEmbeddingFunctionUrlLabel,
+  getEmbeddingFunctionUrlPlaceholder,
+  validateEmbeddingFunctionUrl,
+} from '../../constants/embedding-functions'
 import { MetadataValueType, validateMetadataValue } from '../../types/metadata'
 import { CopyProgressDialog } from './CopyProgressDialog'
 
@@ -29,19 +38,19 @@ export function CollectionConfigView() {
   })
 
   const selectedEf = draftCollection ? getEmbeddingFunctionById(draftCollection.embeddingFunctionId) : EMBEDDING_FUNCTIONS[0]
+  const embeddingFunctionUrlError = draftCollection && selectedEf
+    ? validateEmbeddingFunctionUrl(selectedEf, draftCollection.embeddingFunctionUrl)
+    : null
+  const dimensionsLabel = selectedEf?.dimensions ? `${selectedEf.dimensions}d` : 'Inferred from first embedding'
 
   // Handle embedding function change - auto-populate dimension
   const handleEfChange = useCallback(
     (efId: string) => {
-      updateDraft({ embeddingFunctionId: efId, dimensionOverride: '' })
-    },
-    [updateDraft]
-  )
-
-  // Handle dimension override change
-  const handleDimensionChange = useCallback(
-    (value: string) => {
-      updateDraft({ dimensionOverride: value })
+      const nextEf = getEmbeddingFunctionById(efId)
+      updateDraft({
+        embeddingFunctionId: efId,
+        embeddingFunctionUrl: nextEf?.url || '',
+      })
     },
     [updateDraft]
   )
@@ -70,13 +79,16 @@ export function CollectionConfigView() {
     if (!draftCollection?.sourceCollection) return false
 
     const source = draftCollection.sourceCollection
-    const sourceType = source.embeddingFunction?.name === 'openai' ? 'openai' : 'default'
+    const sourceType = source.embeddingFunction?.name ?? 'default'
     const sourceModel = source.embeddingFunction?.config?.model_name as string | undefined
+    const sourceUrl = source.embeddingFunction?.config?.url as string | undefined
 
     const draftEf = getEmbeddingFunctionById(draftCollection.embeddingFunctionId)
+    const draftUrl = draftCollection.embeddingFunctionUrl.trim() || draftEf?.url
 
     if (draftEf?.type !== sourceType) return true
-    if (draftEf?.type === 'openai' && draftEf?.modelName !== sourceModel) return true
+    if (sourceModel && draftEf?.modelName !== sourceModel) return true
+    if (draftUrl !== sourceUrl) return true
 
     return false
   }, [draftCollection])
@@ -88,6 +100,11 @@ export function CollectionConfigView() {
     const errors: Record<string, string> = {}
     if (!draftCollection.name.trim()) {
       errors.name = 'Collection name is required'
+    }
+    const draftEf = getEmbeddingFunctionById(draftCollection.embeddingFunctionId)
+    const urlError = validateEmbeddingFunctionUrl(draftEf, draftCollection.embeddingFunctionUrl)
+    if (urlError) {
+      errors.embeddingFunctionUrl = urlError
     }
 
     if (Object.keys(errors).length > 0) {
@@ -132,10 +149,9 @@ export function CollectionConfigView() {
       const result = await window.electronAPI.chromadb.copyCollection(currentProfile.id, {
         sourceCollectionName: draftCollection.sourceCollection.name,
         targetName: draftCollection.name.trim(),
-        embeddingFunction: draftEf ? {
-          type: draftEf.type,
-          modelName: draftEf.modelName,
-        } : undefined,
+        embeddingFunction: draftEf
+          ? buildEmbeddingFunctionOverride(draftEf, { url: draftCollection.embeddingFunctionUrl })
+          : undefined,
         hnsw: Object.keys(hnswConfig).length > 0 ? hnswConfig : undefined,
         regenerateEmbeddings: needsEmbeddingRegeneration(),
       })
@@ -283,22 +299,40 @@ export function CollectionConfigView() {
           {selectedEf && <p className="text-[10px] text-muted-foreground">{selectedEf.modelName}</p>}
         </div>
 
-        {/* Dimension Input */}
+        {embeddingFunctionUsesUrl(selectedEf) && (
+          <div className="space-y-1">
+            <label htmlFor="ef-url" className="text-[11px] font-medium text-muted-foreground">
+              {getEmbeddingFunctionUrlLabel(selectedEf)}
+            </label>
+            <input
+              id="ef-url"
+              type="url"
+              value={draftCollection.embeddingFunctionUrl}
+              onChange={(e) => updateDraft({ embeddingFunctionUrl: e.target.value })}
+              placeholder={getEmbeddingFunctionUrlPlaceholder(selectedEf)}
+              className={`${inputClassName} ${embeddingFunctionUrlError ? 'border-destructive' : ''}`}
+              style={inputStyle}
+            />
+            {embeddingFunctionUrlError ? (
+              <p className="text-[10px] text-destructive">{embeddingFunctionUrlError}</p>
+            ) : (
+              <p className="text-[10px] text-muted-foreground">
+                Used by the client when generating embeddings.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Dimension Info */}
         <div className="space-y-1">
-          <label htmlFor="dimension" className="text-[11px] font-medium text-muted-foreground">
-            Dimension
-          </label>
-          <input
-            id="dimension"
-            type="number"
-            value={draftCollection.dimensionOverride || ''}
-            onChange={(e) => handleDimensionChange(e.target.value)}
-            placeholder={selectedEf?.dimensions?.toString() || 'auto'}
-            className={inputClassName}
-            style={inputStyle}
-          />
+          <span className="text-[11px] font-medium text-muted-foreground">
+            Dimensions
+          </span>
+          <p className="h-6 flex items-center text-[11px] px-1.5 rounded-md bg-muted/40 text-foreground/70">
+            {dimensionsLabel}
+          </p>
           <p className="text-[10px] text-muted-foreground">
-            Default: {selectedEf?.dimensions ?? 'auto'}
+            Chroma sets the collection dimension from generated embeddings.
           </p>
         </div>
 
@@ -586,7 +620,7 @@ export function CollectionConfigView() {
             <button
               type="button"
               onClick={handleCopyCollection}
-              disabled={isCopying || !draftCollection.name.trim()}
+              disabled={isCopying || !draftCollection.name.trim() || Boolean(embeddingFunctionUrlError)}
               className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCopying ? 'Copying…' : 'Copy Collection'}
@@ -595,7 +629,7 @@ export function CollectionConfigView() {
             <button
               type="button"
               onClick={saveDraft}
-              disabled={isCreating || !draftCollection.name.trim()}
+              disabled={isCreating || !draftCollection.name.trim() || Boolean(embeddingFunctionUrlError)}
               className="h-6 px-2 text-[11px] rounded-md bg-[#007AFF] hover:bg-[#0071E3] active:bg-[#006DD9] text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCreating ? 'Creating…' : 'Create'}

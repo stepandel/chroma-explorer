@@ -1,3 +1,5 @@
+import type { EmbeddingFunctionOverride } from '../types/electron'
+
 export type EmbeddingFunctionType =
   | 'default'
   | 'openai'
@@ -23,6 +25,59 @@ export interface EmbeddingFunctionConfig {
   url?: string // For Ollama, HuggingFace Server
   accountId?: string // For Cloudflare Workers AI
   group: string // For UI grouping
+}
+
+export function embeddingFunctionUsesUrl(ef: Pick<EmbeddingFunctionConfig, 'type'> | undefined): boolean {
+  return ef?.type === 'ollama' || ef?.type === 'huggingface-server'
+}
+
+export function embeddingFunctionRequiresUrl(ef: Pick<EmbeddingFunctionConfig, 'type'> | undefined): boolean {
+  return ef?.type === 'huggingface-server'
+}
+
+export function getEmbeddingFunctionUrlLabel(ef: Pick<EmbeddingFunctionConfig, 'type'> | undefined): string {
+  return ef?.type === 'huggingface-server' ? 'Server URL' : 'URL'
+}
+
+export function getEmbeddingFunctionUrlPlaceholder(ef: Pick<EmbeddingFunctionConfig, 'type'> | undefined): string {
+  return ef?.type === 'huggingface-server' ? 'https://your-embedding-server.example.com' : 'http://localhost:11434'
+}
+
+export function validateEmbeddingFunctionUrl(
+  ef: Pick<EmbeddingFunctionConfig, 'type'> | undefined,
+  value: string
+): string | null {
+  if (!embeddingFunctionUsesUrl(ef)) return null
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return embeddingFunctionRequiresUrl(ef) ? `${getEmbeddingFunctionUrlLabel(ef)} is required` : null
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return `${getEmbeddingFunctionUrlLabel(ef)} must use http or https`
+    }
+  } catch {
+    return `${getEmbeddingFunctionUrlLabel(ef)} must be a valid URL`
+  }
+
+  return null
+}
+
+export function buildEmbeddingFunctionOverride(
+  ef: EmbeddingFunctionConfig,
+  options: { url?: string } = {}
+): EmbeddingFunctionOverride {
+  const url = options.url?.trim() || ef.url
+
+  return {
+    type: ef.type,
+    modelName: ef.modelName,
+    url: url || undefined,
+    accountId: ef.accountId,
+  }
 }
 
 export const EMBEDDING_FUNCTIONS: EmbeddingFunctionConfig[] = [
